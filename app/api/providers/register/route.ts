@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { address, name, description, chain, agent, website, twitter } = body;
+    const { address, name, description, bio, avatar, chain, agent, website, twitter, farcaster, github } = body;
 
     if (!address || !name) {
       return NextResponse.json(
@@ -23,15 +23,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (bio && bio.length > 280) {
+      return NextResponse.json(
+        { error: "Bio must be 280 characters or less" },
+        { status: 400 }
+      );
+    }
+
     const provider = registerProvider({
       address,
       name,
       description: description || "",
+      bio,
+      avatar,
       registeredAt: new Date().toISOString(),
       chain: chain || "base",
       agent,
       website,
       twitter,
+      farcaster,
+      github,
     });
 
     return NextResponse.json({ provider, status: "registered" });

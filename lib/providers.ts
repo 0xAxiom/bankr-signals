@@ -9,11 +9,15 @@ export interface RegisteredProvider {
   address: string;
   name: string;
   description: string;
+  bio?: string; // short bio (max 280 chars)
+  avatar?: string; // URL to avatar image
   registeredAt: string;
   chain: string;
   agent?: string; // agent platform (openclaw, bankr, etc.)
   website?: string;
-  twitter?: string;
+  twitter?: string; // handle without @
+  farcaster?: string; // handle without @
+  github?: string; // handle without /
 }
 
 export interface PublishedSignal {

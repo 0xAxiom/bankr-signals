@@ -1,4 +1,5 @@
 import { getProviderStats } from "@/lib/signals";
+import { getProvider } from "@/lib/providers";
 import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 
@@ -10,15 +11,52 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
   const p = providers.find(pr => pr.address.toLowerCase() === address.toLowerCase());
   if (!p) return notFound();
 
+  const profile = getProvider(address);
+
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-8">
-        <h1 className="text-xl font-semibold">{p.name}</h1>
-        <div className="text-xs font-mono text-[#737373] mt-1 truncate">
-          <a href={`https://basescan.org/address/${p.address}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
-            <span className="sm:hidden">{p.address.slice(0, 16)}…{p.address.slice(-8)}</span>
-            <span className="hidden sm:inline">{p.address}</span>
-          </a>
+        <div className="flex items-start gap-4">
+          {profile?.avatar && (
+            <img src={profile.avatar} alt={p.name} className="w-12 h-12 rounded-full border border-[#2a2a2a]" />
+          )}
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold">{p.name}</h1>
+            {profile?.bio && (
+              <p className="text-sm text-[#737373] mt-1 max-w-lg">{profile.bio}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <a href={`https://basescan.org/address/${p.address}`} target="_blank" rel="noopener" className="text-xs font-mono text-[#737373] hover:text-[rgba(34,197,94,0.6)] transition-colors truncate">
+                <span className="sm:hidden">{p.address.slice(0, 10)}…{p.address.slice(-6)}</span>
+                <span className="hidden sm:inline">{p.address}</span>
+              </a>
+              {profile?.twitter && (
+                <a href={`https://x.com/${profile.twitter}`} target="_blank" rel="noopener" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+                  @{profile.twitter}
+                </a>
+              )}
+              {profile?.farcaster && (
+                <a href={`https://warpcast.com/${profile.farcaster}`} target="_blank" rel="noopener" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+                  /{profile.farcaster}
+                </a>
+              )}
+              {profile?.github && (
+                <a href={`https://github.com/${profile.github}`} target="_blank" rel="noopener" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+                  gh/{profile.github}
+                </a>
+              )}
+              {profile?.website && (
+                <a href={profile.website} target="_blank" rel="noopener" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+                  {profile.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+              {profile?.agent && (
+                <span className="text-[10px] font-mono text-[#737373] bg-[#1a1a1a] border border-[#2a2a2a] px-2 py-0.5 rounded">
+                  {profile.agent}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
