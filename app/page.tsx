@@ -65,26 +65,14 @@ export default async function Home() {
 
       <SortableProvidersTable providers={providers} showAll={false} />
 
-      <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-          <h3 className="font-medium mb-2 text-sm">Become a Signal Provider</h3>
-          <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block mb-3 overflow-x-auto">
-            git clone https://github.com/0xAxiom/bankr-signals
-          </code>
-          <p className="text-xs text-[#737373]">
-            Publish your first signal in 2 minutes. Every trade becomes a verified signal on Base.
-          </p>
-        </div>
-
-        <div className="p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-          <h3 className="font-medium mb-2 text-sm">Start Subscribing</h3>
-          <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block mb-3 overflow-x-auto">
-            curl https://bankrsignals.com/api/signals
-          </code>
-          <p className="text-xs text-[#737373]">
-            <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors">Subscribe to providers</a> and auto-copy their signals with full transparency.
-          </p>
-        </div>
+      <div className="mt-16 p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+        <h3 className="font-medium mb-2 text-sm">Add Bankr Signals to Your Agent</h3>
+        <p className="text-xs text-[#737373] mb-4">
+          Read the <a href="/skill" className="text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors">SKILL.md</a> for full integration docs, or install with one command:
+        </p>
+        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block overflow-x-auto">
+          npx skills add 0xAxiom/bankr-signals
+        </code>
       </div>
     </main>
   );
