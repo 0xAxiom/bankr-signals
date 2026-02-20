@@ -1,4 +1,5 @@
 import { getProviderStats } from "@/lib/signals";
+import { LiveTicker, AggregateEquityCurve, HowItWorks, SortableProvidersTable } from "./components";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,17 @@ export default async function Home() {
   const avgWinRate = providers.length > 0
     ? Math.round(providers.reduce((s, p) => s + p.win_rate, 0) / providers.length)
     : 0;
+  
+  // Get latest trades for live ticker
+  const allTrades = providers.flatMap(p =>
+    p.trades.map(t => ({ ...t, providerName: p.name, providerAddress: p.address }))
+  ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-16">
+      {/* Live Ticker */}
+      <LiveTicker trades={allTrades} />
+
       <div className="mb-16">
         <h1 className="text-3xl font-semibold tracking-tight mb-3">
           Your trades. Their alpha.<br />
@@ -32,12 +41,20 @@ export default async function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-8 mb-16 pb-8 border-b border-[#2a2a2a]">
+      <div className="grid grid-cols-4 gap-8 mb-12 pb-8 border-b border-[#2a2a2a]">
         <Stat label="Providers" value={String(providers.length)} />
         <Stat label="Signals Published" value={totalSignals.toLocaleString()} />
         <Stat label="Active Subscribers" value={totalSubs.toLocaleString()} />
         <Stat label="Avg Win Rate" value={`${avgWinRate}%`} />
       </div>
+
+      {/* Aggregate Equity Curve */}
+      <div className="mb-12">
+        <AggregateEquityCurve providers={providers} />
+      </div>
+
+      {/* How It Works */}
+      <HowItWorks />
 
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Top Providers</h2>
@@ -46,51 +63,28 @@ export default async function Home() {
         </a>
       </div>
 
-      <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2a2a] text-[#737373] text-xs">
-              <th className="text-left px-4 py-3 font-medium">#</th>
-              <th className="text-left px-4 py-3 font-medium">Provider</th>
-              <th className="text-right px-4 py-3 font-medium">PnL</th>
-              <th className="text-right px-4 py-3 font-medium">Win%</th>
-              <th className="text-right px-4 py-3 font-medium">Signals</th>
-              <th className="text-right px-4 py-3 font-medium">Subs</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers
-              .sort((a, b) => b.pnl_pct - a.pnl_pct)
-              .slice(0, 5)
-              .map((p, i) => (
-                <tr key={p.address} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a] transition-colors">
-                  <td className="px-4 py-3 font-mono text-[#737373]">{i + 1}</td>
-                  <td className="px-4 py-3">
-                    <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
-                      <span className="font-medium">{p.name}</span>
-                      <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>
-                    </a>
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono ${p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                    {p.pnl_pct >= 0 ? "+" : ""}{p.pnl_pct.toFixed(1)}%
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono">{p.win_rate}%</td>
-                  <td className="px-4 py-3 text-right font-mono text-[#737373]">{p.signal_count}</td>
-                  <td className="px-4 py-3 text-right font-mono text-[#737373]">{p.subscriber_count}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+      <SortableProvidersTable providers={providers} showAll={false} />
 
-      <div className="mt-16 p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-        <h3 className="font-medium mb-2 text-sm">Become a signal provider</h3>
-        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block">
-          git clone https://github.com/0xAxiom/bankr-signals
-        </code>
-        <p className="text-xs text-[#737373] mt-3">
-          Publish your first signal in 2 minutes. Every trade you make becomes a verified signal on Base.
-        </p>
+      <div className="mt-16 grid grid-cols-2 gap-6">
+        <div className="p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+          <h3 className="font-medium mb-2 text-sm">Become a Signal Provider</h3>
+          <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block mb-3">
+            git clone https://github.com/0xAxiom/bankr-signals
+          </code>
+          <p className="text-xs text-[#737373]">
+            Publish your first signal in 2 minutes. Every trade becomes a verified signal on Base.
+          </p>
+        </div>
+
+        <div className="p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+          <h3 className="font-medium mb-2 text-sm">Start Subscribing</h3>
+          <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block mb-3">
+            curl https://bankrsignals.com/api/signals
+          </code>
+          <p className="text-xs text-[#737373]">
+            <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors">Subscribe to providers</a> and auto-copy their signals with full transparency.
+          </p>
+        </div>
       </div>
     </main>
   );
