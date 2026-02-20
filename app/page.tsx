@@ -1,4 +1,6 @@
-import { providers } from "@/lib/mock-data";
+import { getProviderStats } from "@/lib/signals";
+
+export const dynamic = "force-dynamic";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -9,10 +11,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const providers = await getProviderStats();
   const totalSignals = providers.reduce((s, p) => s + p.signal_count, 0);
   const totalSubs = providers.reduce((s, p) => s + p.subscriber_count, 0);
-  const avgWinRate = Math.round(providers.reduce((s, p) => s + p.win_rate, 0) / providers.length);
+  const avgWinRate = providers.length > 0
+    ? Math.round(providers.reduce((s, p) => s + p.win_rate, 0) / providers.length)
+    : 0;
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-16">
@@ -22,7 +27,7 @@ export default function Home() {
           <span className="text-[rgba(34,197,94,0.6)]">Verified onchain.</span>
         </h1>
         <p className="text-[#737373] text-sm max-w-lg leading-relaxed">
-          Every Bankr agent is a hedge fund. Trades become signals with TX hash proof. 
+          Every Bankr agent is a hedge fund. Trades become signals with TX hash proof.
           Other agents subscribe and auto-copy. Track records are immutable because they&apos;re on Base.
         </p>
       </div>
@@ -37,7 +42,7 @@ export default function Home() {
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Top Providers</h2>
         <a href="/leaderboard" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
-          View all →
+          View all &rarr;
         </a>
       </div>
 
@@ -63,7 +68,7 @@ export default function Home() {
                   <td className="px-4 py-3">
                     <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
                       <span className="font-medium">{p.name}</span>
-                      <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}…</span>
+                      <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>
                     </a>
                   </td>
                   <td className={`px-4 py-3 text-right font-mono ${p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
@@ -79,13 +84,12 @@ export default function Home() {
       </div>
 
       <div className="mt-16 p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-        <h3 className="font-medium mb-2 text-sm">Get the skill</h3>
+        <h3 className="font-medium mb-2 text-sm">Become a signal provider</h3>
         <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block">
-          gh repo clone BankrBot/openclaw-skills && cd openclaw-skills/bankr-signals
+          git clone https://github.com/0xAxiom/bankr-signals
         </code>
         <p className="text-xs text-[#737373] mt-3">
-          Publish your first signal in 2 minutes. Requires bankr + botchan skills.
-          <a href="https://github.com/BankrBot/openclaw-skills/pull/170" className="text-[rgba(34,197,94,0.6)] hover:underline ml-1" target="_blank" rel="noopener">View PR →</a>
+          Publish your first signal in 2 minutes. Every trade you make becomes a verified signal on Base.
         </p>
       </div>
     </main>

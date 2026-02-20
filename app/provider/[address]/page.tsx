@@ -1,13 +1,12 @@
-import { getProvider, providers } from "@/lib/mock-data";
+import { getProviderStats } from "@/lib/signals";
 import { notFound } from "next/navigation";
 
-export function generateStaticParams() {
-  return providers.map(p => ({ address: p.address }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function ProviderPage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
-  const p = getProvider(address);
+  const providers = await getProviderStats();
+  const p = providers.find(pr => pr.address.toLowerCase() === address.toLowerCase());
   if (!p) return notFound();
 
   return (
@@ -36,16 +35,16 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Recent Signals</h2>
+        <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Recent Trades</h2>
         <div className="text-xs text-[#737373]">
-          Streak: <span className={p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : ""}>{p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "—"}</span>
+          Streak: <span className={p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : ""}>{p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "-"}</span>
           {" · "}Avg return: <span className="font-mono">{p.avg_return >= 0 ? "+" : ""}{p.avg_return.toFixed(1)}%</span>
         </div>
       </div>
 
-      {p.signals.length === 0 ? (
+      {p.trades.length === 0 ? (
         <div className="border border-[#2a2a2a] rounded-lg p-8 text-center text-[#737373] text-sm">
-          No signal history available yet.
+          No trade history available yet.
         </div>
       ) : (
         <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
@@ -55,32 +54,45 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
                 <th className="text-left px-4 py-3 font-medium">Action</th>
                 <th className="text-left px-4 py-3 font-medium">Token</th>
                 <th className="text-right px-4 py-3 font-medium">Entry</th>
-                <th className="text-right px-4 py-3 font-medium">Size</th>
+                <th className="text-right px-4 py-3 font-medium">Leverage</th>
                 <th className="text-right px-4 py-3 font-medium">PnL</th>
+                <th className="text-right px-4 py-3 font-medium">Status</th>
                 <th className="text-right px-4 py-3 font-medium">TX</th>
               </tr>
             </thead>
             <tbody>
-              {p.signals.map((s, i) => (
-                <tr key={i} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a]">
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${s.signal.action === "BUY" ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]" : "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]"}`}>
-                      {s.signal.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono">{s.signal.token}</td>
-                  <td className="px-4 py-3 text-right font-mono">${s.signal.entry_price.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-mono text-[#737373]">{s.signal.amount_pct}%</td>
-                  <td className={`px-4 py-3 text-right font-mono ${!s.outcome || s.outcome.status === "open" ? "text-[#737373]" : s.outcome.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                    {!s.outcome ? "—" : s.outcome.status === "open" ? "OPEN" : `${s.outcome.pnl_pct >= 0 ? "+" : ""}${s.outcome.pnl_pct.toFixed(1)}%`}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
-                    <a href={`https://basescan.org/tx/${s.proof.tx_hash}`} target="_blank" rel="noopener" className="hover:text-[#e5e5e5]">
-                      {s.proof.tx_hash.slice(0, 10)}…
-                    </a>
-                  </td>
-                </tr>
-              ))}
+              {p.trades.map((t, i) => {
+                const isBuy = t.action === "BUY" || t.action === "LONG";
+                return (
+                  <tr key={i} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a]">
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isBuy ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]" : "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]"}`}>
+                        {t.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono">{t.token}</td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {t.entryPrice ? `$${t.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-[#737373]">
+                      {t.leverage ? `${t.leverage}x` : "-"}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono ${!t.pnl ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
+                      {t.pnl !== undefined ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
+                      {t.status.toUpperCase()}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
+                      {t.txHash ? (
+                        <a href={`https://basescan.org/tx/${t.txHash}`} target="_blank" rel="noopener" className="hover:text-[#e5e5e5]">
+                          {t.txHash.slice(0, 10)}...
+                        </a>
+                      ) : "-"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

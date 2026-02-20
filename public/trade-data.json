@@ -26,7 +26,7 @@
   {
     "timestamp": "2026-02-19T06:06:06Z",
     "prompt": "show my Avantis positions",
-    "response": "you have one open position on avantis.\n\nETH/USD Long\n\u2022 collateral: 24.95 USDC\n\u2022 leverage: 5.00x\n\u2022 entry price: $1,968.11\n\u2022 current price: $1,973.88\n\u2022 pnl: +$0.37 (+1.47%)\n\u2022 liquidation: $1,633.61\n\u2022 tp/sl: $2,026.73 / $1,948.02",
+    "response": "you have one open position on avantis.\n\nETH/USD Long\n• collateral: 24.95 USDC\n• leverage: 5.00x\n• entry price: $1,968.11\n• current price: $1,973.88\n• pnl: +$0.37 (+1.47%)\n• liquidation: $1,633.61\n• tp/sl: $2,026.73 / $1,948.02",
     "jobId": "job_WPVBZHYXTCWJ9JSV",
     "processingTime": 50715,
     "txCount": 0
@@ -221,8 +221,8 @@
         "signal": "SHORT",
         "confidence": 0.7,
         "entry": 197.17,
-        "sl": 198.0,
-        "tp": 195.0
+        "sl": 198,
+        "tp": 195
       }
     },
     "trades_executed": {
@@ -355,7 +355,7 @@
   {
     "timestamp": "2026-02-20T01:05:08Z",
     "prompt": "show my Avantis positions",
-    "response": "you have one open position on avantis:\n\neth/usd long\n\u2022 collateral: 99.786250 usdc\n\u2022 leverage: 5.00x\n\u2022 entry price: $1,954.4213273905\n\u2022 current price: $1,958.52526521\n\u2022 pnl: +1.047667 usdc (1.05%)\n\u2022 take profit: $11,726.527964343\n\u2022 stop loss: $1,934.8771141166\n\u2022 liquidation price: $1,622.1974414972\n\nthe position was opened on 2/20/2026, 12:14:49 am.",
+    "response": "you have one open position on avantis:\n\neth/usd long\n• collateral: 99.786250 usdc\n• leverage: 5.00x\n• entry price: $1,954.4213273905\n• current price: $1,958.52526521\n• pnl: +1.047667 usdc (1.05%)\n• take profit: $11,726.527964343\n• stop loss: $1,934.8771141166\n• liquidation price: $1,622.1974414972\n\nthe position was opened on 2/20/2026, 12:14:49 am.",
     "jobId": "job_J59DBLARKSU8JGWR",
     "processingTime": 22725,
     "txCount": 0
@@ -424,7 +424,7 @@
   {
     "timestamp": "2026-02-20T06:06:37Z",
     "prompt": "show my Avantis positions",
-    "response": "you have 1 open position on avantis.\n\neth/usd long\n\u2022 collateral: 99.79 usdc\n\u2022 leverage: 5.00x\n\u2022 entry: $1,954.42\n\u2022 current: $1,956.27\n\u2022 pnl: +0.47 usdc (+0.47%)\n\u2022 liq price: $1,622.37\n\u2022 tp/sl: $2,247.00 / $1,856.00",
+    "response": "you have 1 open position on avantis.\n\neth/usd long\n• collateral: 99.79 usdc\n• leverage: 5.00x\n• entry: $1,954.42\n• current: $1,956.27\n• pnl: +0.47 usdc (+0.47%)\n• liq price: $1,622.37\n• tp/sl: $2,247.00 / $1,856.00",
     "jobId": "job_7YSDJGXK4P7XJ6FT",
     "processingTime": 16619,
     "txCount": 0
