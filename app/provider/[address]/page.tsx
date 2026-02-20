@@ -18,7 +18,11 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
       <div className="mb-8">
         <div className="flex items-start gap-4">
           {profile?.avatar && (
-            <img src={profile.avatar} alt={p.name} className="w-12 h-12 rounded-full border border-[#2a2a2a]" />
+            <img
+              src={profile.avatar.startsWith("/") ? profile.avatar : `/api/avatar?url=${encodeURIComponent(profile.avatar)}`}
+              alt={p.name}
+              className="w-12 h-12 rounded-full border border-[#2a2a2a] object-cover"
+            />
           )}
           <div className="min-w-0">
             <h1 className="text-xl font-semibold">{p.name}</h1>
