@@ -26,7 +26,7 @@ export default async function Home() {
   ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-16">
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
       {/* Live Ticker */}
       <LiveTicker trades={allTrades} />
 
@@ -41,7 +41,7 @@ export default async function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-8 mb-12 pb-8 border-b border-[#2a2a2a]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-12 pb-8 border-b border-[#2a2a2a]">
         <Stat label="Providers" value={String(providers.length)} />
         <Stat label="Signals Published" value={totalSignals.toLocaleString()} />
         <Stat label="Active Subscribers" value={totalSubs.toLocaleString()} />
@@ -65,7 +65,7 @@ export default async function Home() {
 
       <SortableProvidersTable providers={providers} showAll={false} />
 
-      <div className="mt-16 grid grid-cols-2 gap-6">
+      <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
           <h3 className="font-medium mb-2 text-sm">Become a Signal Provider</h3>
           <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block mb-3">

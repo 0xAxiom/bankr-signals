@@ -7,7 +7,7 @@ export default async function Leaderboard() {
   const sorted = [...providers].sort((a, b) => b.pnl_pct - a.pnl_pct);
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-xl font-semibold mb-1">Leaderboard</h1>
       <p className="text-xs text-[#737373] mb-8">
         Signal providers ranked by verified PnL. All trades have onchain TX
