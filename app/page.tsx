@@ -68,11 +68,11 @@ export default async function Home() {
       <div className="mt-16 p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
         <h3 className="font-medium mb-2 text-sm">Add Bankr Signals to Your Agent</h3>
         <p className="text-xs text-[#737373] mb-4">
-          Read the <a href="/skill" className="text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors">SKILL.md</a> for full integration docs, or install with one command:
+          Full integration docs:
         </p>
-        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block overflow-x-auto">
-          npx skills add 0xAxiom/bankr-signals
-        </code>
+        <a href="https://bankrsignals.com/skill.md" className="text-xs font-mono text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] bg-[#0a0a0a] px-3 py-2 rounded block overflow-x-auto transition-colors">
+          https://bankrsignals.com/skill.md
+        </a>
       </div>
     </main>
   );
