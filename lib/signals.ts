@@ -47,33 +47,107 @@ export interface ProviderStats {
   trades: ParsedTrade[];
 }
 
-const COINGECKO_IDS: Record<string, string> = {
-  ETH: "ethereum",
-  BTC: "bitcoin",
-  SOL: "solana",
-  LINK: "chainlink",
-  AAVE: "aave",
+// Chainlink Price Feed addresses on Base mainnet
+// AggregatorV3Interface: latestRoundData() returns (roundId, answer, startedAt, updatedAt, answeredInRound)
+const CHAINLINK_FEEDS: Record<string, { address: string; decimals: number }> = {
+  ETH:  { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
+  BTC:  { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  LINK: { address: "0x17CAb8FE31cA45e0a5a2Ed8b7101F8445BE8e289", decimals: 8 },
+  AAVE: { address: "0x6Ce185860a4963106506C203335A2910413708e9", decimals: 8 },
+  SOL:  { address: "0x975043adBb80fc32276CbF9Bbcfd4A601a12462D", decimals: 8 },
 };
+
+// latestRoundData() selector
+const LATEST_ROUND_DATA_SIG = "0xfeaf968c";
+
+const INFURA_RPC = `https://base-mainnet.infura.io/v3/${process.env.INFURA_API_KEY || ""}`;
 
 let priceCache: { prices: Record<string, number>; fetchedAt: number } = {
   prices: {},
   fetchedAt: 0,
 };
 
+async function fetchChainlinkPrice(
+  feedAddress: string,
+  decimals: number,
+  rpcUrl: string
+): Promise<number | null> {
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "eth_call",
+        params: [{ to: feedAddress, data: LATEST_ROUND_DATA_SIG }, "latest"],
+        id: 1,
+      }),
+    });
+    const data = await res.json();
+    if (!data.result || data.result === "0x") return null;
+    // latestRoundData returns 5 uint256s, answer is at offset 32 (2nd value)
+    const hex = data.result.slice(2); // remove 0x
+    const answerHex = hex.slice(64, 128); // 2nd 32-byte word
+    const answer = BigInt("0x" + answerHex);
+    return Number(answer) / Math.pow(10, decimals);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchPrices(): Promise<Record<string, number>> {
   const now = Date.now();
   if (now - priceCache.fetchedAt < 60_000 && Object.keys(priceCache.prices).length > 0) {
     return priceCache.prices;
   }
+
+  const rpcUrl = INFURA_RPC;
+  if (!process.env.INFURA_API_KEY) {
+    // Fallback: try CoinGecko if no Infura key configured
+    return fetchPricesCoinGecko();
+  }
+
   try {
-    const ids = Object.values(COINGECKO_IDS).join(",");
+    const entries = Object.entries(CHAINLINK_FEEDS);
+    const results = await Promise.all(
+      entries.map(([symbol, feed]) =>
+        fetchChainlinkPrice(feed.address, feed.decimals, rpcUrl).then((price) => [symbol, price] as const)
+      )
+    );
+
+    const prices: Record<string, number> = {};
+    for (const [symbol, price] of results) {
+      if (price && price > 0) prices[symbol] = price;
+    }
+
+    if (Object.keys(prices).length > 0) {
+      priceCache = { prices, fetchedAt: now };
+      return prices;
+    }
+
+    // If all Chainlink calls failed, fall back to CoinGecko
+    return fetchPricesCoinGecko();
+  } catch {
+    return fetchPricesCoinGecko();
+  }
+}
+
+// CoinGecko fallback (rate-limited, used only when Infura unavailable)
+async function fetchPricesCoinGecko(): Promise<Record<string, number>> {
+  const now = Date.now();
+  if (now - priceCache.fetchedAt < 60_000 && Object.keys(priceCache.prices).length > 0) {
+    return priceCache.prices;
+  }
+  try {
+    const ids = "ethereum,bitcoin,solana,chainlink,aave";
     const res = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
       { next: { revalidate: 60 } }
     );
     const data = await res.json();
+    const map: Record<string, string> = { ETH: "ethereum", BTC: "bitcoin", SOL: "solana", LINK: "chainlink", AAVE: "aave" };
     const prices: Record<string, number> = {};
-    for (const [symbol, id] of Object.entries(COINGECKO_IDS)) {
+    for (const [symbol, id] of Object.entries(map)) {
       if (data[id]?.usd) prices[symbol] = data[id].usd;
     }
     priceCache = { prices, fetchedAt: now };
