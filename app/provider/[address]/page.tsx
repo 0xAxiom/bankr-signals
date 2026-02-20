@@ -1,5 +1,6 @@
 import { getProviderStats } from "@/lib/signals";
 import { notFound } from "next/navigation";
+import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 
 export const dynamic = "force-dynamic";
 
@@ -10,22 +11,22 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
   if (!p) return notFound();
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
+    <main className="max-w-5xl mx-auto px-6 py-10">
       <div className="mb-8">
         <h1 className="text-xl font-semibold">{p.name}</h1>
         <div className="text-xs font-mono text-[#737373] mt-1">
-          <a href={`https://basescan.org/address/${p.address}`} target="_blank" rel="noopener" className="hover:text-[#e5e5e5]">
+          <a href={`https://basescan.org/address/${p.address}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
             {p.address}
           </a>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-4 gap-6 mb-8">
         {[
-          { label: "PnL (30d)", value: `${p.pnl_pct >= 0 ? "+" : ""}${p.pnl_pct.toFixed(1)}%`, color: p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]" },
+          { label: "Total PnL", value: `${p.pnl_pct >= 0 ? "+" : ""}${p.pnl_pct.toFixed(1)}%`, color: p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]" },
           { label: "Win Rate", value: `${p.win_rate}%`, color: "text-[#e5e5e5]" },
-          { label: "Signals", value: String(p.signal_count), color: "text-[#e5e5e5]" },
-          { label: "Subscribers", value: String(p.subscriber_count), color: "text-[#e5e5e5]" },
+          { label: "Avg Return", value: `${p.avg_return >= 0 ? "+" : ""}${p.avg_return.toFixed(1)}%`, color: p.avg_return >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]" },
+          { label: "Streak", value: p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "—", color: p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : "text-[#737373]" },
         ].map(s => (
           <div key={s.label} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
             <div className={`font-mono text-xl font-semibold ${s.color}`}>{s.value}</div>
@@ -34,11 +35,23 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
         ))}
       </div>
 
+      {/* Equity Curve */}
+      <div className="mb-8">
+        <EquityCurve trades={p.trades} />
+      </div>
+
+      {/* Performance Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <PerformanceGrid trades={p.trades} />
+        <div>
+          <TradeStats trades={p.trades} />
+        </div>
+      </div>
+
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Recent Trades</h2>
+        <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Trade History</h2>
         <div className="text-xs text-[#737373]">
-          Streak: <span className={p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : ""}>{p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "-"}</span>
-          {" · "}Avg return: <span className="font-mono">{p.avg_return >= 0 ? "+" : ""}{p.avg_return.toFixed(1)}%</span>
+          {p.signal_count} signals · {p.subscriber_count} subscribers · {p.last_signal_age}
         </div>
       </div>
 
@@ -51,9 +64,11 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#2a2a2a] text-[#737373] text-xs bg-[#111]">
+                <th className="text-left px-4 py-3 font-medium">Date</th>
                 <th className="text-left px-4 py-3 font-medium">Action</th>
                 <th className="text-left px-4 py-3 font-medium">Token</th>
                 <th className="text-right px-4 py-3 font-medium">Entry</th>
+                <th className="text-right px-4 py-3 font-medium">Size</th>
                 <th className="text-right px-4 py-3 font-medium">Leverage</th>
                 <th className="text-right px-4 py-3 font-medium">PnL</th>
                 <th className="text-right px-4 py-3 font-medium">Status</th>
@@ -63,32 +78,46 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
             <tbody>
               {p.trades.map((t, i) => {
                 const isBuy = t.action === "BUY" || t.action === "LONG";
+                const tradeDate = new Date(t.timestamp);
                 return (
-                  <tr key={i} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a]">
+                  <tr key={i} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a] transition-colors">
+                    <td className="px-4 py-3 text-xs text-[#737373] font-mono">
+                      {tradeDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isBuy ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]" : "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]"}`}>
                         {t.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono">{t.token}</td>
+                    <td className="px-4 py-3 font-mono font-medium">{t.token}</td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {t.entryPrice ? `$${t.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-[#737373]">
-                      {t.leverage ? `${t.leverage}x` : "-"}
-                    </td>
-                    <td className={`px-4 py-3 text-right font-mono ${!t.pnl ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                      {t.pnl !== undefined ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "-"}
+                      {t.entryPrice ? `$${t.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
-                      {t.status.toUpperCase()}
+                      {t.collateralUsd ? `$${t.collateralUsd.toLocaleString()}` : 
+                       t.amountToken ? `${t.amountToken.toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-[#737373]">
+                      {t.leverage ? `${t.leverage}x` : "—"}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-mono font-medium ${!t.pnl ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
+                      {t.pnl !== undefined ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">
+                      <span className={`px-2 py-0.5 rounded ${
+                        t.status === "closed" ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]" :
+                        t.status === "stopped" ? "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]" :
+                        "bg-[rgba(234,179,8,0.1)] text-[rgba(234,179,8,0.8)]"
+                      }`}>
+                        {t.status.toUpperCase()}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
                       {t.txHash ? (
-                        <a href={`https://basescan.org/tx/${t.txHash}`} target="_blank" rel="noopener" className="hover:text-[#e5e5e5]">
-                          {t.txHash.slice(0, 10)}...
+                        <a href={`https://basescan.org/tx/${t.txHash}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
+                          {t.txHash.slice(0, 8)}...
                         </a>
-                      ) : "-"}
+                      ) : "—"}
                     </td>
                   </tr>
                 );
@@ -100,9 +129,14 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
 
       <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
         <div className="text-xs text-[#737373] mb-2">Subscribe to this provider:</div>
-        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)]">
-          scripts/subscribe.sh {p.address}
+        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block mb-2">
+          curl -X POST https://bankrsignals.com/api/subscribe \<br/>
+          &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
+          &nbsp;&nbsp;-d '{{"provider": "{p.address}"}}'
         </code>
+        <div className="text-xs text-[#737373]">
+          Copy signals automatically or poll the API for updates.
+        </div>
       </div>
     </main>
   );
