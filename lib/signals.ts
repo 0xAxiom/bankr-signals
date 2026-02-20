@@ -47,25 +47,41 @@ export interface ProviderStats {
   trades: ParsedTrade[];
 }
 
-// Chainlink Price Feed addresses on Base mainnet
-// AggregatorV3Interface: latestRoundData() returns (roundId, answer, startedAt, updatedAt, answeredInRound)
+// Chainlink Price Feed addresses on Base mainnet (fast, reliable for majors)
 const CHAINLINK_FEEDS: Record<string, { address: string; decimals: number }> = {
   ETH:  { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
+  WETH: { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
   BTC:  { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  WBTC: { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  cbBTC:{ address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
   LINK: { address: "0x17CAb8FE31cA45e0a5a2Ed8b7101F8445BE8e289", decimals: 8 },
   AAVE: { address: "0x6Ce185860a4963106506C203335A2910413708e9", decimals: 8 },
   SOL:  { address: "0x975043adBb80fc32276CbF9Bbcfd4A601a12462D", decimals: 8 },
 };
 
-// latestRoundData() selector
-const LATEST_ROUND_DATA_SIG = "0xfeaf968c";
+// Well-known Base token addresses for DexScreener lookups
+const BASE_TOKEN_ADDRESSES: Record<string, string> = {
+  USDC:   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  USDbC:  "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+  DAI:    "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+  DEGEN:  "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
+  BRETT:  "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+  TOSHI:  "0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4",
+  HIGHER: "0x0578d8A44db98B23BF096A382e016e29a5Ce0ffe",
+  AERO:   "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+  VIRTUAL:"0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
+  MORPHO: "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
+  WELL:   "0xA88594D404727625A9437C3f886C7643872296AE",
+  BNKR:   "0x22aF33FE49fD1Fa80c7149773dDe5BF0e26Eb48C",
+  AXIOM:  "0xf3ce5ddaab6c133f9875a4a46c55cf0b58111b07",
+};
 
+const LATEST_ROUND_DATA_SIG = "0xfeaf968c";
 const INFURA_RPC = `https://base-mainnet.infura.io/v3/${process.env.INFURA_API_KEY || ""}`;
 
-let priceCache: { prices: Record<string, number>; fetchedAt: number } = {
-  prices: {},
-  fetchedAt: 0,
-};
+// Cache: symbol -> { price, fetchedAt }
+const priceCache: Map<string, { price: number; fetchedAt: number }> = new Map();
+const CACHE_TTL = 60_000; // 1 minute
 
 async function fetchChainlinkPrice(
   feedAddress: string,
@@ -85,9 +101,8 @@ async function fetchChainlinkPrice(
     });
     const data = await res.json();
     if (!data.result || data.result === "0x") return null;
-    // latestRoundData returns 5 uint256s, answer is at offset 32 (2nd value)
-    const hex = data.result.slice(2); // remove 0x
-    const answerHex = hex.slice(64, 128); // 2nd 32-byte word
+    const hex = data.result.slice(2);
+    const answerHex = hex.slice(64, 128);
     const answer = BigInt("0x" + answerHex);
     return Number(answer) / Math.pow(10, decimals);
   } catch {
@@ -95,66 +110,112 @@ async function fetchChainlinkPrice(
   }
 }
 
-async function fetchPrices(): Promise<Record<string, number>> {
-  const now = Date.now();
-  if (now - priceCache.fetchedAt < 60_000 && Object.keys(priceCache.prices).length > 0) {
-    return priceCache.prices;
-  }
-
-  const rpcUrl = INFURA_RPC;
-  if (!process.env.INFURA_API_KEY) {
-    // Fallback: try CoinGecko if no Infura key configured
-    return fetchPricesCoinGecko();
-  }
-
+// DexScreener: free, no API key, supports ANY token on Base
+async function fetchDexScreenerPrice(tokenAddress: string): Promise<number | null> {
   try {
-    const entries = Object.entries(CHAINLINK_FEEDS);
-    const results = await Promise.all(
-      entries.map(([symbol, feed]) =>
-        fetchChainlinkPrice(feed.address, feed.decimals, rpcUrl).then((price) => [symbol, price] as const)
-      )
-    );
-
-    const prices: Record<string, number> = {};
-    for (const [symbol, price] of results) {
-      if (price && price > 0) prices[symbol] = price;
-    }
-
-    if (Object.keys(prices).length > 0) {
-      priceCache = { prices, fetchedAt: now };
-      return prices;
-    }
-
-    // If all Chainlink calls failed, fall back to CoinGecko
-    return fetchPricesCoinGecko();
-  } catch {
-    return fetchPricesCoinGecko();
-  }
-}
-
-// CoinGecko fallback (rate-limited, used only when Infura unavailable)
-async function fetchPricesCoinGecko(): Promise<Record<string, number>> {
-  const now = Date.now();
-  if (now - priceCache.fetchedAt < 60_000 && Object.keys(priceCache.prices).length > 0) {
-    return priceCache.prices;
-  }
-  try {
-    const ids = "ethereum,bitcoin,solana,chainlink,aave";
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+      `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
       { next: { revalidate: 60 } }
     );
     const data = await res.json();
-    const map: Record<string, string> = { ETH: "ethereum", BTC: "bitcoin", SOL: "solana", LINK: "chainlink", AAVE: "aave" };
-    const prices: Record<string, number> = {};
-    for (const [symbol, id] of Object.entries(map)) {
-      if (data[id]?.usd) prices[symbol] = data[id].usd;
+    if (data.pairs && data.pairs.length > 0) {
+      // Pick the pair with highest liquidity on Base
+      const basePairs = data.pairs.filter((p: any) => p.chainId === "base");
+      const best = (basePairs.length > 0 ? basePairs : data.pairs)
+        .sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+      return parseFloat(best.priceUsd);
     }
-    priceCache = { prices, fetchedAt: now };
-    return prices;
+    return null;
   } catch {
-    return priceCache.prices;
+    return null;
   }
+}
+
+// DexScreener search by symbol (fallback when no known address)
+async function fetchDexScreenerPriceBySymbol(symbol: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/search?q=${symbol}%20base`,
+      { next: { revalidate: 60 } }
+    );
+    const data = await res.json();
+    if (data.pairs && data.pairs.length > 0) {
+      const basePairs = data.pairs.filter(
+        (p: any) => p.chainId === "base" && p.baseToken.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+      if (basePairs.length > 0) {
+        const best = basePairs.sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+        return parseFloat(best.priceUsd);
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Get price for a single token - tries Chainlink first, then DexScreener
+async function getTokenPrice(symbol: string): Promise<number | null> {
+  const upperSymbol = symbol.toUpperCase();
+
+  // Stablecoins
+  if (["USDC", "USDT", "DAI", "USDbC"].includes(upperSymbol)) return 1.0;
+
+  // Check cache
+  const cached = priceCache.get(upperSymbol);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) return cached.price;
+
+  let price: number | null = null;
+
+  // Try Chainlink first (fast, reliable for majors)
+  const feed = CHAINLINK_FEEDS[upperSymbol];
+  if (feed && process.env.INFURA_API_KEY) {
+    price = await fetchChainlinkPrice(feed.address, feed.decimals, INFURA_RPC);
+  }
+
+  // Try DexScreener by known address
+  if (!price && BASE_TOKEN_ADDRESSES[upperSymbol]) {
+    price = await fetchDexScreenerPrice(BASE_TOKEN_ADDRESSES[upperSymbol]);
+  }
+
+  // Try DexScreener search by symbol
+  if (!price) {
+    price = await fetchDexScreenerPriceBySymbol(upperSymbol);
+  }
+
+  if (price && price > 0) {
+    priceCache.set(upperSymbol, { price, fetchedAt: Date.now() });
+  }
+
+  return price;
+}
+
+// Fetch prices for a set of token symbols
+async function fetchPrices(extraSymbols?: string[]): Promise<Record<string, number>> {
+  const symbols = new Set<string>();
+  // Always include majors
+  for (const s of Object.keys(CHAINLINK_FEEDS)) symbols.add(s);
+  // Add any extra tokens requested
+  if (extraSymbols) {
+    for (const s of extraSymbols) symbols.add(s.toUpperCase());
+  }
+
+  const prices: Record<string, number> = {};
+  const results = await Promise.allSettled(
+    Array.from(symbols).map(async (sym) => {
+      const price = await getTokenPrice(sym);
+      return [sym, price] as const;
+    })
+  );
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      const [sym, price] = result.value;
+      if (price && price > 0) prices[sym] = price;
+    }
+  }
+
+  return prices;
 }
 
 function parseTradeLog(): TradeEntry[] {
@@ -368,7 +429,8 @@ function timeAgo(ts: string): string {
 export async function getProviderStats(): Promise<ProviderStats[]> {
   const entries = parseTradeLog();
   const trades = extractTradesFromLog(entries);
-  const prices = await fetchPrices();
+  const tradeTokens = trades.map(t => t.token).filter(Boolean);
+  const prices = await fetchPrices(tradeTokens);
 
   let totalPnl = 0;
   let wins = 0;
