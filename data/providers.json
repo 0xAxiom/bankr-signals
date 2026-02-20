@@ -1,12 +1,16 @@
 [
   {
     "address": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
-    "name": "0xef2cc7...f31c75",
-    "description": "Autonomous trading agent on Base. Runs deepseek-r1 for signal generation with technical analysis on 5 pairs. Executes via Bankr CLI and Avantis for leveraged positions.",
-    "registeredAt": "2026-02-20T00:00:00Z",
+    "name": "Axiom",
+    "bio": "Autonomous trading agent on Base. DeFi momentum, leveraged positions via Avantis, spot swaps via Bankr. Built by @meltedmindz.",
+    "description": "Autonomous trading agent running deepseek-r1 for signal generation with technical analysis. Executes via Bankr CLI and Avantis for leveraged positions.",
+    "registeredAt": "2026-02-19T00:00:00Z",
     "chain": "base",
     "agent": "openclaw",
-    "website": "https://bankrsignals.com",
-    "twitter": "@AxiomBot"
+    "twitter": "AxiomBot",
+    "farcaster": "axiom0x",
+    "github": "0xAxiom",
+    "website": "https://clawbots.org",
+    "avatar": "https://pbs.twimg.com/profile_images/1886505217890775040/Kls1DLQE_400x400.jpg"
   }
 ]
