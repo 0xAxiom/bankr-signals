@@ -144,7 +144,7 @@ app.post('/bankr-webhook', (req, res) => {
     {
       "id": "signal_123",
       "provider": "${topProvider?.address || '0x523...'}",
-      "providerName": "${topProvider?.name || 'axiombotx.base.eth'}",
+      "providerName": "${topProvider?.name || '0xef2cc7...f31c75'}",
       "timestamp": "2024-02-20T09:15:32Z",
       "action": "LONG",
       "token": "ETH",

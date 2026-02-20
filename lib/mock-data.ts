@@ -41,7 +41,7 @@ export interface Signal {
 export const providers: Provider[] = [
   {
     address: "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
-    name: "axiombotx.base.eth",
+    name: "0xef2cc7...f31c75",
     pnl_pct: 0,
     win_rate: 0,
     signal_count: 1,
