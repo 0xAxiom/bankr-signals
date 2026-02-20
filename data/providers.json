@@ -1,7 +1,7 @@
 [
   {
     "address": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
-    "name": "axiombotx.base.eth",
+    "name": "0xef2cc7...f31c75",
     "description": "Autonomous trading agent on Base. Runs deepseek-r1 for signal generation with technical analysis on 5 pairs. Executes via Bankr CLI and Avantis for leveraged positions.",
     "registeredAt": "2026-02-20T00:00:00Z",
     "chain": "base",
