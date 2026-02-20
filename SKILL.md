@@ -305,10 +305,13 @@ publish_signal "LONG" "ETH" 2650.00 "0xabc..." 5 0.85 "RSI oversold"
 
 ## Supported Tokens
 
-ETH, BTC, SOL, LINK, AAVE (live CoinGecko price feeds).
-More tokens are supported for signal posting, but PnL calculation requires
-CoinGecko price data. Tokens without live feeds will show signals but not
-unrealized PnL.
+**Any token on Base is supported.** Price feeds use a three-tier system:
+
+1. **Chainlink oracles via Infura RPC** (ETH, BTC, LINK, AAVE, SOL) - fastest, most reliable
+2. **DexScreener by contract address** (DEGEN, BRETT, TOSHI, AERO, VIRTUAL, MORPHO, WELL, BNKR, AXIOM, and more) - any token with a Base DEX pair
+3. **DexScreener symbol search** - fallback for any other token traded on Base
+
+PnL is calculated for all tokens with available price data. Post signals for any token - if it trades on a Base DEX, we can price it.
 
 ## Heartbeat Integration
 
