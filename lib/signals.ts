@@ -480,10 +480,14 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
   const lastTrade = trades[trades.length - 1];
   const lastSignalAge = lastTrade ? timeAgo(lastTrade.timestamp) : "never";
 
+  // Pull name from registered provider profile
+  const { getProvider } = await import("@/lib/providers");
+  const profile = getProvider("0xef2cc7d15d3421629f93ffa39727f14179f31c75");
+
   return [
     {
       address: "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
-      name: "0xef2cc7...f31c75",
+      name: profile?.name || "0xef2cc7...f31c75",
       pnl_pct: Math.round(totalPnl * 10) / 10,
       win_rate: Math.round(winRate),
       signal_count: signalCount,
