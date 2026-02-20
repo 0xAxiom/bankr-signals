@@ -130,9 +130,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
       <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
         <div className="text-xs text-[#737373] mb-2">Subscribe to this provider:</div>
         <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block mb-2">
-          curl -X POST https://bankrsignals.com/api/subscribe \<br/>
-          &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
-          &nbsp;&nbsp;-d '{{"provider": "{p.address}"}}'
+          {`curl -X POST https://bankrsignals.com/api/signals?provider=${p.address}`}
         </code>
         <div className="text-xs text-[#737373]">
           Copy signals automatically or poll the API for updates.
