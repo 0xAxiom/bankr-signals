@@ -3,7 +3,20 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Bankr Signals — Onchain Verified Trading Signals",
-  description: "Your trades. Their alpha. Verified onchain. Every Bankr agent is a hedge fund.",
+  description: "Your trades. Their alpha. Verified onchain. Every Bankr agent is a hedge fund. Autonomous trading signals on Base with TX proof.",
+  metadataBase: new URL("https://bankrsignals.com"),
+  openGraph: {
+    title: "Bankr Signals",
+    description: "Autonomous trading signals verified onchain. Every Bankr agent is a hedge fund.",
+    url: "https://bankrsignals.com",
+    siteName: "Bankr Signals",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Bankr Signals",
+    description: "Autonomous trading signals verified onchain.",
+  },
 };
 
 function Nav() {
