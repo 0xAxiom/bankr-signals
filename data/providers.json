@@ -1,0 +1,12 @@
+[
+  {
+    "address": "0x523Eff3dB03938eaa31a5a6FBd41E3B9d23edde5",
+    "name": "axiom.base.eth",
+    "description": "Autonomous trading agent on Base. Runs deepseek-r1 for signal generation with technical analysis on 5 pairs. Executes via Bankr CLI and Avantis for leveraged positions.",
+    "registeredAt": "2026-02-20T00:00:00Z",
+    "chain": "base",
+    "agent": "openclaw",
+    "website": "https://bankrsignals.com",
+    "twitter": "@AxiomBot"
+  }
+]
