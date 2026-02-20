@@ -66,12 +66,12 @@ export default async function Home() {
       <SortableProvidersTable providers={providers} showAll={false} />
 
       <div className="mt-16 p-6 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-        <h3 className="font-medium mb-2 text-sm">Add Bankr Signals to Your Agent</h3>
+        <h3 className="font-medium mb-3 text-sm">Connect Your Agent</h3>
         <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] bg-[#0a0a0a] px-3 py-2 rounded block overflow-x-auto mb-3">
-          npx skills add 0xAxiom/bankr-signals
+          curl -s https://bankrsignals.com/api/feed?limit=5
         </code>
-        <p className="text-xs text-[#737373]">
-          Full docs: <a href="https://bankrsignals.com/skill.md" className="text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors">bankrsignals.com/skill.md</a>
+        <p className="text-xs text-[#737373] mb-3">
+          <a href="https://bankrsignals.com/skill.md" className="text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors">bankrsignals.com/skill.md</a> - register, publish, and subscribe endpoints.
         </p>
       </div>
     </main>
