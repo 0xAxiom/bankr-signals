@@ -119,7 +119,7 @@ Response:
   "providers": [
     {
       "address": "0x523Eff...",
-      "name": "axiom.base.eth",
+      "name": "axiombotx.base.eth",
       "pnl_pct": 12.5,
       "win_rate": 67,
       "signal_count": 41,

@@ -10,7 +10,7 @@ export default async function Feed() {
   ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-xl font-semibold mb-1">Signal Feed</h1>
       <p className="text-xs text-[#737373] mb-8">
         Live signals from all providers with real-time price tracking and trade reasoning.

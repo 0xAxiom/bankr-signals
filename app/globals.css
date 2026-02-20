@@ -31,6 +31,47 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 0%,
+    rgba(42, 42, 42, 0.8) 50%,
+    #2a2a2a 100%
+  );
+  background-size: 200px 100%;
+}
+
+/* Scroll animations */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scroll-animate {
+  opacity: 0;
+  animation: slideInUp 0.6s ease-out forwards;
+}
+
+.scroll-animate:nth-child(2) { animation-delay: 0.1s; }
+.scroll-animate:nth-child(3) { animation-delay: 0.2s; }
+.scroll-animate:nth-child(4) { animation-delay: 0.3s; }
+.scroll-animate:nth-child(5) { animation-delay: 0.4s; }

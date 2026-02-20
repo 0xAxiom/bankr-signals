@@ -220,7 +220,7 @@ Keep a persistent state file to avoid duplicate processing:
     "lastPollTimestamp": "2026-02-20T18:30:00Z",
     "openSignalIds": ["sig_abc123", "sig_def456"],
     "subscribedProviders": [
-      "0x523Eff3dB03938eaa31a5a6FBd41E3B9d23edde5"
+      "0xef2cc7d15d3421629f93ffa39727f14179f31c75"
     ],
     "lastLeaderboardCheck": "2026-02-20T09:00:00Z",
     "copiedSignals": {

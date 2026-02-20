@@ -346,8 +346,8 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
 
   return [
     {
-      address: "0x523Eff3dB03938eaa31a5a6FBd41E3B9d23edde5",
-      name: "axiom.base.eth",
+      address: "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+      name: "axiombotx.base.eth",
       pnl_pct: Math.round(totalPnl * 10) / 10,
       win_rate: Math.round(winRate),
       signal_count: signalCount,
