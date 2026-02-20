@@ -6,9 +6,6 @@ const TRADE_LOG = path.join(
   "trade_log.jsonl"
 );
 
-const SIGNAL_DIR =
-  process.env.SIGNALS_DIR || "/Users/axiom/clawd/trading/signals";
-
 export interface TradeEntry {
   timestamp: string;
   prompt: string;
@@ -16,12 +13,12 @@ export interface TradeEntry {
   jobId?: string;
   processingTime?: number;
   txCount?: number;
-  // Batch signal entries have different shape
-  pairs_analyzed?: number;
-  signals?: Record<string, any>;
-  trades_executed?: string;
-  reason?: string;
-  open_position_update?: Record<string, any>;
+  pair?: string;
+  signal?: string;
+  confidence?: number;
+  tier?: string;
+  command?: string;
+  result?: string;
 }
 
 export interface ParsedTrade {
@@ -33,6 +30,8 @@ export interface ParsedTrade {
   txHash?: string;
   pnl?: number;
   status: "open" | "closed" | "stopped";
+  collateralUsd?: number;
+  amountToken?: number;
 }
 
 export interface ProviderStats {
@@ -63,11 +62,9 @@ let priceCache: { prices: Record<string, number>; fetchedAt: number } = {
 
 async function fetchPrices(): Promise<Record<string, number>> {
   const now = Date.now();
-  // Cache for 60 seconds
   if (now - priceCache.fetchedAt < 60_000 && Object.keys(priceCache.prices).length > 0) {
     return priceCache.prices;
   }
-
   try {
     const ids = Object.values(COINGECKO_IDS).join(",");
     const res = await fetch(
@@ -75,14 +72,10 @@ async function fetchPrices(): Promise<Record<string, number>> {
       { next: { revalidate: 60 } }
     );
     const data = await res.json();
-
     const prices: Record<string, number> = {};
     for (const [symbol, id] of Object.entries(COINGECKO_IDS)) {
-      if (data[id]?.usd) {
-        prices[symbol] = data[id].usd;
-      }
+      if (data[id]?.usd) prices[symbol] = data[id].usd;
     }
-
     priceCache = { prices, fetchedAt: now };
     return prices;
   } catch {
@@ -91,32 +84,23 @@ async function fetchPrices(): Promise<Record<string, number>> {
 }
 
 function parseTradeLog(): TradeEntry[] {
-  // Try local JSONL file first (dev/local), fall back to bundled JSON
+  // Try local JSONL first, fall back to bundled JSON
   if (existsSync(TRADE_LOG)) {
     const raw = readFileSync(TRADE_LOG, "utf-8");
     return raw
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
-        try {
-          return JSON.parse(line) as TradeEntry;
-        } catch {
-          return null;
-        }
+        try { return JSON.parse(line) as TradeEntry; }
+        catch { return null; }
       })
       .filter((e): e is TradeEntry => e !== null);
   }
-
-  // Vercel: read from bundled public/trade-data.json
   const bundledPath = path.join(process.cwd(), "public", "trade-data.json");
   if (existsSync(bundledPath)) {
-    try {
-      return JSON.parse(readFileSync(bundledPath, "utf-8")) as TradeEntry[];
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(readFileSync(bundledPath, "utf-8")) as TradeEntry[]; }
+    catch { return []; }
   }
-
   return [];
 }
 
@@ -132,53 +116,125 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
     if (!entry.prompt || !entry.response) continue;
 
     const prompt = entry.prompt.toLowerCase();
-    const response = entry.response.toLowerCase();
+    const response = entry.response;
+    const responseLower = response.toLowerCase();
 
-    // Skip position checks and balance queries
+    // Skip non-trade entries
     if (
       prompt.includes("show my") ||
       prompt.includes("what are my") ||
       prompt.includes("set a") ||
       prompt.includes("set stop") ||
-      prompt.includes("close my")
-    )
-      continue;
+      prompt.includes("close my") ||
+      prompt.includes("balance")
+    ) continue;
 
-    // Detect buy/sell/long/short
+    // Skip failed/incomplete trades (Bankr asking for more info)
+    if (
+      responseLower.includes("how much collateral") ||
+      responseLower.includes("how much usd") ||
+      responseLower.includes("i need to know") ||
+      responseLower.includes("i'd love to help") ||
+      responseLower.includes("i'm ready to set")
+    ) continue;
+
+    // Detect action
     let action: ParsedTrade["action"] | null = null;
     let token = "";
 
-    if (prompt.includes("buy")) {
+    // Leveraged positions (Avantis)
+    const longMatch = prompt.match(/long\s+(\w+)\/usd/i);
+    const shortMatch = prompt.match(/short\s+(\w+)\/usd/i);
+
+    if (longMatch) {
+      action = "LONG";
+      token = longMatch[1].toUpperCase();
+    } else if (shortMatch) {
+      action = "SHORT";
+      token = shortMatch[1].toUpperCase();
+    } else if (prompt.includes("buy")) {
       action = "BUY";
     } else if (prompt.includes("sell")) {
-      action = "SELL";
-    } else if (prompt.includes("long")) {
-      action = "LONG";
-    } else if (prompt.includes("short")) {
-      action = "SHORT";
+      // "sell 100 USDC for AAVE" = BUY AAVE (spending USDC to get AAVE)
+      // "sell all my AAVE for USDC" = SELL AAVE
+      const sellForMatch = prompt.match(/sell\s+[\d.]+\s+usdc\s+for\s+(\w+)/i);
+      const sellTokenMatch = prompt.match(/sell\s+(?:all\s+)?(?:my\s+)?(\w+)\s+for\s+usdc/i);
+      if (sellForMatch) {
+        action = "BUY";
+        token = sellForMatch[1].toUpperCase();
+      } else if (sellTokenMatch) {
+        action = "SELL";
+        token = sellTokenMatch[1].toUpperCase();
+      } else {
+        action = "SELL";
+      }
     }
 
     if (!action) continue;
 
-    // Extract token
-    const tokenMatch = prompt.match(/\b(eth|btc|sol|link|aave)\b/i);
-    if (tokenMatch) token = tokenMatch[1].toUpperCase();
+    // Extract token if not already set
+    if (!token) {
+      const tokenMatch = prompt.match(/\b(eth|btc|sol|link|aave)\b/i);
+      if (tokenMatch) token = tokenMatch[1].toUpperCase();
+    }
     if (!token) continue;
+
+    // Skip USDC (not a tradeable asset in this context)
+    if (token === "USDC") continue;
 
     // Extract entry price from response
     let entryPrice = 0;
-    const priceMatch = entry.response.match(
-      /(?:entry|price|at)\s*(?:price)?[:\s]*\$?([\d,]+\.?\d*)/i
-    );
-    if (priceMatch) entryPrice = parseFloat(priceMatch[1].replace(",", ""));
+    let collateralUsd: number | undefined;
+    let amountToken: number | undefined;
+
+    // Avantis leveraged: look for entry price in position details
+    const avantisEntryMatch = response.match(/entry\s*(?:price)?[:\s]*\$?([\d,]+\.?\d*)/i);
+    if (avantisEntryMatch) {
+      entryPrice = parseFloat(avantisEntryMatch[1].replace(",", ""));
+    }
+
+    // Spot swap: "swapped X USDC for Y TOKEN" - calculate price from amounts
+    const swapBuyMatch = response.match(/swapped\s+([\d.]+)\s+usdc\s+for\s+([\d.]+)\s+(\w+)/i);
+    const swapSellMatch = response.match(/swapped\s+([\d.]+)\s+(\w+)\s+for\s+([\d.]+)\s+usdc/i);
+
+    if (swapBuyMatch && !entryPrice) {
+      const usdcAmount = parseFloat(swapBuyMatch[1]);
+      const tokenAmount = parseFloat(swapBuyMatch[2]);
+      if (tokenAmount > 0) {
+        entryPrice = usdcAmount / tokenAmount;
+        collateralUsd = usdcAmount;
+        amountToken = tokenAmount;
+      }
+    } else if (swapSellMatch && !entryPrice) {
+      const tokenAmount = parseFloat(swapSellMatch[1]);
+      const usdcAmount = parseFloat(swapSellMatch[3]);
+      if (tokenAmount > 0) {
+        entryPrice = usdcAmount / tokenAmount;
+        collateralUsd = usdcAmount;
+        amountToken = tokenAmount;
+      }
+    }
+
+    // Fallback: generic price pattern
+    if (!entryPrice) {
+      const priceMatch = response.match(/(?:price|at)\s*[:\s]*\$?([\d,]+\.?\d*)/i);
+      if (priceMatch) entryPrice = parseFloat(priceMatch[1].replace(",", ""));
+    }
 
     // Extract leverage
     let leverage: number | undefined;
-    const levMatch =
-      prompt.match(/(\d+)x/i) || entry.response.match(/(\d+(?:\.\d+)?)x/i);
+    const levMatch = prompt.match(/(\d+)x\s*leverage/i) || prompt.match(/(\d+)x/i) ||
+      response.match(/leverage[:\s]*(\d+(?:\.\d+)?)x/i) || response.match(/(\d+(?:\.\d+)?)x/i);
     if (levMatch) leverage = parseFloat(levMatch[1]);
 
-    const txHash = extractTxHash(entry.response);
+    // Extract collateral for leveraged trades
+    if (!collateralUsd) {
+      const collMatch = prompt.match(/using\s+(\d+(?:\.\d+)?)\s*usdc/i) ||
+        response.match(/collateral[:\s]*([\d.]+)\s*usdc/i);
+      if (collMatch) collateralUsd = parseFloat(collMatch[1]);
+    }
+
+    const txHash = extractTxHash(response);
 
     trades.push({
       timestamp: entry.timestamp,
@@ -187,12 +243,41 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
       entryPrice,
       leverage,
       txHash,
-      status: "open", // Will be resolved with current prices
+      status: "open",
       pnl: undefined,
+      collateralUsd,
+      amountToken,
     });
   }
 
-  return trades;
+  // Deduplicate: if we see a BUY then SELL of same token close together, pair them
+  const paired: ParsedTrade[] = [];
+  const used = new Set<number>();
+
+  for (let i = 0; i < trades.length; i++) {
+    if (used.has(i)) continue;
+    const t = trades[i];
+
+    // Look for a closing trade (opposite action, same token)
+    if (t.action === "BUY") {
+      for (let j = i + 1; j < trades.length; j++) {
+        if (used.has(j)) continue;
+        if (trades[j].token === t.token && trades[j].action === "SELL") {
+          // This is a round-trip trade - compute realized PnL
+          const exitPrice = trades[j].entryPrice;
+          if (t.entryPrice > 0 && exitPrice > 0) {
+            t.pnl = ((exitPrice - t.entryPrice) / t.entryPrice) * 100;
+            t.status = "closed";
+          }
+          used.add(j);
+          break;
+        }
+      }
+    }
+    paired.push(t);
+  }
+
+  return paired;
 }
 
 function timeAgo(ts: string): string {
@@ -211,7 +296,6 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
   const trades = extractTradesFromLog(entries);
   const prices = await fetchPrices();
 
-  // Calculate PnL for each trade
   let totalPnl = 0;
   let wins = 0;
   let losses = 0;
@@ -219,6 +303,16 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
   let currentStreak = 0;
 
   for (const trade of trades) {
+    // Closed trades already have PnL calculated
+    if (trade.status === "closed" && trade.pnl !== undefined) {
+      totalPnl += trade.pnl;
+      totalReturn += trade.pnl;
+      if (trade.pnl > 0) { wins++; currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1; }
+      else if (trade.pnl < 0) { losses++; currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1; }
+      continue;
+    }
+
+    // Open trades: calculate unrealized PnL
     const currentPrice = prices[trade.token];
     if (!currentPrice || !trade.entryPrice) continue;
 
@@ -235,21 +329,16 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
     totalPnl += pnlPct;
     totalReturn += pnlPct;
 
-    if (pnlPct > 0) {
-      wins++;
-      currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
-    } else if (pnlPct < 0) {
-      losses++;
-      currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
-    }
+    if (pnlPct > 0) { wins++; currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1; }
+    else if (pnlPct < 0) { losses++; currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1; }
   }
 
   const totalTrades = wins + losses;
   const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
   const avgReturn = totalTrades > 0 ? totalReturn / totalTrades : 0;
 
-  // Count total signals from batch entries too
-  const batchEntries = entries.filter((e) => e.pairs_analyzed);
+  // Count batch signal entries too
+  const batchEntries = entries.filter((e) => e.pair);
   const signalCount = trades.length + batchEntries.length;
 
   const lastTrade = trades[trades.length - 1];
