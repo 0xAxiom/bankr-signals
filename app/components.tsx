@@ -93,7 +93,7 @@ export function AggregateEquityCurve({ providers }: AggregateEquityCurveProps) {
   
   const pathData = equityPoints
     .map((point, i) => {
-      const x = padding + (i / (equityPoints.length - 1)) * (width - padding * 2);
+      const x = padding + (i / Math.max(1, equityPoints.length - 1)) * (width - padding * 2);
       const y = padding + ((maxPnL - point.pnl) / range) * (height - padding * 2);
       return i === 0 ? `M${x},${y}` : `L${x},${y}`;
     })

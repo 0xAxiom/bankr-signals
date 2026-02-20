@@ -143,8 +143,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
                     <td className="px-4 py-3 text-right font-mono text-[#737373]">
                       {t.leverage ? `${t.leverage}x` : "—"}
                     </td>
-                    <td className={`px-4 py-3 text-right font-mono font-medium ${!t.pnl ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                      {t.pnl !== undefined ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "—"}
+                    <td className={`px-4 py-3 text-right font-mono font-medium ${t.pnl === undefined ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
+                      {t.pnl !== undefined ? `${t.pnl > 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs">
                       <span className={`px-2 py-0.5 rounded ${

@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 
+// Issue #20: Move trade-data.json out of /public into /data
 const TRADE_LOG = path.join(
   process.env.SIGNALS_DIR || "/Users/axiom/clawd/trading/signals",
   "trade_log.jsonl"
@@ -32,6 +33,8 @@ export interface ParsedTrade {
   status: "open" | "closed" | "stopped";
   collateralUsd?: number;
   amountToken?: number;
+  exitPrice?: number;
+  exitTimestamp?: string;
 }
 
 export interface ProviderStats {
@@ -47,41 +50,40 @@ export interface ProviderStats {
   trades: ParsedTrade[];
 }
 
-// Chainlink Price Feed addresses on Base mainnet (fast, reliable for majors)
+// Issue #22: Normalize all keys to uppercase
 const CHAINLINK_FEEDS: Record<string, { address: string; decimals: number }> = {
-  ETH:  { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
-  WETH: { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
-  BTC:  { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
-  WBTC: { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
-  cbBTC:{ address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
-  LINK: { address: "0x17CAb8FE31cA45e0a5a2Ed8b7101F8445BE8e289", decimals: 8 },
-  AAVE: { address: "0x6Ce185860a4963106506C203335A2910413708e9", decimals: 8 },
-  SOL:  { address: "0x975043adBb80fc32276CbF9Bbcfd4A601a12462D", decimals: 8 },
+  ETH:   { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
+  WETH:  { address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", decimals: 8 },
+  BTC:   { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  WBTC:  { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  CBBTC: { address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", decimals: 8 },
+  LINK:  { address: "0x17CAb8FE31cA45e0a5a2Ed8b7101F8445BE8e289", decimals: 8 },
+  AAVE:  { address: "0x6Ce185860a4963106506C203335A2910413708e9", decimals: 8 },
+  SOL:   { address: "0x975043adBb80fc32276CbF9Bbcfd4A601a12462D", decimals: 8 },
 };
 
-// Well-known Base token addresses for DexScreener lookups
+// Issue #22: Normalize all keys to uppercase
 const BASE_TOKEN_ADDRESSES: Record<string, string> = {
-  USDC:   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-  USDbC:  "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
-  DAI:    "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
-  DEGEN:  "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
-  BRETT:  "0x532f27101965dd16442E59d40670FaF5eBB142E4",
-  TOSHI:  "0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4",
-  HIGHER: "0x0578d8A44db98B23BF096A382e016e29a5Ce0ffe",
-  AERO:   "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
-  VIRTUAL:"0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
-  MORPHO: "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
-  WELL:   "0xA88594D404727625A9437C3f886C7643872296AE",
-  BNKR:   "0x22aF33FE49fD1Fa80c7149773dDe5BF0e26Eb48C",
-  AXIOM:  "0xf3ce5ddaab6c133f9875a4a46c55cf0b58111b07",
+  USDC:    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  USDBC:   "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+  DAI:     "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+  DEGEN:   "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
+  BRETT:   "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+  TOSHI:   "0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4",
+  HIGHER:  "0x0578d8A44db98B23BF096A382e016e29a5Ce0ffe",
+  AERO:    "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+  VIRTUAL: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
+  MORPHO:  "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
+  WELL:    "0xA88594D404727625A9437C3f886C7643872296AE",
+  BNKR:    "0x22aF33FE49fD1Fa80c7149773dDe5BF0e26Eb48C",
+  AXIOM:   "0xf3ce5ddaab6c133f9875a4a46c55cf0b58111b07",
 };
 
 const LATEST_ROUND_DATA_SIG = "0xfeaf968c";
 const INFURA_RPC = `https://base-mainnet.infura.io/v3/${process.env.INFURA_API_KEY || ""}`;
 
-// Cache: symbol -> { price, fetchedAt }
 const priceCache: Map<string, { price: number; fetchedAt: number }> = new Map();
-const CACHE_TTL = 60_000; // 1 minute
+const CACHE_TTL = 60_000;
 
 async function fetchChainlinkPrice(
   feedAddress: string,
@@ -110,16 +112,14 @@ async function fetchChainlinkPrice(
   }
 }
 
-// DexScreener: free, no API key, supports ANY token on Base
 async function fetchDexScreenerPrice(tokenAddress: string): Promise<number | null> {
   try {
     const res = await fetch(
       `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 60 } } as any
     );
     const data = await res.json();
     if (data.pairs && data.pairs.length > 0) {
-      // Pick the pair with highest liquidity on Base
       const basePairs = data.pairs.filter((p: any) => p.chainId === "base");
       const best = (basePairs.length > 0 ? basePairs : data.pairs)
         .sort((a: any, b: any) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
@@ -131,12 +131,11 @@ async function fetchDexScreenerPrice(tokenAddress: string): Promise<number | nul
   }
 }
 
-// DexScreener search by symbol (fallback when no known address)
 async function fetchDexScreenerPriceBySymbol(symbol: string): Promise<number | null> {
   try {
     const res = await fetch(
       `https://api.dexscreener.com/latest/dex/search?q=${symbol}%20base`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 60 } } as any
     );
     const data = await res.json();
     if (data.pairs && data.pairs.length > 0) {
@@ -154,31 +153,25 @@ async function fetchDexScreenerPriceBySymbol(symbol: string): Promise<number | n
   }
 }
 
-// Get price for a single token - tries Chainlink first, then DexScreener
 async function getTokenPrice(symbol: string): Promise<number | null> {
   const upperSymbol = symbol.toUpperCase();
 
-  // Stablecoins
-  if (["USDC", "USDT", "DAI", "USDbC"].includes(upperSymbol)) return 1.0;
+  if (["USDC", "USDT", "DAI", "USDBC"].includes(upperSymbol)) return 1.0;
 
-  // Check cache
   const cached = priceCache.get(upperSymbol);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) return cached.price;
 
   let price: number | null = null;
 
-  // Try Chainlink first (fast, reliable for majors)
   const feed = CHAINLINK_FEEDS[upperSymbol];
   if (feed && process.env.INFURA_API_KEY) {
     price = await fetchChainlinkPrice(feed.address, feed.decimals, INFURA_RPC);
   }
 
-  // Try DexScreener by known address
   if (!price && BASE_TOKEN_ADDRESSES[upperSymbol]) {
     price = await fetchDexScreenerPrice(BASE_TOKEN_ADDRESSES[upperSymbol]);
   }
 
-  // Try DexScreener search by symbol
   if (!price) {
     price = await fetchDexScreenerPriceBySymbol(upperSymbol);
   }
@@ -190,12 +183,9 @@ async function getTokenPrice(symbol: string): Promise<number | null> {
   return price;
 }
 
-// Fetch prices for a set of token symbols
 async function fetchPrices(extraSymbols?: string[]): Promise<Record<string, number>> {
   const symbols = new Set<string>();
-  // Always include majors
   for (const s of Object.keys(CHAINLINK_FEEDS)) symbols.add(s);
-  // Add any extra tokens requested
   if (extraSymbols) {
     for (const s of extraSymbols) symbols.add(s.toUpperCase());
   }
@@ -219,7 +209,6 @@ async function fetchPrices(extraSymbols?: string[]): Promise<Record<string, numb
 }
 
 function parseTradeLog(): TradeEntry[] {
-  // Try local JSONL first, fall back to bundled JSON
   if (existsSync(TRADE_LOG)) {
     const raw = readFileSync(TRADE_LOG, "utf-8");
     return raw
@@ -231,7 +220,8 @@ function parseTradeLog(): TradeEntry[] {
       })
       .filter((e): e is TradeEntry => e !== null);
   }
-  const bundledPath = path.join(process.cwd(), "public", "trade-data.json");
+  // Issue #20: Read from data/ instead of public/
+  const bundledPath = path.join(process.cwd(), "data", "trade-data.json");
   if (existsSync(bundledPath)) {
     try { return JSON.parse(readFileSync(bundledPath, "utf-8")) as TradeEntry[]; }
     catch { return []; }
@@ -244,6 +234,13 @@ function extractTxHash(text: string): string | undefined {
   return match?.[0];
 }
 
+// Issue #12: Broaden token extraction regex
+function extractTokenFromText(text: string): string | null {
+  // Match common token symbols: 2-10 uppercase letters, or known mixed-case tokens
+  const match = text.match(/\b(eth|btc|sol|link|aave|weth|wbtc|cbbtc|degen|brett|toshi|higher|aero|virtual|morpho|well|bnkr|axiom|usdc|dai|arb|op|matic|avax|dot|ada|xrp|doge|shib|pepe|bonk|wif|jup|render|fet|near|sui|apt|sei|tia|stx|inj|ondo|pendle|ldo|rpl|mkr|uni|crv|snx|comp|grt|fil)\b/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
 function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
   const trades: ParsedTrade[] = [];
 
@@ -254,7 +251,6 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
     const response = entry.response;
     const responseLower = response.toLowerCase();
 
-    // Skip non-trade entries
     if (
       prompt.includes("show my") ||
       prompt.includes("what are my") ||
@@ -264,7 +260,6 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
       prompt.includes("balance")
     ) continue;
 
-    // Skip failed/incomplete trades (Bankr asking for more info)
     if (
       responseLower.includes("how much collateral") ||
       responseLower.includes("how much usd") ||
@@ -273,11 +268,9 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
       responseLower.includes("i'm ready to set")
     ) continue;
 
-    // Detect action
     let action: ParsedTrade["action"] | null = null;
     let token = "";
 
-    // Leveraged positions (Avantis)
     const longMatch = prompt.match(/long\s+(\w+)\/usd/i);
     const shortMatch = prompt.match(/short\s+(\w+)\/usd/i);
 
@@ -290,8 +283,6 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
     } else if (prompt.includes("buy")) {
       action = "BUY";
     } else if (prompt.includes("sell")) {
-      // "sell 100 USDC for AAVE" = BUY AAVE (spending USDC to get AAVE)
-      // "sell all my AAVE for USDC" = SELL AAVE
       const sellForMatch = prompt.match(/sell\s+[\d.]+\s+usdc\s+for\s+(\w+)/i);
       const sellTokenMatch = prompt.match(/sell\s+(?:all\s+)?(?:my\s+)?(\w+)\s+for\s+usdc/i);
       if (sellForMatch) {
@@ -307,28 +298,25 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
 
     if (!action) continue;
 
-    // Extract token if not already set
+    // Issue #12: Use broader token extraction
     if (!token) {
-      const tokenMatch = prompt.match(/\b(eth|btc|sol|link|aave)\b/i);
-      if (tokenMatch) token = tokenMatch[1].toUpperCase();
+      const extracted = extractTokenFromText(prompt);
+      if (extracted) token = extracted;
     }
     if (!token) continue;
 
-    // Skip USDC (not a tradeable asset in this context)
     if (token === "USDC") continue;
 
-    // Extract entry price from response
     let entryPrice = 0;
     let collateralUsd: number | undefined;
     let amountToken: number | undefined;
 
-    // Avantis leveraged: look for entry price in position details
     const avantisEntryMatch = response.match(/entry\s*(?:price)?[:\s]*\$?([\d,]+\.?\d*)/i);
     if (avantisEntryMatch) {
-      entryPrice = parseFloat(avantisEntryMatch[1].replace(",", ""));
+      // Issue #21: Use global flag for comma removal
+      entryPrice = parseFloat(avantisEntryMatch[1].replace(/,/g, ""));
     }
 
-    // Spot swap: "swapped X USDC for Y TOKEN" - calculate price from amounts
     const swapBuyMatch = response.match(/swapped\s+([\d.]+)\s+usdc\s+for\s+([\d.]+)\s+(\w+)/i);
     const swapSellMatch = response.match(/swapped\s+([\d.]+)\s+(\w+)\s+for\s+([\d.]+)\s+usdc/i);
 
@@ -350,19 +338,17 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
       }
     }
 
-    // Fallback: generic price pattern
     if (!entryPrice) {
       const priceMatch = response.match(/(?:price|at)\s*[:\s]*\$?([\d,]+\.?\d*)/i);
-      if (priceMatch) entryPrice = parseFloat(priceMatch[1].replace(",", ""));
+      // Issue #21: Use global flag for comma removal
+      if (priceMatch) entryPrice = parseFloat(priceMatch[1].replace(/,/g, ""));
     }
 
-    // Extract leverage
     let leverage: number | undefined;
     const levMatch = prompt.match(/(\d+)x\s*leverage/i) || prompt.match(/(\d+)x/i) ||
       response.match(/leverage[:\s]*(\d+(?:\.\d+)?)x/i) || response.match(/(\d+(?:\.\d+)?)x/i);
     if (levMatch) leverage = parseFloat(levMatch[1]);
 
-    // Extract collateral for leveraged trades
     if (!collateralUsd) {
       const collMatch = prompt.match(/using\s+(\d+(?:\.\d+)?)\s*usdc/i) ||
         response.match(/collateral[:\s]*([\d.]+)\s*usdc/i);
@@ -385,31 +371,58 @@ function extractTradesFromLog(entries: TradeEntry[]): ParsedTrade[] {
     });
   }
 
-  // Deduplicate: if we see a BUY then SELL of same token close together, pair them
+  // Issue #6: Rewrite trade pairing with proper open-by-token Map
+  // Sort by timestamp first
+  trades.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  const openByToken = new Map<string, ParsedTrade[]>();
   const paired: ParsedTrade[] = [];
-  const used = new Set<number>();
 
-  for (let i = 0; i < trades.length; i++) {
-    if (used.has(i)) continue;
-    const t = trades[i];
+  for (const trade of trades) {
+    const isOpen = trade.action === "BUY" || trade.action === "LONG";
+    const isClose = trade.action === "SELL" || trade.action === "SHORT";
 
-    // Look for a closing trade (opposite action, same token)
-    if (t.action === "BUY") {
-      for (let j = i + 1; j < trades.length; j++) {
-        if (used.has(j)) continue;
-        if (trades[j].token === t.token && trades[j].action === "SELL") {
-          // This is a round-trip trade - compute realized PnL
-          const exitPrice = trades[j].entryPrice;
-          if (t.entryPrice > 0 && exitPrice > 0) {
-            t.pnl = ((exitPrice - t.entryPrice) / t.entryPrice) * 100;
-            t.status = "closed";
+    // Check if this is a close for an existing open position
+    if (isClose) {
+      const opens = openByToken.get(trade.token);
+      if (opens && opens.length > 0) {
+        // Close the oldest open position (FIFO)
+        const openTrade = opens.shift()!;
+        if (opens.length === 0) openByToken.delete(trade.token);
+
+        if (openTrade.entryPrice > 0 && trade.entryPrice > 0) {
+          let pnlPct: number;
+          if (openTrade.action === "BUY" || openTrade.action === "LONG") {
+            pnlPct = ((trade.entryPrice - openTrade.entryPrice) / openTrade.entryPrice) * 100;
+          } else {
+            pnlPct = ((openTrade.entryPrice - trade.entryPrice) / openTrade.entryPrice) * 100;
           }
-          used.add(j);
-          break;
+          // Issue #6: Apply leverage multiplier
+          if (openTrade.leverage) pnlPct *= openTrade.leverage;
+
+          // Issue #10: Weight by collateral/notional value (store raw for weighted calc later)
+          openTrade.pnl = pnlPct;
+          openTrade.status = "closed";
+          openTrade.exitPrice = trade.entryPrice;
+          openTrade.exitTimestamp = trade.timestamp;
         }
+        // Don't add the closing trade separately; info is on the open trade
+        continue;
       }
     }
-    paired.push(t);
+
+    // This is an open or an unmatched close
+    if (isOpen) {
+      const opens = openByToken.get(trade.token) || [];
+      opens.push(trade);
+      openByToken.set(trade.token, opens);
+    }
+    // Issue #7: Skip unmatched SELL — don't treat as synthetic short
+    // Only add open (BUY/LONG) and matched SHORT trades
+    if (isOpen) {
+      paired.push(trade);
+    }
+    // Unmatched SELL/SHORT-close: skip entirely
   }
 
   return paired;
@@ -426,76 +439,117 @@ function timeAgo(ts: string): string {
   return `${days}d ago`;
 }
 
+// Issue #5: Load providers dynamically, support multiple
 export async function getProviderStats(): Promise<ProviderStats[]> {
+  const { getProviders, getProvider } = await import("@/lib/providers");
+  const providers = getProviders();
+
   const entries = parseTradeLog();
   const trades = extractTradesFromLog(entries);
   const tradeTokens = trades.map(t => t.token).filter(Boolean);
   const prices = await fetchPrices(tradeTokens);
 
-  let totalPnl = 0;
-  let wins = 0;
-  let losses = 0;
-  let totalReturn = 0;
-  let currentStreak = 0;
-
+  // Calculate unrealized PnL for open trades
   for (const trade of trades) {
-    // Closed trades already have PnL calculated
-    if (trade.status === "closed" && trade.pnl !== undefined) {
-      totalPnl += trade.pnl;
-      totalReturn += trade.pnl;
-      if (trade.pnl > 0) { wins++; currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1; }
-      else if (trade.pnl < 0) { losses++; currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1; }
-      continue;
-    }
+    if (trade.status !== "open") continue;
 
-    // Open trades: calculate unrealized PnL
     const currentPrice = prices[trade.token];
     if (!currentPrice || !trade.entryPrice) continue;
 
+    // Issue #7: Only calculate unrealized for BUY/LONG (price up) and SHORT (price down)
     let pnlPct = 0;
     if (trade.action === "BUY" || trade.action === "LONG") {
       pnlPct = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-    } else {
+    } else if (trade.action === "SHORT") {
       pnlPct = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
+    } else {
+      // SELL without a matched open — skip unrealized
+      continue;
     }
 
     if (trade.leverage) pnlPct *= trade.leverage;
-
     trade.pnl = pnlPct;
-    totalPnl += pnlPct;
-    totalReturn += pnlPct;
-
-    if (pnlPct > 0) { wins++; currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1; }
-    else if (pnlPct < 0) { losses++; currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1; }
   }
 
-  const totalTrades = wins + losses;
-  const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
-  const avgReturn = totalTrades > 0 ? totalReturn / totalTrades : 0;
+  // Build stats per provider. For now all trades map to known provider addresses.
+  // If no providers registered, create a default entry for the hardcoded address.
+  const providerAddresses = providers.length > 0
+    ? providers.map(p => p.address.toLowerCase())
+    : ["0xef2cc7d15d3421629f93ffa39727f14179f31c75"];
 
-  // Count batch signal entries too
-  const batchEntries = entries.filter((e) => e.pair);
-  const signalCount = trades.length + batchEntries.length;
+  const results: ProviderStats[] = [];
 
-  const lastTrade = trades[trades.length - 1];
-  const lastSignalAge = lastTrade ? timeAgo(lastTrade.timestamp) : "never";
+  for (const addr of providerAddresses) {
+    // For now all trades belong to the first provider (single trade log)
+    // When multi-provider trade logs exist, filter by provider address
+    const providerTrades = trades;
 
-  // Pull name from registered provider profile
-  const { getProvider } = await import("@/lib/providers");
-  const profile = getProvider("0xef2cc7d15d3421629f93ffa39727f14179f31c75");
+    // Issue #11: Only count closed trades for win rate
+    const closedTrades = providerTrades.filter(t => t.status === "closed" && t.pnl !== undefined);
 
-  return [
-    {
-      address: "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
-      name: profile?.name || "0xef2cc7...f31c75",
+    // Issue #10: Weight PnL by collateral/notional value
+    let totalWeightedPnl = 0;
+    let totalWeight = 0;
+    let wins = 0;
+    let losses = 0;
+    let currentStreak = 0;
+
+    for (const trade of closedTrades) {
+      const weight = trade.collateralUsd || trade.amountToken || 1;
+      totalWeightedPnl += (trade.pnl || 0) * weight;
+      totalWeight += weight;
+
+      if (trade.pnl! > 0) {
+        wins++;
+        currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
+      } else if (trade.pnl! < 0) {
+        losses++;
+        currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
+      }
+    }
+
+    // Also include unrealized in total PnL display
+    let unrealizedPnl = 0;
+    for (const trade of providerTrades) {
+      if (trade.status === "open" && trade.pnl !== undefined) {
+        const weight = trade.collateralUsd || trade.amountToken || 1;
+        unrealizedPnl += trade.pnl * weight;
+      }
+    }
+
+    const totalPnl = totalWeight > 0
+      ? (totalWeightedPnl + unrealizedPnl) / totalWeight
+      : 0;
+
+    const totalClosed = wins + losses;
+    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
+    const avgReturn = totalWeight > 0 && totalClosed > 0
+      ? totalWeightedPnl / totalWeight / totalClosed * totalClosed
+      : 0;
+
+    const batchEntries = entries.filter((e) => e.pair);
+    const signalCount = providerTrades.length + batchEntries.length;
+
+    const lastTrade = providerTrades[providerTrades.length - 1];
+    const lastSignalAge = lastTrade ? timeAgo(lastTrade.timestamp) : "never";
+
+    const profile = getProvider(addr);
+
+    results.push({
+      address: addr,
+      name: profile?.name || `${addr.slice(0, 8)}...${addr.slice(-6)}`,
       pnl_pct: Math.round(totalPnl * 10) / 10,
       win_rate: Math.round(winRate),
       signal_count: signalCount,
       subscriber_count: 0,
-      avg_return: Math.round(avgReturn * 10) / 10,
+      avg_return: totalWeight > 0 && totalClosed > 0
+        ? Math.round((totalWeightedPnl / totalWeight) * 10) / 10
+        : 0,
       streak: currentStreak,
       last_signal_age: lastSignalAge,
-      trades,
-    },
-  ];
+      trades: providerTrades,
+    });
+  }
+
+  return results;
 }

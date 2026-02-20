@@ -19,14 +19,17 @@ export function EquityCurve({ trades }: EquityCurveProps) {
   const equityPoints: { date: Date; pnl: number }[] = [];
   let runningPnl = 0;
 
-  trades.forEach(trade => {
-    if (trade.pnl !== undefined) {
-      runningPnl += trade.pnl;
-      equityPoints.push({
-        date: new Date(trade.timestamp),
-        pnl: runningPnl
-      });
-    }
+  // Issue #8: Use exitTimestamp for closed trades, only show realized PnL
+  const closedTrades = trades
+    .filter(trade => trade.status === "closed" && trade.pnl !== undefined)
+    .sort((a, b) => new Date(a.exitTimestamp || a.timestamp).getTime() - new Date(b.exitTimestamp || b.timestamp).getTime());
+
+  closedTrades.forEach(trade => {
+    runningPnl += trade.pnl!;
+    equityPoints.push({
+      date: new Date(trade.exitTimestamp || trade.timestamp),
+      pnl: runningPnl
+    });
   });
 
   if (equityPoints.length === 0) return null;
@@ -41,13 +44,15 @@ export function EquityCurve({ trades }: EquityCurveProps) {
   
   const pathData = equityPoints
     .map((point, i) => {
-      const x = padding + (i / (equityPoints.length - 1)) * (width - padding * 2);
+      // Issue #17: Prevent divide by zero
+      const x = padding + (i / Math.max(1, equityPoints.length - 1)) * (width - padding * 2);
       const y = padding + ((maxPnL - point.pnl) / range) * (height - padding * 2);
       return i === 0 ? `M${x},${y}` : `L${x},${y}`;
     })
     .join(" ");
 
-  const isPositive = equityPoints[equityPoints.length - 1].pnl >= 0;
+  const finalPnl = equityPoints[equityPoints.length - 1].pnl;
+  const isPositive = finalPnl >= 0;
 
   return (
     <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
@@ -55,7 +60,7 @@ export function EquityCurve({ trades }: EquityCurveProps) {
         <h3 className="text-sm font-medium text-[#e5e5e5]">Equity Curve</h3>
         <div className="text-xs text-[#737373]">
           Total: <span className={`font-mono ${isPositive ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-            {isPositive ? "+" : ""}{equityPoints[equityPoints.length - 1].pnl.toFixed(1)}%
+            {finalPnl > 0 ? "+" : ""}{finalPnl.toFixed(1)}%
           </span>
         </div>
       </div>
@@ -99,7 +104,7 @@ export function EquityCurve({ trades }: EquityCurveProps) {
         
         {/* Data points */}
         {equityPoints.map((point, i) => {
-          const x = padding + (i / (equityPoints.length - 1)) * (width - padding * 2);
+          const x = padding + (i / Math.max(1, equityPoints.length - 1)) * (width - padding * 2);
           const y = padding + ((maxPnL - point.pnl) / range) * (height - padding * 2);
           return (
             <circle
@@ -222,11 +227,12 @@ export function TradeStats({ trades }: TradeStatsProps) {
   }
 
   const bestTrade = closedTrades.reduce((best, trade) => 
-    (trade.pnl || 0) > (best.pnl || 0) ? trade : best
+    (trade.pnl ?? 0) > (best.pnl ?? 0) ? trade : best
   );
   
-  const worstTrade = closedTrades.reduce((worst, trade) => 
-    (trade.pnl || 0) < (worst.pnl || 0) ? trade : worst
+  // Issue #13: Handle single closed trade case (best === worst)
+  const worstTrade = closedTrades.length === 1 ? closedTrades[0] : closedTrades.reduce((worst, trade) => 
+    (trade.pnl ?? 0) < (worst.pnl ?? 0) ? trade : worst
   );
 
   // Strategy breakdown
@@ -252,7 +258,7 @@ export function TradeStats({ trades }: TradeStatsProps) {
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
           <div className="text-sm font-medium text-[#e5e5e5] mb-2">Best Trade</div>
           <div className="text-xs text-[rgba(34,197,94,0.6)] font-mono mb-1">
-            +{bestTrade.pnl?.toFixed(1)}%
+            {(bestTrade.pnl ?? 0) > 0 ? "+" : ""}{bestTrade.pnl?.toFixed(1)}%
           </div>
           <div className="text-xs text-[#737373]">
             {bestTrade.action} {bestTrade.token} @ ${bestTrade.entryPrice.toLocaleString()}
@@ -262,7 +268,7 @@ export function TradeStats({ trades }: TradeStatsProps) {
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
           <div className="text-sm font-medium text-[#e5e5e5] mb-2">Worst Trade</div>
           <div className="text-xs text-[rgba(239,68,68,0.6)] font-mono mb-1">
-            {worstTrade.pnl?.toFixed(1)}%
+            {(worstTrade.pnl ?? 0) > 0 ? "+" : ""}{worstTrade.pnl?.toFixed(1)}%
           </div>
           <div className="text-xs text-[#737373]">
             {worstTrade.action} {worstTrade.token} @ ${worstTrade.entryPrice.toLocaleString()}

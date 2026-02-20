@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Sparkline {
   points: number[];
@@ -87,7 +87,7 @@ interface RelativeTimestampProps {
 }
 
 export function RelativeTimestamp({ timestamp }: RelativeTimestampProps) {
-  const [timeAgo, setTimeAgo] = useState(() => {
+  function calcTimeAgo() {
     const diff = Date.now() - new Date(timestamp).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
@@ -96,21 +96,17 @@ export function RelativeTimestamp({ timestamp }: RelativeTimestampProps) {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
-  });
+  }
 
-  // Update timestamps every minute
-  useState(() => {
+  const [timeAgo, setTimeAgo] = useState(calcTimeAgo);
+
+  // Issue #15: Move interval to useEffect with cleanup
+  useEffect(() => {
     const interval = setInterval(() => {
-      const diff = Date.now() - new Date(timestamp).getTime();
-      const mins = Math.floor(diff / 60000);
-      if (mins < 1) setTimeAgo("just now");
-      else if (mins < 60) setTimeAgo(`${mins}m ago`);
-      else if (mins < 1440) setTimeAgo(`${Math.floor(mins / 60)}h ago`);
-      else setTimeAgo(`${Math.floor(mins / 1440)}d ago`);
+      setTimeAgo(calcTimeAgo());
     }, 60000);
-
     return () => clearInterval(interval);
-  });
+  }, [timestamp]);
 
   return <span>{timeAgo}</span>;
 }

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import path from "path";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -9,20 +9,20 @@ export interface RegisteredProvider {
   address: string;
   name: string;
   description: string;
-  bio?: string; // short bio (max 280 chars)
-  avatar?: string; // URL to avatar image
+  bio?: string;
+  avatar?: string;
   registeredAt: string;
   chain: string;
-  agent?: string; // agent platform (openclaw, bankr, etc.)
+  agent?: string;
   website?: string;
-  twitter?: string; // handle without @
-  farcaster?: string; // handle without @
-  github?: string; // handle without /
+  twitter?: string;
+  farcaster?: string;
+  github?: string;
 }
 
 export interface PublishedSignal {
   id: string;
-  provider: string; // wallet address
+  provider: string;
   timestamp: string;
   action: "BUY" | "SELL" | "LONG" | "SHORT";
   token: string;
@@ -41,15 +41,16 @@ export interface PublishedSignal {
   pnlPct?: number;
 }
 
-function ensureDataDir() {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-}
+// Issue #19: Cache provider list per request (module-level singleton per cold start)
+let _providersCache: RegisteredProvider[] | null = null;
+let _signalsCache: PublishedSignal[] | null = null;
 
 export function getProviders(): RegisteredProvider[] {
-  ensureDataDir();
+  if (_providersCache) return _providersCache;
   if (!existsSync(PROVIDERS_FILE)) return [];
   try {
-    return JSON.parse(readFileSync(PROVIDERS_FILE, "utf-8"));
+    _providersCache = JSON.parse(readFileSync(PROVIDERS_FILE, "utf-8"));
+    return _providersCache!;
   } catch {
     return [];
   }
@@ -61,26 +62,25 @@ export function getProvider(address: string): RegisteredProvider | undefined {
   );
 }
 
-export function registerProvider(provider: RegisteredProvider): RegisteredProvider {
-  ensureDataDir();
-  const providers = getProviders();
-  const existing = providers.findIndex(
-    (p) => p.address.toLowerCase() === provider.address.toLowerCase()
+// Issue #3: Writes return read-only error on Vercel (no writable filesystem)
+function readOnlyError(): never {
+  const err: any = new Error(
+    "Read-only in production. To register a provider or publish signals, submit a PR to data/providers.json or data/signals.json in the bankr-signals repo."
   );
-  if (existing >= 0) {
-    providers[existing] = { ...providers[existing], ...provider };
-  } else {
-    providers.push(provider);
-  }
-  writeFileSync(PROVIDERS_FILE, JSON.stringify(providers, null, 2));
-  return provider;
+  err.code = "READ_ONLY";
+  throw err;
+}
+
+export function registerProvider(_provider: RegisteredProvider): RegisteredProvider {
+  return readOnlyError();
 }
 
 export function getSignals(): PublishedSignal[] {
-  ensureDataDir();
+  if (_signalsCache) return _signalsCache;
   if (!existsSync(SIGNALS_FILE)) return [];
   try {
-    return JSON.parse(readFileSync(SIGNALS_FILE, "utf-8"));
+    _signalsCache = JSON.parse(readFileSync(SIGNALS_FILE, "utf-8"));
+    return _signalsCache!;
   } catch {
     return [];
   }
@@ -92,31 +92,15 @@ export function getSignalsByProvider(address: string): PublishedSignal[] {
   );
 }
 
-export function addSignal(signal: PublishedSignal): PublishedSignal {
-  ensureDataDir();
-  const signals = getSignals();
-  // Dedupe by id
-  const existing = signals.findIndex((s) => s.id === signal.id);
-  if (existing >= 0) {
-    signals[existing] = signal;
-  } else {
-    signals.push(signal);
-  }
-  writeFileSync(SIGNALS_FILE, JSON.stringify(signals, null, 2));
-  return signal;
+export function addSignal(_signal: PublishedSignal): PublishedSignal {
+  return readOnlyError();
 }
 
 export function updateSignal(
-  id: string,
-  update: Partial<PublishedSignal>
+  _id: string,
+  _update: Partial<PublishedSignal>
 ): PublishedSignal | null {
-  ensureDataDir();
-  const signals = getSignals();
-  const idx = signals.findIndex((s) => s.id === id);
-  if (idx < 0) return null;
-  signals[idx] = { ...signals[idx], ...update };
-  writeFileSync(SIGNALS_FILE, JSON.stringify(signals, null, 2));
-  return signals[idx];
+  return readOnlyError();
 }
 
 export function generateSignalId(provider: string, timestamp: string): string {
