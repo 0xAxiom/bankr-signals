@@ -14,8 +14,8 @@ export function LiveTicker({ trades }: LiveTickerProps) {
   const isBuy = latestTrade.action === "BUY" || latestTrade.action === "LONG";
   
   return (
-    <div className="bg-[#1a1a1a] border-l-2 border-r border-t border-b border-l-[rgba(34,197,94,0.4)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a] rounded px-4 py-2 mb-8 animate-pulse">
-      <div className="flex items-center gap-3 text-sm">
+    <div className="bg-[#1a1a1a] border-l-2 border-r border-t border-b border-l-[rgba(34,197,94,0.4)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a] rounded px-3 sm:px-4 py-2 mb-8 animate-pulse">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
         <span className="text-[rgba(34,197,94,0.6)] font-mono font-bold">● LIVE</span>
         <span
           className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
@@ -31,14 +31,14 @@ export function LiveTicker({ trades }: LiveTickerProps) {
         <span className="font-mono">${latestTrade.entryPrice.toLocaleString()}</span>
         {latestTrade.leverage && (
           <>
-            <span className="text-[#737373]">·</span>
+            <span className="text-[#737373] hidden sm:inline">·</span>
             <span className="text-xs bg-[#2a2a2a] px-2 py-0.5 rounded">{latestTrade.leverage}x</span>
           </>
         )}
         <span className="text-[#737373]">by</span>
         <a 
           href={`/provider/${latestTrade.providerAddress}`} 
-          className="font-mono text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors"
+          className="font-mono text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors truncate max-w-[120px] sm:max-w-none"
         >
           {latestTrade.providerName}
         </a>
@@ -112,7 +112,7 @@ export function AggregateEquityCurve({ providers }: AggregateEquityCurveProps) {
         </div>
       </div>
       
-      <svg width={width} height={height} className="w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-16 sm:h-20">
         {/* Zero line */}
         {minPnL < 0 && (
           <line
@@ -169,14 +169,14 @@ export function HowItWorks() {
   ];
 
   return (
-    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-8 mb-16">
+    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 sm:p-8 mb-16">
       <h3 className="text-lg font-semibold mb-6 text-center">How It Works</h3>
       
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
         {steps.map((step, i) => (
           <div key={step.number} className="text-center relative">
             {i < steps.length - 1 && (
-              <div className="absolute top-6 right-0 w-full h-0.5 bg-gradient-to-r from-[rgba(34,197,94,0.6)] to-transparent transform translate-x-1/2"></div>
+              <div className="hidden sm:block absolute top-6 right-0 w-full h-0.5 bg-gradient-to-r from-[rgba(34,197,94,0.6)] to-transparent transform translate-x-1/2"></div>
             )}
             
             <div className="w-12 h-12 bg-[rgba(34,197,94,0.1)] border-2 border-[rgba(34,197,94,0.6)] rounded-full flex items-center justify-center font-mono font-bold text-[rgba(34,197,94,0.8)] text-lg mx-auto mb-4 relative z-10">
@@ -239,13 +239,13 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
   );
 
   return (
-    <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="border border-[#2a2a2a] rounded-lg overflow-x-auto">
+      <table className="w-full text-sm min-w-[480px]">
         <thead>
           <tr className="border-b border-[#2a2a2a] text-[#737373] text-xs">
-            <th className="text-left px-4 py-3 font-medium">#</th>
-            <th className="text-left px-4 py-3 font-medium">Provider</th>
-            <th className="text-right px-4 py-3">
+            <th className="text-left px-3 sm:px-4 py-3 font-medium">#</th>
+            <th className="text-left px-3 sm:px-4 py-3 font-medium">Provider</th>
+            <th className="text-right px-3 sm:px-4 py-3">
               <SortButton field="pnl_pct">PnL</SortButton>
             </th>
             <th className="text-right px-4 py-3">

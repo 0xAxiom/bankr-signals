@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MobileMenu } from "./mobile-menu";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -67,12 +68,18 @@ function Nav() {
         <span className="text-[#22c55e] font-mono text-sm font-bold">📡</span>
         <span className="font-semibold text-sm tracking-tight">bankr-signals</span>
       </a>
-      <div className="flex gap-4 sm:gap-6 text-xs text-[#737373]">
+      {/* Mobile: show only Feed + Leaderboard; sm+: show all */}
+      <div className="flex gap-3 sm:gap-6 text-xs text-[#737373]">
         <a href="/feed" className="hover:text-[#e5e5e5] transition-colors">Feed</a>
-        <a href="/leaderboard" className="hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
-        <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors">Subscribe</a>
+        <a href="/leaderboard" className="hover:text-[#e5e5e5] transition-colors">
+          <span className="hidden sm:inline">Leaderboard</span>
+          <span className="sm:hidden">Board</span>
+        </a>
+        <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Subscribe</a>
         <a href="/skill" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Skill</a>
         <a href="https://github.com/0xAxiom/bankr-signals" target="_blank" rel="noopener" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">GitHub</a>
+        {/* Mobile menu button */}
+        <MobileMenu />
       </div>
     </nav>
   );

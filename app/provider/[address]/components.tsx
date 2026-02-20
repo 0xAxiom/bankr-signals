@@ -60,7 +60,7 @@ export function EquityCurve({ trades }: EquityCurveProps) {
         </div>
       </div>
       
-      <svg width={width} height={height} className="w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-24 sm:h-[120px]">
         {/* Grid lines */}
         <defs>
           <pattern id="grid" width="40" height="30" patternUnits="userSpaceOnUse">
@@ -163,7 +163,7 @@ export function PerformanceGrid({ trades }: PerformanceGridProps) {
         </div>
       </div>
       
-      <div className="grid grid-cols-10 gap-1">
+      <div className="grid grid-cols-6 sm:grid-cols-10 gap-1">
         {days.map((day, i) => {
           const intensity = maxAbsPnL > 0 ? Math.abs(day.pnl) / maxAbsPnL : 0;
           const isProfit = day.pnl > 0;

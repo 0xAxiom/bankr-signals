@@ -14,8 +14,8 @@ export default async function Leaderboard() {
         proof.
       </p>
 
-      <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border border-[#2a2a2a] rounded-lg overflow-x-auto">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="border-b border-[#2a2a2a] text-[#737373] text-xs bg-[#111]">
               <th className="text-left px-4 py-3 font-medium w-12">#</th>
