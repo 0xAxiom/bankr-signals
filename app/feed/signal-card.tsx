@@ -120,7 +120,7 @@ export function SignalCard({ trade }: SignalCardProps) {
           : "border-l-[rgba(239,68,68,0.6)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a]"
         : "border-[#2a2a2a]"
     } animate-fadeIn`}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <span
             className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
@@ -131,7 +131,7 @@ export function SignalCard({ trade }: SignalCardProps) {
           >
             {trade.action}
           </span>
-          <span className="font-mono font-semibold text-lg">{trade.token}</span>
+          <span className="font-mono font-semibold text-base sm:text-lg">{trade.token}</span>
           {trade.leverage && (
             <span className="text-xs text-[#737373] bg-[#2a2a2a] px-2 py-0.5 rounded">
               {trade.leverage}x
@@ -140,7 +140,7 @@ export function SignalCard({ trade }: SignalCardProps) {
         </div>
         <div className="flex items-center gap-4">
           {sparklineData.length > 0 && (
-            <div className="flex flex-col items-end">
+            <div className="hidden sm:flex flex-col items-end">
               <Sparkline points={sparklineData} />
               <div className="text-xs text-[#737373] mt-1">Price since entry</div>
             </div>
@@ -149,7 +149,7 @@ export function SignalCard({ trade }: SignalCardProps) {
             <RelativeTimestamp timestamp={trade.timestamp} />
             <a
               href={`/provider/${trade.providerAddress}`}
-              className="hover:text-[#e5e5e5] font-mono transition-colors"
+              className="hover:text-[#e5e5e5] font-mono transition-colors truncate max-w-[120px] sm:max-w-none"
             >
               {trade.providerName}
             </a>
@@ -166,7 +166,7 @@ export function SignalCard({ trade }: SignalCardProps) {
         <ConfidenceMeter confidence={confidence} />
       </div>
 
-      <div className="grid grid-cols-4 gap-4 text-xs mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs mb-3">
         <div>
           <div className="text-[#737373]">Entry</div>
           <div className="font-mono font-medium">

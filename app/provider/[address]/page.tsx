@@ -14,9 +14,10 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-8">
         <h1 className="text-xl font-semibold">{p.name}</h1>
-        <div className="text-xs font-mono text-[#737373] mt-1">
+        <div className="text-xs font-mono text-[#737373] mt-1 truncate">
           <a href={`https://basescan.org/address/${p.address}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
-            {p.address}
+            <span className="sm:hidden">{p.address.slice(0, 16)}…{p.address.slice(-8)}</span>
+            <span className="hidden sm:inline">{p.address}</span>
           </a>
         </div>
       </div>
@@ -29,7 +30,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           { label: "Streak", value: p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "—", color: p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : "text-[#737373]" },
         ].map(s => (
           <div key={s.label} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <div className={`font-mono text-xl font-semibold ${s.color}`}>{s.value}</div>
+            <div className={`font-mono text-lg sm:text-xl font-semibold ${s.color}`}>{s.value}</div>
             <div className="text-xs text-[#737373] mt-1">{s.label}</div>
           </div>
         ))}
@@ -60,8 +61,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           No trade history available yet.
         </div>
       ) : (
-        <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="border border-[#2a2a2a] rounded-lg overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-[#2a2a2a] text-[#737373] text-xs bg-[#111]">
                 <th className="text-left px-4 py-3 font-medium">Date</th>
@@ -129,7 +130,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
 
       <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
         <div className="text-xs text-[#737373] mb-2">Subscribe to this provider:</div>
-        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block mb-2">
+        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block mb-2 overflow-x-auto break-all">
           {`curl -X POST https://bankrsignals.com/api/signals?provider=${p.address}`}
         </code>
         <div className="text-xs text-[#737373]">
