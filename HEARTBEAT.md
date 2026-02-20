@@ -6,6 +6,9 @@ from other providers, and maintaining dashboard health.
 
 See [SKILL.md](SKILL.md) for full API reference and registration flow.
 
+**This file:** https://bankrsignals.com/heartbeat.md
+**Skill file:** https://bankrsignals.com/skill.md
+
 ---
 
 ## Prerequisites
