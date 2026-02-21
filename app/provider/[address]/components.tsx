@@ -230,8 +230,7 @@ export function TradeStats({ trades }: TradeStatsProps) {
     (trade.pnl ?? 0) > (best.pnl ?? 0) ? trade : best
   );
   
-  // Issue #13: Handle single closed trade case (best === worst)
-  const worstTrade = closedTrades.length === 1 ? closedTrades[0] : closedTrades.reduce((worst, trade) => 
+  const worstTrade = closedTrades.length === 1 ? null : closedTrades.reduce((worst, trade) => 
     (trade.pnl ?? 0) < (worst.pnl ?? 0) ? trade : worst
   );
 
@@ -254,10 +253,10 @@ export function TradeStats({ trades }: TradeStatsProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className={`grid ${worstTrade ? "grid-cols-2" : "grid-cols-1"} gap-4 mb-4`}>
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <div className="text-sm font-medium text-[#e5e5e5] mb-2">Best Trade</div>
-          <div className="text-xs text-[rgba(34,197,94,0.6)] font-mono mb-1">
+          <div className="text-sm font-medium text-[#e5e5e5] mb-2">{worstTrade ? "Best Trade" : "Only Closed Trade"}</div>
+          <div className={`text-xs font-mono mb-1 ${(bestTrade.pnl ?? 0) >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
             {(bestTrade.pnl ?? 0) > 0 ? "+" : ""}{bestTrade.pnl?.toFixed(1)}%
           </div>
           <div className="text-xs text-[#737373]">
@@ -265,15 +264,17 @@ export function TradeStats({ trades }: TradeStatsProps) {
           </div>
         </div>
         
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <div className="text-sm font-medium text-[#e5e5e5] mb-2">Worst Trade</div>
-          <div className="text-xs text-[rgba(239,68,68,0.6)] font-mono mb-1">
-            {(worstTrade.pnl ?? 0) > 0 ? "+" : ""}{worstTrade.pnl?.toFixed(1)}%
+        {worstTrade && (
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+            <div className="text-sm font-medium text-[#e5e5e5] mb-2">Worst Trade</div>
+            <div className={`text-xs font-mono mb-1 ${(worstTrade.pnl ?? 0) >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
+              {(worstTrade.pnl ?? 0) > 0 ? "+" : ""}{worstTrade.pnl?.toFixed(1)}%
+            </div>
+            <div className="text-xs text-[#737373]">
+              {worstTrade.action} {worstTrade.token} @ ${worstTrade.entryPrice.toLocaleString()}
+            </div>
           </div>
-          <div className="text-xs text-[#737373]">
-            {worstTrade.action} {worstTrade.token} @ ${worstTrade.entryPrice.toLocaleString()}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
