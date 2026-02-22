@@ -1,1 +1,64 @@
-[]
+[
+  {
+    "id": "sig_eth_close_01",
+    "provider": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+    "timestamp": "2026-02-19T16:12:00Z",
+    "action": "LONG",
+    "token": "ETH",
+    "chain": "base",
+    "entryPrice": 1954.42,
+    "leverage": 5,
+    "txHash": "0x04c1afdd96043f5d131689849cd96456fbc5f60727ca2ae4748279c487c7c4d1",
+    "status": "closed",
+    "exitPrice": 1940.0,
+    "exitTimestamp": "2026-02-22T18:45:00Z",
+    "pnlPct": -3.69
+  },
+  {
+    "id": "sig_btc_close_01",
+    "provider": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+    "timestamp": "2026-02-20T18:00:00Z",
+    "action": "LONG",
+    "token": "BTC",
+    "chain": "base",
+    "entryPrice": 67751.87,
+    "leverage": 5,
+    "txHash": "0x94a60abed4c9010466dae45ac41bdc34746a43360417dd24e27d999a96b7c046",
+    "status": "closed",
+    "exitPrice": 67358.17,
+    "exitTimestamp": "2026-02-22T18:45:00Z",
+    "pnlPct": -2.91
+  },
+  {
+    "id": "sig_eth_short_01",
+    "provider": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+    "timestamp": "2026-02-22T18:50:00Z",
+    "action": "SHORT",
+    "token": "ETH",
+    "chain": "base",
+    "entryPrice": 1940.86,
+    "leverage": 10,
+    "collateralUsd": 200,
+    "txHash": "0x11e3cab98d6db317f157dce3480e35bded59dd4b25953c91980bf156f7488c4a",
+    "status": "open",
+    "stopLossPct": 3,
+    "takeProfitPct": 20,
+    "reasoning": "Geopolitical risk - Iran conflict escalation. Risk-off environment favors shorts."
+  },
+  {
+    "id": "sig_btc_short_01",
+    "provider": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+    "timestamp": "2026-02-22T18:55:00Z",
+    "action": "SHORT",
+    "token": "BTC",
+    "chain": "base",
+    "entryPrice": 67441.5,
+    "leverage": 10,
+    "collateralUsd": 200,
+    "txHash": "0x171336359920c4b08d230699bb200a283bc9f0ae02d0d4d1648de01618af2ea6",
+    "status": "open",
+    "stopLossPct": 3,
+    "takeProfitPct": 20,
+    "reasoning": "Geopolitical risk - Iran conflict escalation. Risk-off environment favors shorts."
+  }
+]
