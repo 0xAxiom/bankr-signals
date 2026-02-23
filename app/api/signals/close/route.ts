@@ -7,10 +7,14 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { signalId, exitPrice, pnlPct, pnlUsd, message, signature } = body;
+    const { signalId, exitPrice, exitTxHash, pnlPct, pnlUsd, message, signature } = body;
 
-    if (!signalId || !exitPrice) {
-      return NextResponse.json({ error: "signalId and exitPrice required" }, { status: 400 });
+    if (!signalId || !exitPrice || !exitTxHash) {
+      return NextResponse.json({ error: "signalId, exitPrice, and exitTxHash required" }, { status: 400 });
+    }
+
+    if (!/^0x[a-fA-F0-9]{64}$/.test(exitTxHash)) {
+      return NextResponse.json({ error: "exitTxHash must be a valid transaction hash" }, { status: 400 });
     }
 
     const signal = await dbGetSignal(signalId);
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const closed = await dbCloseSignal(signalId, parseFloat(exitPrice), pnlPct, pnlUsd);
+    const closed = await dbCloseSignal(signalId, parseFloat(exitPrice), pnlPct, pnlUsd, exitTxHash);
     return NextResponse.json({ success: true, signal: closed });
   } catch (error: any) {
     console.error("Close signal error:", error);

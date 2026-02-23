@@ -132,7 +132,7 @@ export async function dbAddSignal(input: {
   return data;
 }
 
-export async function dbCloseSignal(id: string, exitPrice: number, pnlPct?: number, pnlUsd?: number) {
+export async function dbCloseSignal(id: string, exitPrice: number, pnlPct?: number, pnlUsd?: number, exitTxHash?: string) {
   const { data, error } = await supabase
     .from("signals")
     .update({
@@ -141,6 +141,7 @@ export async function dbCloseSignal(id: string, exitPrice: number, pnlPct?: numb
       exit_timestamp: new Date().toISOString(),
       pnl_pct: pnlPct || null,
       pnl_usd: pnlUsd || null,
+      exit_tx_hash: exitTxHash || null,
     })
     .eq("id", id)
     .select()

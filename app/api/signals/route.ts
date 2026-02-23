@@ -47,9 +47,17 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!provider || !action || !token || !entryPrice) {
+    if (!provider || !action || !token || !entryPrice || !txHash) {
       return NextResponse.json(
-        { error: "Required fields: provider, action, token, entryPrice" },
+        { error: "Required fields: provider, action, token, entryPrice, txHash" },
+        { status: 400 }
+      );
+    }
+
+    // Validate txHash format
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+      return NextResponse.json(
+        { error: "txHash must be a valid transaction hash (0x + 64 hex chars)" },
         { status: 400 }
       );
     }

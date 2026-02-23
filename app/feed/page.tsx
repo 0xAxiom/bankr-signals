@@ -4,10 +4,15 @@ import { SignalCard } from "./signal-card";
 export const dynamic = "force-dynamic";
 
 export default async function Feed() {
-  const providers = await getProviderStats();
-  const trades = providers.flatMap((p) =>
-    p.trades.map((t) => ({ ...t, providerName: p.name, providerAddress: p.address }))
-  ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  let trades: any[] = [];
+  try {
+    const providers = await getProviderStats();
+    trades = providers.flatMap((p) =>
+      p.trades.map((t) => ({ ...t, providerName: p.name, providerAddress: p.address }))
+    ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  } catch (e) {
+    console.error("Feed error:", e);
+  }
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">

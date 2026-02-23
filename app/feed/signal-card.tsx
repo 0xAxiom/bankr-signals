@@ -10,10 +10,11 @@ interface TradeWithProvider {
   entryPrice: number;
   leverage?: number;
   txHash?: string;
+  exitTxHash?: string;
   pnl?: number;
   status: "open" | "closed" | "stopped";
   collateralUsd?: number;
-  amountToken?: number;
+
   providerName: string;
   providerAddress: string;
   confidence?: number;
@@ -30,13 +31,13 @@ export function SignalCard({ trade }: SignalCardProps) {
   const isBuy = trade.action === "BUY" || trade.action === "LONG";
   
   // Issue #14: Use !== undefined instead of falsy check for PnL
-  const dollarPnl = trade.collateralUsd && trade.pnl !== undefined
+  const dollarPnl = trade.collateralUsd && trade.pnl != null
     ? (trade.collateralUsd * (trade.pnl / 100))
     : null;
 
   return (
     <div className={`border-l-2 border-r border-t border-b rounded-lg p-4 bg-[#1a1a1a] hover:bg-[#222] transition-colors ${
-      trade.pnl !== undefined 
+      trade.pnl != null 
         ? trade.pnl >= 0 
           ? "border-l-[rgba(34,197,94,0.6)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a]"
           : "border-l-[rgba(239,68,68,0.6)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a]"
@@ -72,16 +73,16 @@ export function SignalCard({ trade }: SignalCardProps) {
       </div>
 
       {/* Issue #16: Only show confidence if real data exists */}
-      {trade.confidence !== undefined && (
+      {trade.confidence != null && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-[#737373]">Confidence</span>
-            <span className="text-xs font-mono text-[#e5e5e5]">{trade.confidence.toFixed(0)}%</span>
+            <span className="text-xs font-mono text-[#e5e5e5]">{((trade.confidence ?? 0) * 100).toFixed(0)}%</span>
           </div>
           <div className="w-full bg-[#2a2a2a] rounded-full h-1.5 overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-[rgba(239,68,68,0.6)] via-[rgba(234,179,8,0.6)] to-[rgba(34,197,94,0.6)] rounded-full transition-all duration-300"
-              style={{ width: `${Math.max(0, Math.min(100, trade.confidence))}%` }}
+              style={{ width: `${Math.max(0, Math.min(100, (trade.confidence ?? 0) * 100))}%` }}
             />
           </div>
         </div>
@@ -97,14 +98,14 @@ export function SignalCard({ trade }: SignalCardProps) {
             }) : "-"}
           </div>
         </div>
-        {trade.pnl !== undefined && (
+        {trade.pnl != null && (
           <div>
             <div className="text-[#737373]">PnL</div>
             <div className={`font-mono font-medium ${
               trade.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"
             }`}>
-              {trade.pnl > 0 ? "+" : ""}{trade.pnl.toFixed(1)}%
-              {dollarPnl !== null && (
+              {trade.pnl > 0 ? "+" : ""}{(trade.pnl ?? 0).toFixed(1)}%
+              {dollarPnl != null && (
                 <div className="text-xs opacity-75">
                   ${dollarPnl > 0 ? "+" : ""}{dollarPnl.toFixed(2)}
                 </div>
@@ -116,7 +117,7 @@ export function SignalCard({ trade }: SignalCardProps) {
           <div className="text-[#737373]">Size</div>
           <div className="font-mono">
             {trade.collateralUsd ? `$${trade.collateralUsd.toLocaleString()}` : 
-             trade.amountToken ? `${trade.amountToken.toFixed(2)} ${trade.token}` : "-"}
+             "-"}
           </div>
         </div>
         <div>
@@ -140,19 +141,37 @@ export function SignalCard({ trade }: SignalCardProps) {
         />
       )}
 
-      {trade.txHash && (
-        <div className="mt-3 pt-3 border-t border-[#2a2a2a] text-xs font-mono text-[#737373]">
-          TX:{" "}
-          <a
-            href={`https://basescan.org/tx/${trade.txHash}`}
-            target="_blank"
-            rel="noopener"
-            className="hover:text-[rgba(34,197,94,0.6)] transition-colors"
-          >
-            {trade.txHash.slice(0, 18)}…
-          </a>
-        </div>
-      )}
+      <div className="mt-3 pt-3 border-t border-[#2a2a2a] text-xs font-mono text-[#737373]">
+        {trade.txHash ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[rgba(34,197,94,0.6)] font-semibold">&#x2713; VERIFIED</span>
+            <span>Entry:</span>
+            <a
+              href={`https://basescan.org/tx/${trade.txHash}`}
+              target="_blank"
+              rel="noopener"
+              className="hover:text-[rgba(34,197,94,0.6)] transition-colors"
+            >
+              {trade.txHash.slice(0, 10)}...{trade.txHash.slice(-6)}
+            </a>
+            {trade.exitTxHash && (
+              <>
+                <span>Exit:</span>
+                <a
+                  href={`https://basescan.org/tx/${trade.exitTxHash}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="hover:text-[rgba(34,197,94,0.6)] transition-colors"
+                >
+                  {trade.exitTxHash.slice(0, 10)}...{trade.exitTxHash.slice(-6)}
+                </a>
+              </>
+            )}
+          </div>
+        ) : (
+          <span className="text-[#555]">UNVERIFIED - no tx hash</span>
+        )}
+      </div>
     </div>
   );
 }

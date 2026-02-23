@@ -60,7 +60,7 @@ export function EquityCurve({ trades }: EquityCurveProps) {
         <h3 className="text-sm font-medium text-[#e5e5e5]">Equity Curve</h3>
         <div className="text-xs text-[#737373]">
           Total: <span className={`font-mono ${isPositive ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-            {finalPnl > 0 ? "+" : ""}{finalPnl.toFixed(1)}%
+            {finalPnl > 0 ? "+" : ""}{(finalPnl ?? 0).toFixed(1)}%
           </span>
         </div>
       </div>
@@ -186,13 +186,13 @@ export function PerformanceGrid({ trades }: PerformanceGridProps) {
               key={i}
               className="w-4 h-4 rounded-sm border border-[#1a1a1a] relative group cursor-help"
               style={{ backgroundColor: bgColor }}
-              title={`${day.date.toLocaleDateString()}: ${day.trades} trades, ${day.pnl >= 0 ? "+" : ""}${day.pnl.toFixed(1)}% PnL`}
+              title={`${day.date.toLocaleDateString()}: ${day.trades} trades, ${day.pnl >= 0 ? "+" : ""}${(day.pnl ?? 0).toFixed(1)}% PnL`}
             >
               {/* Tooltip on hover */}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {day.date.toLocaleDateString()}<br/>
                 {day.trades} trades<br/>
-                {day.pnl >= 0 ? "+" : ""}{day.pnl.toFixed(1)}% PnL
+                {day.pnl >= 0 ? "+" : ""}{(day.pnl ?? 0).toFixed(1)}% PnL
               </div>
             </div>
           );
@@ -260,7 +260,7 @@ export function TradeStats({ trades }: TradeStatsProps) {
             {(bestTrade.pnl ?? 0) > 0 ? "+" : ""}{bestTrade.pnl?.toFixed(1)}%
           </div>
           <div className="text-xs text-[#737373]">
-            {bestTrade.action} {bestTrade.token} @ ${bestTrade.entryPrice.toLocaleString()}
+            {bestTrade.action} {bestTrade.token} @ ${(bestTrade.entryPrice ?? 0).toLocaleString()}
           </div>
         </div>
         
@@ -271,7 +271,7 @@ export function TradeStats({ trades }: TradeStatsProps) {
               {(worstTrade.pnl ?? 0) > 0 ? "+" : ""}{worstTrade.pnl?.toFixed(1)}%
             </div>
             <div className="text-xs text-[#737373]">
-              {worstTrade.action} {worstTrade.token} @ ${worstTrade.entryPrice.toLocaleString()}
+              {worstTrade.action} {worstTrade.token} @ ${(worstTrade.entryPrice ?? 0).toLocaleString()}
             </div>
           </div>
         )}

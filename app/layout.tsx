@@ -65,8 +65,8 @@ function Nav() {
   return (
     <nav className="border-b border-[#2a2a2a] px-4 sm:px-6 py-3 flex items-center justify-between">
       <a href="/" className="flex items-center gap-2">
-        <span className="text-[#22c55e] font-mono text-sm font-bold">📡</span>
-        <span className="font-semibold text-sm tracking-tight">bankr-signals</span>
+        <img src="/logo.svg" alt="Bankr Signals" width={20} height={20} className="rounded" />
+        <span className="font-semibold text-sm tracking-tight">bankr signals</span>
       </a>
       {/* Mobile: show only Feed + Leaderboard; sm+: show all */}
       <div className="flex gap-3 sm:gap-6 text-xs text-[#737373]">

@@ -1,5 +1,5 @@
 import { getProviderStats } from "@/lib/signals";
-import { getProvider } from "@/lib/providers";
+import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 
@@ -7,11 +7,29 @@ export const dynamic = "force-dynamic";
 
 export default async function ProviderPage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
-  const providers = await getProviderStats();
+  
+  let providers;
+  try {
+    providers = await getProviderStats();
+  } catch (e) {
+    console.error("getProviderStats failed:", e);
+    return notFound();
+  }
+  
   const p = providers.find(pr => pr.address.toLowerCase() === address.toLowerCase());
   if (!p) return notFound();
 
-  const profile = getProvider(address);
+  let profile: any = null;
+  try {
+    const { data } = await supabase
+      .from("signal_providers")
+      .select("*")
+      .eq("address", address.toLowerCase())
+      .maybeSingle();
+    profile = data;
+  } catch (e) {
+    console.error("provider lookup failed:", e);
+  }
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -138,13 +156,13 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
                       {t.collateralUsd ? `$${t.collateralUsd.toLocaleString()}` : 
-                       t.amountToken ? `${t.amountToken.toFixed(2)}` : "—"}
+                       "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-[#737373]">
                       {t.leverage ? `${t.leverage}x` : "—"}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono font-medium ${t.pnl === undefined ? "text-[#737373]" : t.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                      {t.pnl !== undefined ? `${t.pnl > 0 ? "+" : ""}${t.pnl.toFixed(1)}%` : "—"}
+                      {t.pnl != null ? `${t.pnl > 0 ? "+" : ""}${(t.pnl ?? 0).toFixed(1)}%` : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs">
                       <span className={`px-2 py-0.5 rounded ${
@@ -157,10 +175,18 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[#737373]">
                       {t.txHash ? (
-                        <a href={`https://basescan.org/tx/${t.txHash}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
-                          {t.txHash.slice(0, 8)}...
-                        </a>
-                      ) : "—"}
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-[rgba(34,197,94,0.6)]">&#x2713;</span>
+                          <a href={`https://basescan.org/tx/${t.txHash}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
+                            {t.txHash.slice(0, 8)}...
+                          </a>
+                          {t.exitTxHash && (
+                            <a href={`https://basescan.org/tx/${t.exitTxHash}`} target="_blank" rel="noopener" className="hover:text-[rgba(34,197,94,0.6)] transition-colors ml-1" title="Exit TX">
+                              &#x2192;{t.exitTxHash.slice(0, 8)}...
+                            </a>
+                          )}
+                        </div>
+                      ) : <span className="text-[#555]">unverified</span>}
                     </td>
                   </tr>
                 );
