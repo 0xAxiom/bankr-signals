@@ -264,7 +264,7 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
               <td className="px-4 py-3 font-mono text-[#737373]">{i + 1}</td>
               <td className="px-4 py-3">
                 <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors flex items-center gap-3">
-                  <Avatar address={p.address} name={p.name} size="sm" />
+                  <Avatar address={p.address} name={p.name} avatarUrl={p.avatar} size="sm" />
                   <div>
                     <span className="font-medium">{p.name}</span>
                     <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>

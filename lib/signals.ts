@@ -18,6 +18,7 @@ export interface ParsedTrade {
 export interface ProviderStats {
   address: string;
   name: string;
+  avatar: string | null;
   pnl_pct: number;
   win_rate: number;
   signal_count: number;
@@ -119,6 +120,7 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
     results.push({
       address: provider.address,
       name: provider.name,
+      avatar: provider.avatar || null,
       pnl_pct: Math.round(pnlPct * 10) / 10,
       win_rate: Math.round(winRate),
       signal_count: trades.length,
