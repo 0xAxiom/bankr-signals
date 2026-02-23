@@ -1,28 +1,8 @@
-import { createHash } from "crypto";
+import { verifyMessage } from "viem";
 
 /**
- * Minimal EIP-191 signature verification.
- * 
- * In production, writes are read-only (no writable filesystem on Vercel),
- * so this is defense-in-depth. When a real DB is added, install viem
- * and replace with recoverMessageAddress for full ecrecover.
- */
-
-function keccak256(data: Buffer): Buffer {
-  return createHash("sha3-256").update(data).digest();
-}
-
-function eip191Hash(message: string): Buffer {
-  const prefix = `\x19Ethereum Signed Message:\n${message.length}`;
-  return keccak256(Buffer.concat([Buffer.from(prefix), Buffer.from(message)]));
-}
-
-/**
- * Verify that a signature was produced by the claimed address.
- * 
- * Without viem/secp256k1, we validate format and hash but cannot
- * do full ecrecover. Since all writes hit READ_ONLY error in production,
- * this blocks unsigned requests while the full verify awaits viem dep.
+ * Verify EIP-191 signature using viem's ecrecover.
+ * Returns true if the signature was produced by the claimed address.
  */
 export async function verifySignature(
   address: string,
@@ -39,13 +19,14 @@ export async function verifySignature(
     return false;
   }
 
-  // Compute the EIP-191 hash (proves we processed the message)
-  const _hash = eip191Hash(message);
-
-  // Without secp256k1 ecrecover, we accept valid-format signatures.
-  // This is safe because:
-  // 1. All write endpoints hit READ_ONLY error before persisting
-  // 2. Message format is validated (address, timestamp) before this
-  // 3. When viem is added as dependency, full verification kicks in
-  return true;
+  try {
+    const valid = await verifyMessage({
+      address: address as `0x${string}`,
+      message,
+      signature: signature as `0x${string}`,
+    });
+    return valid;
+  } catch {
+    return false;
+  }
 }
