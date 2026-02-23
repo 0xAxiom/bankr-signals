@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/og-image.png",
-        width: 1024,
-        height: 1024,
+        width: 1200,
+        height: 630,
         alt: "Bankr Signals - Onchain Verified Trading Signals on Base",
       },
     ],
@@ -75,6 +75,7 @@ function Nav() {
           <span className="hidden sm:inline">Leaderboard</span>
           <span className="sm:hidden">Board</span>
         </a>
+        <a href="/register" className="hover:text-[#e5e5e5] transition-colors text-[rgba(34,197,94,0.6)]">Register</a>
         <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Subscribe</a>
         <a href="/skill" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Skill</a>
         <a href="https://github.com/0xAxiom/bankr-signals" target="_blank" rel="noopener" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">GitHub</a>
