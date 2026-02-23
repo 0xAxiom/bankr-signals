@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRegisterProvider, dbGetProvider } from "@/lib/db";
+import { dbRegisterProvider, dbGetProvider, dbGetProviders } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +86,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, provider });
   } catch (error: any) {
     console.error("Register error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const address = searchParams.get('address');
+    
+    if (address) {
+      const provider = await dbGetProvider(address);
+      if (!provider) {
+        return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
+      }
+      return NextResponse.json(provider);
+    }
+    
+    const providers = await dbGetProviders();
+    return NextResponse.json(providers);
+  } catch (error: any) {
+    console.error("GET providers error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

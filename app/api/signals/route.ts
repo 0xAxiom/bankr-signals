@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal } from "@/lib/db";
+import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, supabase } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,83 @@ function isValidToken(token: string): boolean {
 }
 
 const VALID_ACTIONS = ["BUY", "SELL", "LONG", "SHORT"];
+
+// Fire webhook notifications (async, don't block response)
+async function fireWebhooks(signal: any) {
+  try {
+    // Query active webhooks matching the signal
+    const { data: webhooks } = await supabase
+      .from("webhooks")
+      .select("*")
+      .eq("active", true);
+
+    if (!webhooks || webhooks.length === 0) return;
+
+    const matchingWebhooks = webhooks.filter(webhook => {
+      // Check provider filter
+      if (webhook.provider_filter && 
+          webhook.provider_filter.toLowerCase() !== signal.provider.toLowerCase()) {
+        return false;
+      }
+      
+      // Check token filter
+      if (webhook.token_filter && 
+          webhook.token_filter.toLowerCase() !== signal.token.toLowerCase()) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Fire webhooks (fire-and-forget, no await)
+    matchingWebhooks.forEach(async (webhook) => {
+      try {
+        const response = await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'BankrSignals-Webhook/1.0'
+          },
+          body: JSON.stringify({
+            type: 'new_signal',
+            signal,
+            timestamp: new Date().toISOString()
+          }),
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+
+        if (response.ok) {
+          // Reset failure count on success
+          await supabase
+            .from("webhooks")
+            .update({ 
+              last_triggered: new Date().toISOString(),
+              failures: 0 
+            })
+            .eq("id", webhook.id);
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error: any) {
+        // Increment failure count, deactivate after 10 failures
+        const newFailures = (webhook.failures || 0) + 1;
+        const updates: any = { failures: newFailures };
+        
+        if (newFailures >= 10) {
+          updates.active = false;
+        }
+        
+        await supabase
+          .from("webhooks")
+          .update(updates)
+          .eq("id", webhook.id);
+      }
+    });
+  } catch (error: any) {
+    // Silently fail - don't interfere with signal creation
+    console.error("Webhook firing error:", error);
+  }
+}
 
 // GET /api/signals - List signals
 export async function GET(req: NextRequest) {
@@ -124,6 +201,9 @@ export async function POST(req: NextRequest) {
       entryPrice: parsedPrice, leverage, confidence, reasoning, txHash,
       stopLossPct, takeProfitPct, collateralUsd,
     });
+
+    // Fire webhooks (async, don't block response)
+    fireWebhooks(signal);
 
     return NextResponse.json({ success: true, signal }, { status: 201 });
   } catch (error: any) {

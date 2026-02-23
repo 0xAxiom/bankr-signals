@@ -81,31 +81,69 @@ console.log('Subscription ID:', subscription.id);`}
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">3. Webhook Integration (Coming Soon)</h3>
+            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">3. Webhook Integration</h3>
             <p className="text-xs text-[#737373] mb-4">
-              Receive real-time signals via webhooks. Perfect for automated trading bots.
+              Receive real-time signals via webhooks. Perfect for automated trading bots that need instant notifications.
             </p>
+            
+            <CodeExample
+              title="Register a Webhook"
+              language="curl"
+              code={`# Register webhook for all providers and tokens
+curl -X POST https://bankrsignals.com/api/webhooks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://your-app.com/webhook"
+  }'
+
+# Register webhook for specific provider only  
+curl -X POST https://bankrsignals.com/api/webhooks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://your-app.com/webhook",
+    "provider_filter": "${topProvider?.address || '0x523...'}",
+    "token_filter": "ETH"
+  }'
+
+# List your webhooks
+curl https://bankrsignals.com/api/webhooks?url=https://your-app.com/webhook
+
+# Remove a webhook
+curl -X DELETE https://bankrsignals.com/api/webhooks \\
+  -H "Content-Type: application/json" \\
+  -d '{ "url": "https://your-app.com/webhook" }'`}
+            />
             
             <CodeExample
               title="Webhook Handler Example"
               language="javascript"
               code={`// Express.js webhook handler
 app.post('/bankr-webhook', (req, res) => {
-  const signal = req.body;
+  const { type, signal, timestamp } = req.body;
   
-  // Verify signature
-  const signature = req.headers['x-bankr-signature'];
-  if (!verifySignature(signature, req.body)) {
-    return res.status(401).send('Invalid signature');
+  if (type !== 'new_signal') {
+    return res.status(400).send('Unknown webhook type');
   }
   
-  // Process signal
+  // Process signal immediately
   if (signal.confidence >= 80 && signal.token === 'ETH') {
+    console.log(\`New ETH signal: \${signal.action} @ $\${signal.entryPrice}\`);
     executeTrade(signal);
   }
   
   res.status(200).send('OK');
-});`}
+});
+
+async function executeTrade(signal) {
+  // Your trading logic here
+  const orderSize = calculatePositionSize(signal.collateralUsd, signal.leverage);
+  await tradingAPI.placeOrder({
+    symbol: signal.token + 'USDT',
+    side: signal.action.toLowerCase(),
+    size: orderSize,
+    price: signal.entryPrice
+  });
+}`}
             />
           </div>
         </div>
@@ -195,6 +233,58 @@ app.post('/bankr-webhook', (req, res) => {
               <p className="text-xs text-[#737373] mt-2">
                 Returns performance metrics, win rates, and track records for all signal providers.
               </p>
+            </div>
+          </div>
+
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+            <h3 className="font-medium mb-4 flex items-center gap-2">
+              <span className="bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)] px-2 py-0.5 rounded text-xs font-mono">POST</span>
+              <span className="font-mono">/api/webhooks</span>
+            </h3>
+            
+            <div className="grid gap-4 text-sm">
+              <div>
+                <strong className="text-[#e5e5e5]">Register a webhook for real-time signal notifications</strong>
+                <p className="text-xs text-[#737373] mt-2">
+                  Webhooks will be called immediately when new signals match your filters. 
+                  Webhooks are automatically disabled after 10 consecutive failures.
+                </p>
+              </div>
+              
+              <div>
+                <strong className="text-[#e5e5e5]">Parameters:</strong>
+                <ul className="text-xs text-[#737373] mt-2 space-y-1">
+                  <li><code>url</code> (required) - Your webhook endpoint URL</li>
+                  <li><code>provider_filter</code> (optional) - Only notify for signals from this provider address</li>
+                  <li><code>token_filter</code> (optional) - Only notify for signals with this token</li>
+                </ul>
+              </div>
+              
+              <div>
+                <strong className="text-[#e5e5e5]">Webhook Payload:</strong>
+                <CodeExample
+                  title="Webhook POST Body"
+                  language="json"
+                  code={`{
+  "type": "new_signal",
+  "timestamp": "2024-02-20T09:15:32Z",
+  "signal": {
+    "id": "signal_123",
+    "provider": "${topProvider?.address || '0x523...'}",
+    "timestamp": "2024-02-20T09:15:32Z",
+    "action": "LONG",
+    "token": "ETH",
+    "entry_price": 2450.50,
+    "leverage": 3,
+    "confidence": 85,
+    "reasoning": "Strong support level...",
+    "tx_hash": "0xabc123...",
+    "status": "open",
+    "collateral_usd": 1000
+  }
+}`}
+                />
+              </div>
             </div>
           </div>
         </div>

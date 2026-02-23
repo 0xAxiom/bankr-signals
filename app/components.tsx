@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProviderStats, ParsedTrade } from "@/lib/signals";
+import { Avatar } from "./avatar";
 
 interface LiveTickerProps {
   trades: (ParsedTrade & { providerName: string; providerAddress: string })[];
@@ -262,9 +263,12 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
             <tr key={p.address} className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a] transition-colors">
               <td className="px-4 py-3 font-mono text-[#737373]">{i + 1}</td>
               <td className="px-4 py-3">
-                <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors">
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>
+                <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors flex items-center gap-3">
+                  <Avatar address={p.address} name={p.name} size="sm" />
+                  <div>
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>
+                  </div>
                 </a>
               </td>
               <td className={`px-4 py-3 text-right font-mono ${p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>

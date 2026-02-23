@@ -16,8 +16,12 @@ export default async function Home() {
   const providers = await getProviderStats();
   const totalSignals = providers.reduce((s, p) => s + p.signal_count, 0);
   const totalSubs = providers.reduce((s, p) => s + p.subscriber_count, 0);
-  const avgWinRate = providers.length > 0
-    ? Math.round(providers.reduce((s, p) => s + p.win_rate, 0) / providers.length)
+  // Only include providers with at least 1 closed signal in win rate calculation
+  const providersWithClosedSignals = providers.filter(p => 
+    p.trades.some(t => t.status === "closed" && t.pnl !== undefined)
+  );
+  const avgWinRate = providersWithClosedSignals.length > 0
+    ? Math.round(providersWithClosedSignals.reduce((s, p) => s + p.win_rate, 0) / providersWithClosedSignals.length)
     : 0;
   
   // Get latest trades for live ticker

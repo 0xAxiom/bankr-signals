@@ -2,6 +2,7 @@ import { getProviderStats } from "@/lib/signals";
 import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
+import { Avatar } from "../../avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +36,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-8">
         <div className="flex items-start gap-4">
-          {profile?.avatar && (
-            <img
-              src={profile.avatar.startsWith("/") ? profile.avatar : `/api/avatar?url=${encodeURIComponent(profile.avatar)}`}
-              alt={p.name}
-              className="w-12 h-12 rounded-full border border-[#2a2a2a] object-cover"
-            />
-          )}
+          <Avatar address={p.address} name={p.name} avatarUrl={profile?.avatar} size="lg" />
           <div className="min-w-0">
             <h1 className="text-xl font-semibold">{p.name}</h1>
             {profile?.bio && (
