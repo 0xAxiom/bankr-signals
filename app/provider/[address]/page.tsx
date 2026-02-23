@@ -3,6 +3,8 @@ import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 import { Avatar } from "../../avatar";
+import { LivePnLTracker } from "../../live-pnl";
+import { computeBadges, getBadgeColor } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +92,43 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           </div>
         ))}
       </div>
+
+      {/* Badges */}
+      {(() => {
+        const badges = computeBadges(p.trades);
+        if (badges.length === 0) return null;
+        return (
+          <div className="mb-8">
+            <h3 className="text-xs font-medium text-[#737373] uppercase tracking-wider mb-3">Achievements</h3>
+            <div className="flex flex-wrap gap-2">
+              {badges.map(badge => (
+                <div
+                  key={badge.id}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${getBadgeColor(badge.rarity)} bg-[#1a1a1a]`}
+                  title={badge.description}
+                >
+                  <span>{badge.icon}</span>
+                  <span>{badge.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Live PnL for open positions */}
+      <LivePnLTracker
+        positions={p.trades
+          .filter(t => t.status === "open")
+          .map(t => ({
+            token: t.token,
+            action: t.action,
+            entryPrice: t.entryPrice,
+            leverage: t.leverage,
+            collateralUsd: t.collateralUsd,
+            timestamp: t.timestamp,
+          }))}
+      />
 
       {/* Equity Curve */}
       <div className="mb-8">
