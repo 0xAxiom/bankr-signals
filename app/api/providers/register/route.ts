@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRegisterProvider, dbGetProvider, dbGetProviders } from "@/lib/db";
+import { dbRegisterProvider, dbGetProvider, dbGetProviders, dbGetProviderByName } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -78,8 +78,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid github handle" }, { status: 400 });
     }
 
+    // Check if name is already taken by a different address
+    const existingByName = await dbGetProviderByName(name);
+    if (existingByName && existingByName.address.toLowerCase() !== address.toLowerCase()) {
+      return NextResponse.json(
+        { error: `Name "${name}" is already taken by another provider. Please choose a different name.` },
+        { status: 409 }
+      );
+    }
+
+    // Auto-fetch Twitter avatar if twitter handle provided and no avatar specified
+    let resolvedAvatar = avatar;
+    if (twitter && !avatar) {
+      try {
+        // Use unavatar.io for reliable Twitter avatar fetching
+        const avatarUrl = `https://unavatar.io/twitter/${twitter.replace(/^@/, "")}`;
+        const avatarCheck = await fetch(avatarUrl, { method: "HEAD", redirect: "follow" });
+        if (avatarCheck.ok) {
+          resolvedAvatar = avatarUrl;
+        }
+      } catch {
+        // Silently fail, use default avatar
+      }
+    }
+
     const provider = await dbRegisterProvider({
-      address, name, bio, description, avatar,
+      address, name, bio, description, avatar: resolvedAvatar,
       chain: chain || "base", agent, website, twitter, farcaster, github,
     });
 

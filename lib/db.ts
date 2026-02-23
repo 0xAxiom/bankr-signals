@@ -25,6 +25,16 @@ export async function dbGetProvider(address: string) {
   return data || null;
 }
 
+export async function dbGetProviderByName(name: string) {
+  const { data, error } = await supabase
+    .from("signal_providers")
+    .select("address, name")
+    .ilike("name", name)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
 export async function dbRegisterProvider(input: {
   address: string;
   name: string;
