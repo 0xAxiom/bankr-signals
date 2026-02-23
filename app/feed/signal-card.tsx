@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { ExpandableReasoning, RelativeTimestamp } from "./components";
+import { RelativeTimestamp } from "./components";
 
 interface TradeWithProvider {
+  id?: string;
   timestamp: string;
   action: "BUY" | "SELL" | "LONG" | "SHORT";
   token: string;
@@ -26,8 +26,6 @@ interface SignalCardProps {
 }
 
 export function SignalCard({ trade }: SignalCardProps) {
-  const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
-  
   const isBuy = trade.action === "BUY" || trade.action === "LONG";
   
   // Issue #14: Use !== undefined instead of falsy check for PnL
@@ -132,16 +130,24 @@ export function SignalCard({ trade }: SignalCardProps) {
         </div>
       </div>
 
-      {/* Issue #16: Only show reasoning if real data exists */}
+      {/* Signal reasoning - shown prominently */}
       {trade.reasoning && (
-        <ExpandableReasoning 
-          reasoning={trade.reasoning}
-          isExpanded={isReasoningExpanded}
-          onToggle={() => setIsReasoningExpanded(!isReasoningExpanded)}
-        />
+        <div className="mt-3 bg-[#111] border border-[#2a2a2a] rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] font-mono text-[rgba(34,197,94,0.6)] uppercase tracking-wider">Thesis</span>
+          </div>
+          <p className="text-xs text-[#b0b0b0] leading-relaxed">{trade.reasoning}</p>
+        </div>
       )}
 
-      <div className="mt-3 pt-3 border-t border-[#2a2a2a] text-xs font-mono text-[#737373]">
+      <div className="mt-3 pt-3 border-t border-[#2a2a2a] text-xs font-mono text-[#737373] flex items-center justify-between flex-wrap gap-2">
+        {trade.id && (
+          <a href={`/signal/${trade.id}`} className="text-[#555] hover:text-[rgba(34,197,94,0.6)] transition-colors">
+            Share ↗
+          </a>
+        )}
+      </div>
+      <div className="mt-1 text-xs font-mono text-[#737373]">
         {trade.txHash ? (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[rgba(34,197,94,0.6)] font-semibold">&#x2713; VERIFIED</span>

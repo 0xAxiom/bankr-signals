@@ -1,6 +1,7 @@
 import { supabase } from "./db";
 
 export interface ParsedTrade {
+  id?: string;
   timestamp: string;
   action: "BUY" | "SELL" | "LONG" | "SHORT";
   token: string;
@@ -13,6 +14,8 @@ export interface ParsedTrade {
   collateralUsd?: number;
   exitPrice?: number;
   exitTimestamp?: string;
+  reasoning?: string;
+  confidence?: number;
 }
 
 export interface ProviderStats {
@@ -72,6 +75,7 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
     );
 
     const trades: ParsedTrade[] = providerSignals.map((s) => ({
+      id: s.id,
       timestamp: s.timestamp,
       action: s.action as ParsedTrade["action"],
       token: s.token,
@@ -84,6 +88,8 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
       collateralUsd: s.collateral_usd,
       exitPrice: s.exit_price,
       exitTimestamp: s.exit_timestamp,
+      reasoning: s.reasoning,
+      confidence: s.confidence,
     }));
 
     const closed = trades.filter((t) => t.status === "closed" && t.pnl !== undefined);
