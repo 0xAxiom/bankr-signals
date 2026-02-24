@@ -65,7 +65,7 @@ export function getProvider(address: string): RegisteredProvider | undefined {
 // Issue #3: Writes return read-only error on Vercel (no writable filesystem)
 function readOnlyError(): never {
   const err: any = new Error(
-    "Read-only in production. To register a provider or publish signals, submit a PR to data/providers.json or data/signals.json in the bankr-signals repo."
+    "Read-only in production. Use the API endpoints: POST /api/providers/register and POST /api/signals."
   );
   err.code = "READ_ONLY";
   throw err;

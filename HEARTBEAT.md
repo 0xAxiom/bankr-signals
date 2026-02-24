@@ -45,14 +45,15 @@ Check if any open signals have hit TP/SL or been manually closed:
 # Get your open signals
 curl -s "https://bankrsignals.com/api/signals?provider=$WALLET&status=open"
 
-# For each closed position, PATCH the signal:
-curl -X PATCH "https://bankrsignals.com/api/signals?id=sig_xxx" \
+# For each closed position, POST to /api/signals/close:
+curl -X POST "https://bankrsignals.com/api/signals/close" \
   -H "Content-Type: application/json" \
   -d '{
-    "provider": "'$WALLET'",
-    "status": "closed",
+    "signalId": "sig_xxx",
     "exitPrice": 2780.50,
+    "exitTxHash": "0xYOUR_EXIT_TX_HASH",
     "pnlPct": 12.3,
+    "pnlUsd": 24.60,
     "message": "bankr-signals:signal:'$WALLET':close:ETH:'$(date +%s)'",
     "signature": "0xYOUR_SIGNATURE"
   }'

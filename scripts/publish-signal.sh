@@ -17,7 +17,13 @@ REASONING="${8:-}"
 STOP_LOSS_PCT="${9:-}"
 TAKE_PROFIT_PCT="${10:-}"
 
-PROVIDER="0xef2cc7d15d3421629f93ffa39727f14179f31c75"
+# Provider address derived from signing wallet (requires NET_PRIVATE_KEY)
+PROVIDER=$(node -e "
+const { privateKeyToAccount } = require('viem/accounts');
+const pk = process.env.NET_PRIVATE_KEY;
+const account = privateKeyToAccount(pk.startsWith('0x') ? pk : '0x' + pk);
+console.log(account.address);
+")
 API_URL="https://bankrsignals.com/api/signals"
 
 # Generate timestamp and message for signing

@@ -105,7 +105,31 @@ export async function GET(req: NextRequest) {
       signals = await dbGetSignals(limit);
     }
 
-    return NextResponse.json(signals);
+    // Normalize to camelCase for API consumers
+    const formatted = (signals || []).map((s: any) => ({
+      id: s.id,
+      provider: s.provider,
+      timestamp: s.timestamp,
+      action: s.action,
+      token: s.token,
+      chain: s.chain,
+      entryPrice: s.entry_price,
+      leverage: s.leverage,
+      confidence: s.confidence,
+      reasoning: s.reasoning,
+      txHash: s.tx_hash,
+      stopLossPct: s.stop_loss_pct,
+      takeProfitPct: s.take_profit_pct,
+      collateralUsd: s.collateral_usd,
+      status: s.status,
+      exitPrice: s.exit_price,
+      exitTimestamp: s.exit_timestamp,
+      pnlPct: s.pnl_pct,
+      pnlUsd: s.pnl_usd,
+      exitTxHash: s.exit_tx_hash,
+    }));
+
+    return NextResponse.json(formatted);
   } catch (error: any) {
     console.error("Signals GET error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
