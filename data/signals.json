@@ -60,5 +60,21 @@
     "stopLossPct": 3,
     "takeProfitPct": 20,
     "reasoning": "Geopolitical risk - Iran conflict escalation. Risk-off environment favors shorts."
+  },
+  {
+    "id": "sig_link_long_01",
+    "provider": "0xef2cc7d15d3421629f93ffa39727f14179f31c75",
+    "timestamp": "2026-02-24T02:08:00Z",
+    "action": "LONG",
+    "token": "LINK",
+    "chain": "base",
+    "entryPrice": 8.3688,
+    "leverage": 5,
+    "collateralUsd": 100,
+    "txHash": "0x6dcdeb317c8f1ba4700843058525ef046cf6ca494b62af2edc6cb71792d00e65",
+    "status": "open",
+    "stopLossPct": 5,
+    "takeProfitPct": 15,
+    "reasoning": "BUY signal at 0.7 confidence. Bullish EMAs, positive MACD momentum, and stable DeFi fundamentals support upside potential."
   }
 ]
