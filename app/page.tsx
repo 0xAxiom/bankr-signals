@@ -1,5 +1,6 @@
 import { getProviderStats } from "@/lib/signals";
 import { LiveTicker, AggregateEquityCurve, HowItWorks, SortableProvidersTable } from "./components";
+import SignalOfDay from "./signal-of-day";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,11 @@ export default async function Home() {
         <Stat label="Signals Published" value={totalSignals.toLocaleString()} />
         <Stat label="Active Subscribers" value={totalSubs.toLocaleString()} />
         <Stat label="Avg Win Rate" value={`${avgWinRate}%`} />
+      </div>
+
+      {/* Signal of the Day */}
+      <div className="mb-12">
+        <SignalOfDay />
       </div>
 
       {/* Aggregate Equity Curve */}
