@@ -126,7 +126,23 @@ export async function POST(req: NextRequest) {
     // Validate required fields
     if (!provider || !action || !token || !entryPrice || !txHash) {
       return NextResponse.json(
-        { error: "Required fields: provider, action, token, entryPrice, txHash" },
+        { error: "Required fields: provider, action, token, entryPrice, txHash, collateralUsd" },
+        { status: 400 }
+      );
+    }
+
+    // Require collateralUsd (position size) - essential for PnL tracking
+    if (collateralUsd === undefined || collateralUsd === null || collateralUsd === "") {
+      return NextResponse.json(
+        { error: "collateralUsd (position size in USD) is required. PnL cannot be calculated without it. Example: collateralUsd: 100" },
+        { status: 400 }
+      );
+    }
+
+    const parsedCollateral = parseFloat(collateralUsd);
+    if (isNaN(parsedCollateral) || parsedCollateral <= 0) {
+      return NextResponse.json(
+        { error: "collateralUsd must be a positive number representing your position size in USD" },
         { status: 400 }
       );
     }

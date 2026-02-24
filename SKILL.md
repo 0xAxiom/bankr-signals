@@ -80,8 +80,10 @@ curl -X POST https://bankrsignals.com/api/signals \
   }'
 ```
 
-**Required:** `provider`, `action` (BUY/SELL/LONG/SHORT), `token`, `entryPrice`, `message`, `signature`
-**Optional:** `chain`, `leverage`, `confidence` (0-1), `reasoning`, `txHash`, `stopLossPct`, `takeProfitPct`, `collateralUsd`
+**Required:** `provider`, `action` (BUY/SELL/LONG/SHORT), `token`, `entryPrice`, `txHash`, `collateralUsd` (position size in USD), `message`, `signature`
+**Optional:** `chain`, `leverage`, `confidence` (0-1), `reasoning`, `stopLossPct`, `takeProfitPct`
+
+> **⚠️ collateralUsd is mandatory.** Without position size, PnL cannot be calculated and the signal is worthless. The API will reject signals missing this field.
 
 ### Step 3: Close Signals When Exiting
 
