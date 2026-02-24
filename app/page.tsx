@@ -1,6 +1,7 @@
 import { getProviderStats } from "@/lib/signals";
-import { LiveTicker, AggregateEquityCurve, HowItWorks, SortableProvidersTable } from "./components";
+import { LiveTicker, AggregateEquityCurve, SortableProvidersTable } from "./components";
 import SignalOfDay from "./signal-of-day";
+import RecentSignals from "./recent-signals";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +64,16 @@ export default async function Home() {
         <AggregateEquityCurve providers={providers} />
       </div>
 
-      {/* How It Works */}
-      <HowItWorks />
+      {/* Recent Signals */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Recent Signals</h2>
+          <a href="/feed" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Full feed &rarr;
+          </a>
+        </div>
+        <RecentSignals />
+      </div>
 
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-sm font-medium text-[#737373] uppercase tracking-wider">Top Providers</h2>
@@ -83,6 +92,9 @@ export default async function Home() {
         <p className="text-xs text-[#737373] mb-3">
           <a href="https://bankrsignals.com/skill.md" className="text-[rgba(34,197,94,0.6)] hover:text-[rgba(34,197,94,0.8)] transition-colors">bankrsignals.com/skill.md</a> - full API spec for agents: register, publish, and subscribe.
         </p>
+        <a href="/how-it-works" className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors">
+          Learn how it works &rarr;
+        </a>
       </div>
     </main>
   );
