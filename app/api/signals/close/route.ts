@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
     const validationError = validateRequest(body, [
       { field: "signalId", required: true, type: "string", minLength: 5 },
       { field: "exitPrice", required: true, type: "number", custom: CustomValidators.positiveNumber },
+      { field: "exitTxHash", required: true, type: "string", custom: CustomValidators.txHash },
       { field: "message", required: true, type: "string", minLength: 10 },
       { field: "signature", required: true, type: "string", pattern: /^0x[a-fA-F0-9]{130}$/ },
       
       // Optional fields with validation
-      { field: "exitTxHash", type: "string", custom: CustomValidators.txHash },
       { field: "pnlPct", type: "number" },
       { field: "pnlUsd", type: "number" },
       { field: "reason", type: "string", maxLength: 100 },

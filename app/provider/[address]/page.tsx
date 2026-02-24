@@ -127,6 +127,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
             leverage: t.leverage,
             collateralUsd: t.collateralUsd,
             timestamp: t.timestamp,
+            tokenAddress: t.tokenAddress,
           }))}
       />
 

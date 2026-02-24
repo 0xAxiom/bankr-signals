@@ -19,6 +19,7 @@ import {
   validateRequestSize,
 } from "@/lib/api-utils";
 import { SignalAction, SignalCategory, RiskLevel, TimeFrame, SignalStatus } from "@/lib/types";
+import { extractEntryPrice } from "@/lib/onchain-price";
 
 export const dynamic = "force-dynamic";
 
@@ -273,7 +274,7 @@ export async function POST(req: NextRequest) {
       { field: "provider", required: true, type: "string", custom: CustomValidators.ethAddress },
       { field: "action", required: true, type: "string", enum: VALID_ACTIONS },
       { field: "token", required: true, type: "string", pattern: ValidationPatterns.TOKEN_SYMBOL },
-      { field: "entryPrice", required: true, type: "number", custom: CustomValidators.positiveNumber },
+      { field: "entryPrice", required: false, type: "number" }, // Optional — derived from on-chain TX data
       { field: "collateralUsd", required: true, type: "number", custom: (value: number) => {
         if (value <= 0) return "collateralUsd must be positive";
         if (value < 1) return "collateralUsd must be at least $1";
@@ -448,6 +449,47 @@ export async function POST(req: NextRequest) {
       // Continue - availability over strictness for RPC issues
     }
 
+    // ── On-chain entry price extraction (source of truth) ──
+    let onchainEntryPrice: number | undefined;
+    let onchainCollateralUsd: number | undefined;
+    let onchainTokenAddress: string | undefined;
+    
+    if (txHash) {
+      try {
+        const priceResult = await extractEntryPrice(txHash, token, provider);
+        if (priceResult) {
+          onchainEntryPrice = priceResult.entryPrice;
+          onchainCollateralUsd = priceResult.collateralUsd;
+          onchainTokenAddress = priceResult.tokenAddress;
+          console.log(`On-chain price extracted: ${onchainEntryPrice} (${priceResult.quoteToken} → ${token}, collateral: $${onchainCollateralUsd})`);
+        } else {
+          console.warn(`Could not extract on-chain price for TX ${txHash}, falling back to submitted price`);
+        }
+      } catch (err: any) {
+        console.warn(`On-chain price extraction failed: ${err.message}, falling back to submitted price`);
+      }
+    }
+    
+    // Require either on-chain price or submitted price
+    const finalEntryPrice = onchainEntryPrice || (entryPrice ? parseFloat(entryPrice) : 0);
+    const finalCollateralUsd = onchainCollateralUsd || (collateralUsd ? parseFloat(collateralUsd) : 0);
+    
+    if (finalEntryPrice <= 0) {
+      return createErrorResponse(
+        APIErrorCode.VALIDATION_ERROR,
+        "Could not determine entry price from on-chain data and no valid entryPrice was submitted",
+        400
+      );
+    }
+    
+    if (finalCollateralUsd <= 0) {
+      return createErrorResponse(
+        APIErrorCode.VALIDATION_ERROR,
+        "Could not determine collateral from on-chain data and no valid collateralUsd was submitted",
+        400
+      );
+    }
+
     // Enhanced signal status logic with better auto-close rules
     const actionUpper = action.toUpperCase() as SignalAction;
     
@@ -502,8 +544,8 @@ export async function POST(req: NextRequest) {
       action: actionUpper,
       token: token.toUpperCase(),
       chain: chain || "base",
-      entryPrice: parseFloat(entryPrice),
-      collateralUsd: parseFloat(collateralUsd),
+      entryPrice: finalEntryPrice,
+      collateralUsd: finalCollateralUsd,
       txHash,
       leverage: leverage ? parseInt(leverage) : null,
       confidence: confidence ? parseFloat(confidence) : null,
@@ -525,6 +567,9 @@ export async function POST(req: NextRequest) {
       ...(stopLossPct && takeProfitPct && !riskRewardRatio && {
         riskRewardRatio: takeProfitPct / stopLossPct
       }),
+      
+      // Token contract address — prefer on-chain extraction
+      tokenAddress: onchainTokenAddress || body.tokenAddress || null,
     };
 
     // Duplicate detection (non-blocking)

@@ -9,6 +9,7 @@ interface OpenPosition {
   leverage?: number;
   collateralUsd?: number;
   timestamp: string;
+  tokenAddress?: string;
 }
 
 interface LivePnLProps {
@@ -40,11 +41,15 @@ export function LivePnLTracker({ positions }: LivePnLProps) {
   useEffect(() => {
     if (positions.length === 0) return;
 
-    const symbols = [...new Set(positions.map((p) => p.token))].join(",");
+    const symbols = [...new Set(positions.filter(p => !p.tokenAddress).map((p) => p.token))].join(",");
+    const addresses = [...new Set(positions.filter(p => p.tokenAddress).map((p) => p.tokenAddress!))].join(",");
 
     async function fetchPrices() {
       try {
-        const res = await fetch(`/api/prices?symbols=${symbols}`);
+        const params = new URLSearchParams();
+        if (symbols) params.set("symbols", symbols);
+        if (addresses) params.set("addresses", addresses);
+        const res = await fetch(`/api/prices?${params}`);
         const data = await res.json();
         if (data.prices) {
           setPrices(data.prices);
@@ -83,7 +88,9 @@ export function LivePnLTracker({ positions }: LivePnLProps) {
 
       <div className="grid gap-3">
         {positions.map((pos, i) => {
-          const priceData = prices[pos.token.toUpperCase()];
+          const priceData = pos.tokenAddress 
+            ? prices[pos.tokenAddress.toLowerCase()] 
+            : prices[pos.token.toUpperCase()];
           const currentPrice = priceData?.price;
           const leverage = pos.leverage || 1;
           const pnl =

@@ -125,6 +125,7 @@ export async function dbAddSignal(input: {
   expiresAt?: string | null;
   positionSize?: number | null;
   riskRewardRatio?: number | null;
+  tokenAddress?: string | null;
 }) {
   const row: Record<string, any> = {
     id: input.id,
@@ -142,6 +143,7 @@ export async function dbAddSignal(input: {
     collateral_usd: input.collateralUsd || null,
     status: input.status || "open",
     timestamp: new Date().toISOString(),
+    ...(input.tokenAddress && { token_address: input.tokenAddress }),
   };
 
   const { data, error } = await supabase

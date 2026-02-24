@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { getCurrentPrice } from "@/lib/onchain-price";
 
 export const dynamic = "force-dynamic";
 
@@ -71,9 +72,40 @@ export default async function SignalPage({ params }: SignalPageProps) {
   if (!signal) return notFound();
 
   const provider = await getProviderName(signal.provider);
+  // Format tiny prices like 0.000000029 properly instead of scientific notation
+  function formatMicroPrice(price: number): string {
+    if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (price >= 0.01) return price.toFixed(4);
+    // For very small prices: count leading zeros, then show 4 significant digits
+    // e.g. 0.00000029 → "0.00000029xx"
+    const str = price.toFixed(20);
+    const decimals = str.split('.')[1] || '';
+    let leadingZeros = 0;
+    for (const ch of decimals) {
+      if (ch === '0') leadingZeros++;
+      else break;
+    }
+    // Show leading zeros + 4 significant digits
+    const totalDigits = leadingZeros + 4;
+    return price.toFixed(totalDigits).replace(/0+$/, '');
+  }
+
   const isBuy = signal.action === "BUY" || signal.action === "LONG";
-  const hasPnl = signal.pnl_pct != null;
-  const pnl = signal.pnl_pct || 0;
+  
+  // Live PnL for open positions with token_address
+  let livePnlPct: number | null = null;
+  let livePriceUsd: number | null = null;
+  if (signal.status === "open" && signal.token_address && signal.entry_price > 0) {
+    livePriceUsd = await getCurrentPrice(signal.token_address);
+    if (livePriceUsd && livePriceUsd > 0) {
+      livePnlPct = ((livePriceUsd - signal.entry_price) / signal.entry_price) * 100;
+      if (signal.action === "SHORT") livePnlPct = -livePnlPct;
+    }
+  }
+  
+  const hasPnl = signal.pnl_pct != null || livePnlPct != null;
+  const pnl = signal.pnl_pct ?? livePnlPct ?? 0;
+  const isLive = signal.pnl_pct == null && livePnlPct != null;
   const dollarPnl = hasPnl && signal.collateral_usd ? signal.collateral_usd * (pnl / 100) : null;
 
   return (
@@ -94,14 +126,20 @@ export default async function SignalPage({ params }: SignalPageProps) {
       </div>
 
       {/* PnL */}
-      {hasPnl && signal.status === "closed" && (
+      {hasPnl && (
         <div className={`text-5xl font-mono font-bold mb-2 ${pnl >= 0 ? "text-[rgba(34,197,94,0.8)]" : "text-[rgba(239,68,68,0.8)]"}`}>
           {pnl > 0 ? "+" : ""}{pnl.toFixed(1)}%
+          {isLive && <span className="text-base ml-2 text-[rgba(234,179,8,0.6)]">LIVE</span>}
         </div>
       )}
       {dollarPnl != null && (
-        <div className={`text-lg font-mono mb-6 ${dollarPnl >= 0 ? "text-[rgba(34,197,94,0.5)]" : "text-[rgba(239,68,68,0.5)]"}`}>
+        <div className={`text-lg font-mono mb-2 ${dollarPnl >= 0 ? "text-[rgba(34,197,94,0.5)]" : "text-[rgba(239,68,68,0.5)]"}`}>
           {dollarPnl > 0 ? "+" : ""}${dollarPnl.toFixed(2)}
+        </div>
+      )}
+      {isLive && livePriceUsd != null && (
+        <div className="text-xs font-mono text-[#555] mb-6">
+          Current: ${formatMicroPrice(livePriceUsd)}
         </div>
       )}
       {signal.status === "open" && (
@@ -118,7 +156,7 @@ export default async function SignalPage({ params }: SignalPageProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
           <div className="text-[10px] text-[#555] uppercase tracking-wider mb-1">Entry</div>
-          <div className="font-mono text-sm">${signal.entry_price?.toLocaleString()}</div>
+          <div className="font-mono text-sm">{signal.entry_price > 0 ? `$${formatMicroPrice(signal.entry_price)}` : "—"}</div>
         </div>
         {signal.exit_price && (
           <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">

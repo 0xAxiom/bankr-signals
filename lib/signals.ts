@@ -1,4 +1,5 @@
 import { supabase } from "./db";
+import { getTokenFromTx } from "./onchain-price";
 
 export interface ParsedTrade {
   id?: string;
@@ -16,6 +17,7 @@ export interface ParsedTrade {
   exitTimestamp?: string;
   reasoning?: string;
   confidence?: number;
+  tokenAddress?: string;
 }
 
 export interface ProviderStats {
@@ -90,7 +92,20 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
       exitTimestamp: s.exit_timestamp,
       reasoning: s.reasoning,
       confidence: s.confidence,
+      tokenAddress: s.token_address,
     }));
+
+    // Resolve token addresses from tx hashes for trades missing them
+    await Promise.allSettled(
+      trades
+        .filter(t => !t.tokenAddress && t.txHash && t.status === "open")
+        .map(async (t) => {
+          try {
+            const info = await getTokenFromTx(t.txHash!);
+            if (info) t.tokenAddress = info.tokenAddress;
+          } catch {}
+        })
+    );
 
     const closed = trades.filter((t) => t.status === "closed" && t.pnl !== undefined);
     const wins = closed.filter((t) => (t.pnl || 0) > 0).length;
