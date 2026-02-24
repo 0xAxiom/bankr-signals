@@ -194,5 +194,10 @@ export async function dbGetLeaderboard() {
       return { ...p, ...stats };
     })
   );
-  return leaderboard.sort((a, b) => b.total_pnl_usd - a.total_pnl_usd);
+  return leaderboard.sort((a, b) => {
+    // Primary: total PnL USD
+    if (b.total_pnl_usd !== a.total_pnl_usd) return b.total_pnl_usd - a.total_pnl_usd;
+    // Secondary: total signals (active providers rank higher)
+    return b.total_signals - a.total_signals;
+  });
 }

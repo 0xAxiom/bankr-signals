@@ -220,7 +220,10 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
     const aVal = a[sortField];
     const bVal = b[sortField];
     const multiplier = sortDirection === "asc" ? 1 : -1;
-    return (aVal - bVal) * multiplier;
+    const primary = (aVal - bVal) * multiplier;
+    if (primary !== 0) return primary;
+    // Tiebreaker: providers with more signals rank higher
+    return b.signal_count - a.signal_count;
   });
 
   const displayProviders = showAll ? sortedProviders : sortedProviders.slice(0, 5);
