@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react';
 
+function formatMicroPrice(price: number): string {
+  if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price >= 0.01) return price.toFixed(4);
+  if (price > 0) {
+    const dec = price.toFixed(20).split('.')[1] || '';
+    let lz = 0;
+    for (const c of dec) { if (c === '0') lz++; else break; }
+    return price.toFixed(lz + 4).replace(/0+$/, '');
+  }
+  return '0';
+}
+
 interface Signal {
   id: string;
   provider: string;
@@ -117,7 +129,7 @@ export default function RecentSignals() {
               <div>
                 <div className="text-[#555] text-[10px]">Entry</div>
                 <div className="font-mono font-medium">
-                  ${signal.entryPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  ${formatMicroPrice(signal.entryPrice)}
                 </div>
               </div>
               <div>

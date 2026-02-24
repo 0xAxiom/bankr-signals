@@ -2,6 +2,18 @@
 
 import { RelativeTimestamp } from "./components";
 
+function formatMicroPrice(price: number): string {
+  if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price >= 0.01) return price.toFixed(4);
+  if (price > 0) {
+    const dec = price.toFixed(20).split('.')[1] || '';
+    let lz = 0;
+    for (const c of dec) { if (c === '0') lz++; else break; }
+    return price.toFixed(lz + 4).replace(/0+$/, '');
+  }
+  return '0';
+}
+
 interface TradeWithProvider {
   id?: string;
   timestamp: string;
@@ -103,10 +115,7 @@ export function SignalCard({ trade }: SignalCardProps) {
         <div>
           <div className="text-[#555] text-[10px] sm:text-xs">Entry Price</div>
           <div className="font-mono font-medium text-sm">
-            ${trade.entryPrice ? trade.entryPrice.toLocaleString(undefined, { 
-              minimumFractionDigits: 2, 
-              maximumFractionDigits: 4 
-            }) : "-"}
+            ${trade.entryPrice ? formatMicroPrice(trade.entryPrice) : "-"}
           </div>
         </div>
         <div>

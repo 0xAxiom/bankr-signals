@@ -41,7 +41,7 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
       .select(`
         *,
         signal_providers!inner (
-          name, avatar, verified, reputation, total_signals, win_rate, avg_roi
+          name, avatar, address
         )
       `)
       .gte("timestamp", weekAgo)
@@ -185,35 +185,17 @@ function calculatePerformanceScore(signal: any): number {
 
 /**
  * Calculate provider reputation score
+ * Uses available fields only — signal_providers table has: name, avatar, address
  */
 function calculateProviderScore(provider: any): number {
-  let score = 5; // Base score
+  let score = 10; // Base score — all registered providers get baseline credit
 
-  // Verification status
-  if (provider.verified) score += 5;
+  // Having a name and avatar shows effort
+  if (provider.avatar) score += 3;
+  if (provider.name && provider.name.length > 2) score += 2;
 
-  // Win rate
-  const winRate = provider.win_rate || 0;
-  if (winRate >= 80) score += 8;
-  else if (winRate >= 70) score += 6;
-  else if (winRate >= 60) score += 4;
-  else if (winRate >= 50) score += 2;
-  else score -= 1; // Below 50% win rate penalty
-
-  // Track record (total signals)
-  const totalSignals = provider.total_signals || 0;
-  if (totalSignals >= 100) score += 3;
-  else if (totalSignals >= 50) score += 2;
-  else if (totalSignals >= 20) score += 1;
-  else if (totalSignals < 5) score -= 2; // Too new/inexperienced
-
-  // Average ROI
-  const avgRoi = provider.avg_roi || 0;
-  if (avgRoi >= 15) score += 4;
-  else if (avgRoi >= 10) score += 3;
-  else if (avgRoi >= 5) score += 1;
-  else if (avgRoi < 0) score -= 2; // Negative average ROI
-
+  // Future: compute win_rate/total_signals from signals table per provider
+  // For now, give a moderate default score
   return Math.max(0, Math.min(20, score));
 }
 
@@ -378,7 +360,7 @@ export async function getTrendingSignalsByCategory(hours: number = 24): Promise<
     
     const { data: signals, error } = await supabase
       .from("signals")
-      .select("*, signal_providers!inner (name, avatar)")
+      .select("*, signal_providers!inner (name, avatar, address)")
       .gte("timestamp", since)
       .order("timestamp", { ascending: false });
 

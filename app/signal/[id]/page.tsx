@@ -2,6 +2,7 @@ import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getCurrentPrice } from "@/lib/onchain-price";
+import { ShareEmbed } from "./share-embed";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export async function generateMetadata({ params }: SignalPageProps): Promise<Met
     ...(signal.leverage && { leverage: String(signal.leverage) }),
     ...(signal.reasoning && { reasoning: signal.reasoning }),
     ...(signal.tx_hash && { tx: signal.tx_hash }),
+    ...(signal.collateral_usd && { size: String(signal.collateral_usd) }),
   });
 
   return {
@@ -220,13 +222,8 @@ export default async function SignalPage({ params }: SignalPageProps) {
         </div>
       </div>
 
-      {/* Share section */}
-      <div className="mt-8 pt-6 border-t border-[#2a2a2a]">
-        <div className="text-xs text-[#555] mb-2">Share this signal:</div>
-        <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block break-all">
-          https://bankrsignals.com/signal/{signal.id}
-        </code>
-      </div>
+      {/* Share & Embed section */}
+      <ShareEmbed signalId={signal.id} />
     </main>
   );
 }

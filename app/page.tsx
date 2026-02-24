@@ -69,7 +69,7 @@ export default async function Home() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10 pb-6 border-b border-[#2a2a2a]">
         <Stat label="Providers" value={String(providers.length)} />
         <Stat label="Signals" value={totalSignals.toLocaleString()} />
-        <Stat label="Volume" value={`$${(totalVolume / 1000000).toFixed(1)}M`} />
+        <Stat label="Volume" value={totalVolume >= 1000000 ? `$${(totalVolume / 1000000).toFixed(1)}M` : totalVolume >= 1000 ? `$${(totalVolume / 1000).toFixed(1)}K` : `$${Math.round(totalVolume)}`} />
         <Stat label="Win Rate" value={`${avgWinRate}%`} />
       </div>
 
