@@ -52,10 +52,10 @@ export default async function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <a 
-            href="/register" 
+            href="/quick-start" 
             className="inline-flex items-center justify-center px-4 py-2.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-lg hover:bg-[rgba(34,197,94,0.15)] transition-all text-sm font-medium"
           >
-            Start Publishing Signals
+            Get Started in 2 Minutes
           </a>
           <a 
             href="/how-it-works" 

@@ -407,16 +407,38 @@ export async function POST(req: NextRequest) {
       }
 
       const txFrom = txData.result.from?.toLowerCase();
+      const txTo = txData.result.to?.toLowerCase();
       const providerLower = provider.toLowerCase();
       const logs = txData.result.logs || [];
       
-      // Check if provider is involved in transaction (as sender or in event logs)
+      // ERC-4337 EntryPoint contracts — all bundler-submitted txs go TO these
+      const ERC4337_ENTRYPOINTS = new Set([
+        "0x0000000071727de22e5e9d8baf0edac6f37da032", // EntryPoint v0.7
+        "0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789", // EntryPoint v0.6
+      ]);
+      
+      // Known relayer/router contracts
+      const KNOWN_RELAYERS = new Set([
+        "0x591dc14b5cd66c104bdeb17d5e2bc844ca317400", // Bankr router
+      ]);
+      
+      // Check if this is an ERC-4337 bundled tx (handleOps to EntryPoint)
+      // Any bundler can submit these — we only check the EntryPoint destination
+      const isERC4337 = ERC4337_ENTRYPOINTS.has(txTo || "");
+      
+      // Check if provider is involved in transaction:
+      // 1. Direct sender (EOA wallet)
+      // 2. ERC-4337 bundled tx (any bundler -> EntryPoint)
+      // 3. Sent by/to a known relayer contract
+      // 4. Provider appears in event logs
+      const isDirectSender = txFrom === providerLower;
+      const isSentByRelayer = KNOWN_RELAYERS.has(txFrom) || KNOWN_RELAYERS.has(txTo || "");
       const involvedInLogs = logs.some((log: any) =>
         log.topics?.some((t: string) => t.toLowerCase().includes(providerLower.slice(2))) ||
         log.data?.toLowerCase().includes(providerLower.slice(2))
       );
       
-      if (txFrom !== providerLower && !involvedInLogs) {
+      if (!isDirectSender && !isERC4337 && !isSentByRelayer && !involvedInLogs) {
         return createErrorResponse(
           APIErrorCode.VALIDATION_ERROR,
           "Provider address not found in transaction. Submit your own transactions only.",

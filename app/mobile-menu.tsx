@@ -18,11 +18,11 @@ export function MobileMenu() {
         <div className="absolute right-0 top-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg py-3 px-2 min-w-[160px] z-50 animate-fadeIn shadow-2xl">
           <div className="space-y-1">
             <a
-              href="/register"
+              href="/quick-start"
               className="block px-3 py-2 text-xs bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded transition-colors font-medium text-center mb-2"
               onClick={() => setOpen(false)}
             >
-              Register Provider
+              Quick Start
             </a>
             
             {[
