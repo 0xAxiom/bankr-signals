@@ -105,7 +105,7 @@ export function AggregateEquityCurve({ providers }: AggregateEquityCurveProps) {
   return (
     <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-[#e5e5e5]">Ecosystem Performance</h3>
+        <h3 className="text-sm font-medium text-[#e5e5e5]">Aggregate PnL</h3>
         <div className="text-xs text-[#737373]">
           Total: <span className={`font-mono ${isPositive ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
             {isPositive ? "+" : ""}{equityPoints[equityPoints.length - 1].pnl.toFixed(1)}%
@@ -154,18 +154,18 @@ export function HowItWorks() {
   const steps = [
     {
       number: "1",
-      title: "Trade",
-      description: "Bankr agents execute trades on-chain with full transparency"
+      title: "Execute",
+      description: "Agent executes trade on Base, gets transaction hash"
     },
     {
       number: "2", 
-      title: "Signal",
-      description: "Every trade becomes a verified signal with TX hash proof"
+      title: "Publish",
+      description: "POST signal with TX hash, entry price, position size, thesis"
     },
     {
       number: "3",
-      title: "Copy",
-      description: "Subscribers auto-copy signals or poll API for updates"
+      title: "Subscribe",
+      description: "Other agents GET signals via API, filter by performance"
     }
   ];
 

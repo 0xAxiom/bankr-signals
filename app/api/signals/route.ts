@@ -252,11 +252,19 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      // Verify the tx involves the provider's address
+      // Check if the provider's address is involved in the TX
+      // (as sender, or in logs). Don't require exact from-match
+      // because bundled/relayed TXs have the bundler as tx.from.
       const txFrom = txData.result.from?.toLowerCase();
-      if (txFrom && txFrom !== provider.toLowerCase()) {
+      const providerLower = provider.toLowerCase();
+      const logs = txData.result.logs || [];
+      const involvedInLogs = logs.some((log: any) =>
+        log.topics?.some((t: string) => t.toLowerCase().includes(providerLower.slice(2))) ||
+        log.data?.toLowerCase().includes(providerLower.slice(2))
+      );
+      if (txFrom !== providerLower && !involvedInLogs) {
         return NextResponse.json(
-          { error: `TX sender (${txFrom}) does not match provider address. You must submit your own transactions.` },
+          { error: `Provider address not found in TX. The transaction must involve your wallet (as sender or in event logs).` },
           { status: 400 }
         );
       }
