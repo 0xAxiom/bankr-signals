@@ -129,10 +129,12 @@ export default function RecentSignals() {
               <div>
                 <div className="text-[#555] text-[10px]">PnL</div>
                 <div className="font-mono font-medium">
-                  {hasPnl ? (
+                  {signal.status === 'closed' && hasPnl ? (
                     <span className={signal.pnlPct! >= 0 ? 'text-[rgba(34,197,94,0.8)]' : 'text-[rgba(239,68,68,0.8)]'}>
                       {signal.pnlPct! > 0 ? '+' : ''}{signal.pnlPct!.toFixed(1)}%
                     </span>
+                  ) : signal.status === 'closed' ? (
+                    <span className="text-[#555]">CLOSED</span>
                   ) : (
                     <span className="text-[rgba(234,179,8,0.6)]">OPEN</span>
                   )}
