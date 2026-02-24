@@ -1,76 +1,83 @@
 #!/bin/bash
-# Publish a trading signal to bankrsignals.com data/signals.json
-# Usage: ./publish-signal.sh <action> <token> <entry_price> <leverage> <tx_hash> [status] [pnl_pct] [exit_price]
+# Publish a trading signal to bankrsignals.com via the API
+# Usage: ./publish-signal.sh <action> <token> <entry_price> <leverage> <tx_hash> <collateral_usd> [confidence] [reasoning] [stop_loss_pct] [take_profit_pct]
 #
-# Since Vercel is read-only, this script commits directly to the repo
-# and triggers a redeploy.
+# Requires: NET_PRIVATE_KEY env var for EIP-191 signature (use with-secrets.sh)
 
 set -euo pipefail
 
-ACTION="${1:?Usage: publish-signal.sh <action> <token> <entry_price> <leverage> <tx_hash> [status] [pnl_pct] [exit_price]}"
+ACTION="${1:?Usage: publish-signal.sh <action> <token> <entry_price> <leverage> <tx_hash> <collateral_usd> [confidence] [reasoning] [stop_loss_pct] [take_profit_pct]}"
 TOKEN="${2:?}"
 ENTRY_PRICE="${3:?}"
 LEVERAGE="${4:-0}"
 TX_HASH="${5:?}"
-STATUS="${6:-open}"
-PNL_PCT="${7:-}"
-EXIT_PRICE="${8:-}"
+COLLATERAL_USD="${6:?Size (collateralUsd) is required}"
+CONFIDENCE="${7:-}"
+REASONING="${8:-}"
+STOP_LOSS_PCT="${9:-}"
+TAKE_PROFIT_PCT="${10:-}"
 
-REPO_DIR="$HOME/Github/bankr-signals"
-SIGNALS_FILE="$REPO_DIR/data/signals.json"
 PROVIDER="0xef2cc7d15d3421629f93ffa39727f14179f31c75"
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-SIG_ID="sig_$(echo "${PROVIDER}:${TIMESTAMP}:${RANDOM}" | base64 | tr -d '=/+' | head -c 12)"
+API_URL="https://bankrsignals.com/api/signals"
 
-cd "$REPO_DIR"
+# Generate timestamp and message for signing
+TIMESTAMP=$(date +%s)
+ACTION_UPPER=$(echo "$ACTION" | tr '[:lower:]' '[:upper:]')
+TOKEN_UPPER=$(echo "$TOKEN" | tr '[:lower:]' '[:upper:]')
+MESSAGE="bankr-signals:signal:${PROVIDER}:${ACTION_UPPER}:${TOKEN_UPPER}:${TIMESTAMP}"
 
-# Read current signals
-CURRENT=$(cat "$SIGNALS_FILE")
+# Sign message with wallet
+if [ -z "${NET_PRIVATE_KEY:-}" ]; then
+  echo "ERROR: NET_PRIVATE_KEY not set. Use with-secrets.sh" >&2
+  exit 1
+fi
 
-# Build new signal JSON
-NEW_SIGNAL=$(python3 -c "
-import json, sys
-sig = {
-    'id': '$SIG_ID',
-    'provider': '$PROVIDER',
-    'timestamp': '$TIMESTAMP',
-    'action': '${ACTION^^}',
-    'token': '${TOKEN^^}',
-    'chain': 'base',
-    'entryPrice': float('$ENTRY_PRICE'),
-    'leverage': int('$LEVERAGE') if '$LEVERAGE' != '0' else None,
-    'txHash': '$TX_HASH',
-    'status': '$STATUS',
-}
-if '$PNL_PCT':
-    sig['pnlPct'] = float('$PNL_PCT')
-if '$EXIT_PRICE':
-    sig['exitPrice'] = float('$EXIT_PRICE')
-    sig['exitTimestamp'] = '$TIMESTAMP'
-
-current = json.loads('''$CURRENT''')
-# Dedupe by txHash
-existing_hashes = {s.get('txHash') for s in current}
-if '$TX_HASH' not in existing_hashes:
-    current.append(sig)
-    print(json.dumps(current, indent=2))
-else:
-    # Update existing signal (e.g. closing a position)
-    for s in current:
-        if s.get('txHash') == '$TX_HASH':
-            if '$STATUS': s['status'] = '$STATUS'
-            if '$PNL_PCT': s['pnlPct'] = float('$PNL_PCT')
-            if '$EXIT_PRICE':
-                s['exitPrice'] = float('$EXIT_PRICE')
-                s['exitTimestamp'] = '$TIMESTAMP'
-    print(json.dumps(current, indent=2))
+SIGNATURE=$(node -e "
+const { privateKeyToAccount } = require('viem/accounts');
+const pk = process.env.NET_PRIVATE_KEY;
+const account = privateKeyToAccount(pk.startsWith('0x') ? pk : '0x' + pk);
+account.signMessage({ message: '$MESSAGE' }).then(sig => console.log(sig));
 ")
 
-echo "$NEW_SIGNAL" > "$SIGNALS_FILE"
+# Build JSON payload
+PAYLOAD=$(python3 -c "
+import json
+payload = {
+    'provider': '$PROVIDER',
+    'action': '$ACTION_UPPER',
+    'token': '$TOKEN_UPPER',
+    'entryPrice': float('$ENTRY_PRICE'),
+    'txHash': '$TX_HASH',
+    'collateralUsd': float('$COLLATERAL_USD'),
+    'message': '$MESSAGE',
+    'signature': '$SIGNATURE',
+}
+if '$LEVERAGE' and '$LEVERAGE' != '0':
+    payload['leverage'] = int('$LEVERAGE')
+if '$CONFIDENCE':
+    payload['confidence'] = float('$CONFIDENCE')
+if '''$REASONING''':
+    payload['reasoning'] = '''$REASONING'''
+if '$STOP_LOSS_PCT':
+    payload['stopLossPct'] = float('$STOP_LOSS_PCT')
+if '$TAKE_PROFIT_PCT':
+    payload['takeProfitPct'] = float('$TAKE_PROFIT_PCT')
+print(json.dumps(payload))
+")
 
-# Commit and push
-git add data/signals.json
-git commit -m "signal: ${ACTION^^} ${TOKEN^^} @ ${ENTRY_PRICE}" --no-gpg-sign 2>/dev/null || true
-git push origin main 2>/dev/null || true
+# POST to API
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD")
 
-echo "Published: $SIG_ID - ${ACTION^^} ${TOKEN^^} @ ${ENTRY_PRICE}"
+HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+BODY=$(echo "$RESPONSE" | head -n -1)
+
+if [ "$HTTP_CODE" = "201" ]; then
+  SIGNAL_ID=$(echo "$BODY" | python3 -c "import json,sys; print(json.load(sys.stdin).get('signal',{}).get('id','unknown'))")
+  echo "✅ Published: $SIGNAL_ID - ${ACTION_UPPER} ${TOKEN_UPPER} @ ${ENTRY_PRICE} (size: \$${COLLATERAL_USD})"
+  echo "$BODY"
+else
+  echo "❌ Failed (HTTP $HTTP_CODE): $BODY" >&2
+  exit 1
+fi
