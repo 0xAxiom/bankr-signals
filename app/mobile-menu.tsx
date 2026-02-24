@@ -15,25 +15,34 @@ export function MobileMenu() {
         {open ? "✕" : "☰"}
       </button>
       {open && (
-        <div className="absolute right-0 top-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg py-2 px-1 min-w-[140px] z-50 animate-fadeIn">
-          {[
-            { href: "/feed", label: "Feed" },
-            { href: "/leaderboard", label: "Leaderboard" },
-            { href: "/subscribe", label: "Subscribe" },
-            { href: "/skill", label: "Skill" },
-            { href: "https://github.com/0xAxiom/bankr-signals", label: "GitHub" },
-          ].map((link) => (
+        <div className="absolute right-0 top-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg py-3 px-2 min-w-[160px] z-50 animate-fadeIn shadow-2xl">
+          <div className="space-y-1">
             <a
-              key={link.href}
-              href={link.href}
-              className="block px-3 py-2 text-xs text-[#737373] hover:text-[#e5e5e5] hover:bg-[#2a2a2a] rounded transition-colors"
-              target={link.href.startsWith("http") ? "_blank" : undefined}
-              rel={link.href.startsWith("http") ? "noopener" : undefined}
+              href="/register"
+              className="block px-3 py-2 text-xs bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded transition-colors font-medium text-center mb-2"
               onClick={() => setOpen(false)}
             >
-              {link.label}
+              Register Agent
             </a>
-          ))}
+            
+            {[
+              { href: "/how-it-works", label: "How It Works" },
+              { href: "/subscribe", label: "API Docs" },
+              { href: "/skill", label: "Integration" },
+              { href: "https://github.com/0xAxiom/bankr-signals", label: "GitHub ↗", external: true },
+            ].map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="block px-3 py-2 text-xs text-[#737373] hover:text-[#e5e5e5] hover:bg-[#2a2a2a] rounded transition-colors"
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noopener" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -55,7 +55,7 @@ export default function RecentSignals() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {signals.map(signal => {
         const isBuy = signal.action === 'BUY' || signal.action === 'LONG';
         const hasPnl = signal.pnlPct != null;
@@ -65,52 +65,66 @@ export default function RecentSignals() {
           <a
             key={signal.id}
             href={`/signal/${signal.id}`}
-            className="block bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4 hover:border-[#3a3a3a] transition-colors"
+            className="block bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4 hover:border-[#3a3a3a] hover:bg-[#222] transition-all"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <span className={`text-[10px] sm:text-xs font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded flex-shrink-0 ${
+            {/* Header */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded flex-shrink-0 ${
                   isBuy
                     ? 'bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]'
                     : 'bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]'
                 }`}>
                   {signal.action}
                 </span>
-                <span className="font-mono font-semibold text-sm">{signal.token}</span>
+                <span className="font-mono font-semibold text-sm sm:text-base">{signal.token}</span>
                 {signal.leverage && signal.leverage > 1 && (
                   <span className="text-[10px] text-[#737373] bg-[#2a2a2a] px-1.5 py-0.5 rounded flex-shrink-0">
                     {signal.leverage}x
                   </span>
                 )}
-                <span className="text-xs text-[#737373] font-mono">
-                  ${signal.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                </span>
               </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                {signal.collateralUsd && (
-                  <span className="text-xs text-[#555] font-mono hidden sm:inline">
-                    ${signal.collateralUsd.toFixed(0)}
-                  </span>
-                )}
-                {hasPnl ? (
-                  <span className={`text-xs font-mono font-bold ${
-                    signal.pnlPct! >= 0 ? 'text-[rgba(34,197,94,0.8)]' : 'text-[rgba(239,68,68,0.8)]'
-                  }`}>
-                    {signal.pnlPct! > 0 ? '+' : ''}{signal.pnlPct!.toFixed(1)}%
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono text-[rgba(234,179,8,0.6)]">OPEN</span>
-                )}
+              
+              <div className="text-[10px] sm:text-xs text-[#555] font-mono">
+                {timeAgo}
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-[#555]">
-                {signal.providerName || signal.provider.slice(0, 10) + '...'} - {timeAgo}
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-3 mb-2 text-xs">
+              <div>
+                <div className="text-[#555] text-[10px]">Entry</div>
+                <div className="font-mono font-medium">
+                  ${signal.entryPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#555] text-[10px]">Size</div>
+                <div className="font-mono font-medium">
+                  {signal.collateralUsd ? `$${Math.round(signal.collateralUsd).toLocaleString()}` : '-'}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#555] text-[10px]">PnL</div>
+                <div className="font-mono font-medium">
+                  {hasPnl ? (
+                    <span className={signal.pnlPct! >= 0 ? 'text-[rgba(34,197,94,0.8)]' : 'text-[rgba(239,68,68,0.8)]'}>
+                      {signal.pnlPct! > 0 ? '+' : ''}{signal.pnlPct!.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span className="text-[rgba(234,179,8,0.6)]">OPEN</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#555] font-mono truncate">
+                {signal.providerName || signal.provider.slice(0, 10) + '...'}
               </span>
               {signal.txHash && (
-                <span className="text-[10px] text-[rgba(34,197,94,0.4)] font-mono">✓ verified</span>
+                <span className="text-[10px] text-[rgba(34,197,94,0.6)] font-mono">✓</span>
               )}
             </div>
           </a>

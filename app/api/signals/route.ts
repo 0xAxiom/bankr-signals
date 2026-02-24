@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, supabase } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
+import { 
+  checkRateLimit, 
+  rateLimitResponse, 
+  getClientIP, 
+  RATE_LIMITS, 
+  detectAbuse 
+} from "@/lib/ratelimit";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  validateRequest,
+  ValidationPatterns,
+  CustomValidators,
+  APIErrorCode,
+  dbToApiSignal,
+  validateRequestSize,
+} from "@/lib/api-utils";
+import { SignalAction, SignalCategory, RiskLevel, TimeFrame, SignalStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function isValidAddress(addr: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(addr);
-}
-
-function isValidToken(token: string): boolean {
-  return /^[A-Za-z0-9/]{1,20}$/.test(token);
-}
-
-const VALID_ACTIONS = ["BUY", "SELL", "LONG", "SHORT"];
+const VALID_ACTIONS = Object.values(SignalAction);
+const VALID_CATEGORIES = Object.values(SignalCategory);
+const VALID_RISK_LEVELS = Object.values(RiskLevel);
+const VALID_TIME_FRAMES = Object.values(TimeFrame);
 
 // Fire webhook notifications (async, don't block response)
 async function fireWebhooks(signal: any) {
@@ -94,45 +107,104 @@ async function fireWebhooks(signal: any) {
 // GET /api/signals - List signals
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const provider = searchParams.get("provider");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
-
-    let signals;
-    if (provider) {
-      signals = await dbGetSignalsByProvider(provider, limit);
-    } else {
-      signals = await dbGetSignals(limit);
+    // Rate limiting for API reads
+    const clientIP = getClientIP(req);
+    const readLimit = checkRateLimit(`read:${clientIP}`, RATE_LIMITS.API_READ);
+    
+    if (!readLimit.allowed) {
+      return rateLimitResponse(readLimit, "Too many API requests");
     }
 
-    // Normalize to camelCase for API consumers
-    const formatted = (signals || []).map((s: any) => ({
-      id: s.id,
-      provider: s.provider,
-      timestamp: s.timestamp,
-      action: s.action,
-      token: s.token,
-      chain: s.chain,
-      entryPrice: s.entry_price,
-      leverage: s.leverage,
-      confidence: s.confidence,
-      reasoning: s.reasoning,
-      txHash: s.tx_hash,
-      stopLossPct: s.stop_loss_pct,
-      takeProfitPct: s.take_profit_pct,
-      collateralUsd: s.collateral_usd,
-      status: s.status,
-      exitPrice: s.exit_price,
-      exitTimestamp: s.exit_timestamp,
-      pnlPct: s.pnl_pct,
-      pnlUsd: s.pnl_usd,
-      exitTxHash: s.exit_tx_hash,
-    }));
+    const { searchParams } = new URL(req.url);
+    const provider = searchParams.get("provider");
+    const category = searchParams.get("category");
+    const status = searchParams.get("status");
+    const token = searchParams.get("token");
+    const riskLevel = searchParams.get("riskLevel");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
+    const sortBy = searchParams.get("sortBy") || "timestamp";
+    const order = searchParams.get("order") === "asc" ? "asc" : "desc";
 
-    return NextResponse.json(formatted);
+    // Build query with enhanced filters
+    let query = supabase
+      .from("signals")
+      .select("*", { count: "exact" });
+
+    if (provider) {
+      if (!ValidationPatterns.ETH_ADDRESS.test(provider)) {
+        return createErrorResponse(
+          APIErrorCode.VALIDATION_ERROR,
+          "Invalid provider address format",
+          400
+        );
+      }
+      query = query.ilike("provider", provider);
+    }
+
+    if (category && VALID_CATEGORIES.includes(category as SignalCategory)) {
+      query = query.eq("category", category);
+    }
+
+    if (status && Object.values(SignalStatus).includes(status as SignalStatus)) {
+      query = query.eq("status", status);
+    }
+
+    if (token) {
+      query = query.ilike("token", token);
+    }
+
+    if (riskLevel && VALID_RISK_LEVELS.includes(riskLevel as RiskLevel)) {
+      query = query.eq("risk_level", riskLevel);
+    }
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    query = query
+      .range(offset, offset + limit - 1)
+      .order(sortBy === "timestamp" ? "timestamp" : sortBy, { ascending: order === "asc" });
+
+    const { data: signals, error, count } = await query;
+
+    if (error) {
+      console.error("Signals query error:", error);
+      return createErrorResponse(
+        APIErrorCode.INTERNAL_ERROR,
+        "Database query failed",
+        500
+      );
+    }
+
+    // Format response with enhanced fields
+    const formatted = (signals || []).map(dbToApiSignal);
+
+    return createSuccessResponse(
+      {
+        signals: formatted,
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          hasMore: (count || 0) > offset + limit,
+        },
+      },
+      200,
+      {
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          hasMore: (count || 0) > offset + limit,
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Signals GET error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return createErrorResponse(
+      APIErrorCode.INTERNAL_ERROR,
+      "Internal server error",
+      500
+    );
   }
 }
 

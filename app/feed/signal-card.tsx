@@ -34,17 +34,18 @@ export function SignalCard({ trade }: SignalCardProps) {
     : null;
 
   return (
-    <div className={`border-l-2 border-r border-t border-b rounded-lg p-4 bg-[#1a1a1a] hover:bg-[#222] transition-colors ${
+    <div className={`border-l-2 border-r border-t border-b rounded-lg p-3 sm:p-4 bg-[#1a1a1a] hover:bg-[#222] transition-colors ${
       trade.pnl != null 
         ? trade.pnl >= 0 
           ? "border-l-[rgba(34,197,94,0.6)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a]"
           : "border-l-[rgba(239,68,68,0.6)] border-r-[#2a2a2a] border-t-[#2a2a2a] border-b-[#2a2a2a]"
         : "border-[#2a2a2a]"
     } animate-fadeIn`}>
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
+      {/* Header Row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <span
-            className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+            className={`text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded flex-shrink-0 ${
               isBuy
                 ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]"
                 : "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]"
@@ -52,22 +53,33 @@ export function SignalCard({ trade }: SignalCardProps) {
           >
             {trade.action}
           </span>
-          <span className="font-mono font-semibold text-base sm:text-lg">{trade.token}</span>
-          {trade.leverage && (
-            <span className="text-xs text-[#737373] bg-[#2a2a2a] px-2 py-0.5 rounded">
+          <span className="font-mono font-semibold text-sm sm:text-lg truncate">{trade.token}</span>
+          {trade.leverage && trade.leverage > 1 && (
+            <span className="text-[10px] sm:text-xs text-[#737373] bg-[#2a2a2a] px-1.5 sm:px-2 py-0.5 rounded">
               {trade.leverage}x
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-[#737373]">
+        <div className="flex items-center gap-2 text-[10px] sm:text-xs text-[#737373] flex-shrink-0">
           <RelativeTimestamp timestamp={trade.timestamp} />
-          <a
-            href={`/provider/${trade.providerAddress}`}
-            className="hover:text-[#e5e5e5] font-mono transition-colors truncate max-w-[120px] sm:max-w-none"
-          >
-            {trade.providerName}
-          </a>
+          {trade.pnl != null && (
+            <span className={`font-mono font-bold ${
+              trade.pnl >= 0 ? "text-[rgba(34,197,94,0.8)]" : "text-[rgba(239,68,68,0.8)]"
+            }`}>
+              {trade.pnl > 0 ? "+" : ""}{trade.pnl.toFixed(1)}%
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Provider Info */}
+      <div className="mb-3">
+        <a
+          href={`/provider/${trade.providerAddress}`}
+          className="text-[10px] sm:text-xs text-[#737373] hover:text-[#e5e5e5] font-mono transition-colors"
+        >
+          {trade.providerName}
+        </a>
       </div>
 
       {/* Issue #16: Only show confidence if real data exists */}
@@ -86,46 +98,38 @@ export function SignalCard({ trade }: SignalCardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs mb-3">
+      {/* Key Metrics - Mobile-First Layout */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs mb-3">
         <div>
-          <div className="text-[#737373]">Entry</div>
-          <div className="font-mono font-medium">
+          <div className="text-[#555] text-[10px] sm:text-xs">Entry Price</div>
+          <div className="font-mono font-medium text-sm">
             ${trade.entryPrice ? trade.entryPrice.toLocaleString(undefined, { 
               minimumFractionDigits: 2, 
               maximumFractionDigits: 4 
             }) : "-"}
           </div>
         </div>
-        {trade.pnl != null && (
-          <div>
-            <div className="text-[#737373]">PnL</div>
-            <div className={`font-mono font-medium ${
-              trade.pnl >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"
-            }`}>
-              {trade.pnl > 0 ? "+" : ""}{(trade.pnl ?? 0).toFixed(1)}%
-              {dollarPnl != null && (
-                <div className="text-xs opacity-75">
-                  ${dollarPnl > 0 ? "+" : ""}{dollarPnl.toFixed(2)}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         <div>
-          <div className="text-[#737373]">Size</div>
-          <div className="font-mono">
-            {trade.collateralUsd ? `$${trade.collateralUsd.toLocaleString()}` : 
-             "-"}
+          <div className="text-[#555] text-[10px] sm:text-xs">Position Size</div>
+          <div className="font-mono font-medium text-sm">
+            {trade.collateralUsd ? `$${trade.collateralUsd.toLocaleString()}` : "-"}
           </div>
         </div>
-        <div>
-          <div className="text-[#737373]">Status</div>
-          <div className={`font-mono text-xs ${
-            trade.status === "closed" ? "text-[rgba(34,197,94,0.6)]" :
-            trade.status === "stopped" ? "text-[rgba(239,68,68,0.6)]" :
-            "text-[rgba(234,179,8,0.6)]"
-          }`}>
-            {trade.status.toUpperCase()}
+        <div className="col-span-2 sm:col-span-1">
+          <div className="text-[#555] text-[10px] sm:text-xs">Status</div>
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-xs px-1.5 py-0.5 rounded ${
+              trade.status === "closed" ? "bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)]" :
+              trade.status === "stopped" ? "bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)]" :
+              "bg-[rgba(234,179,8,0.1)] text-[rgba(234,179,8,0.8)]"
+            }`}>
+              {trade.status.toUpperCase()}
+            </span>
+            {trade.pnl != null && dollarPnl != null && (
+              <span className="text-[10px] text-[#737373] font-mono">
+                ${dollarPnl > 0 ? "+" : ""}{dollarPnl.toFixed(2)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -150,7 +154,7 @@ export function SignalCard({ trade }: SignalCardProps) {
       <div className="mt-1 text-xs font-mono text-[#737373]">
         {trade.txHash ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[rgba(34,197,94,0.6)] font-semibold">&#x2713; VERIFIED</span>
+            <span className="text-[rgba(34,197,94,0.6)] font-semibold">&#x2713; TX VERIFIED</span>
             <span>Entry:</span>
             <a
               href={`https://basescan.org/tx/${trade.txHash}`}

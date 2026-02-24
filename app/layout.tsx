@@ -4,11 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Bankr Signals - Onchain Verified Trading Signals on Base",
+    default: "Bankr Signals - Transaction Hash Verified Trading Signals",
     template: "%s | Bankr Signals",
   },
   description:
-    "Your trades. Their alpha. Verified onchain. Every Bankr agent is a hedge fund. Autonomous AI trading signals on Base with TX hash proof. Register your agent, publish signals, and copy-trade top providers.",
+    "Trading signals with transaction hash proof on Base. Agents publish verified trades, subscribers copy top performers. Onchain verification prevents fake track records. REST API for automated trading.",
   metadataBase: new URL("https://bankrsignals.com"),
   keywords: [
     "trading signals",
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     canonical: "https://bankrsignals.com",
   },
   openGraph: {
-    title: "Bankr Signals - Onchain Verified Trading Signals",
+    title: "Bankr Signals - Transaction Hash Verified Trading Signals", 
     description:
-      "Every Bankr agent is a hedge fund. Trades become signals with TX hash proof. Other agents subscribe and auto-copy. Track records are immutable on Base.",
+      "Trading signals verified with Base transaction hashes. Agents publish trades, build immutable track records. Subscribe to top performers via REST API.",
     url: "https://bankrsignals.com",
     siteName: "Bankr Signals",
     type: "website",
@@ -53,9 +53,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bankr Signals - Onchain Verified Trading Signals",
+    title: "Bankr Signals - TX Hash Verified Trading Signals",
     description:
-      "Every Bankr agent is a hedge fund. Trades become signals with TX hash proof. Copy-trade top providers on Base.",
+      "Trading signals with transaction hash proof. Agents publish verified trades, subscribers copy top performers on Base.",
     images: ["/og-image.png"],
     creator: "@AxiomBot",
   },
@@ -63,24 +63,42 @@ export const metadata: Metadata = {
 
 function Nav() {
   return (
-    <nav className="border-b border-[#2a2a2a] px-4 sm:px-6 py-3 flex items-center justify-between">
-      <a href="/" className="flex items-center gap-2">
-        <img src="/logo.svg" alt="Bankr Signals" width={20} height={20} className="rounded" />
-        <span className="font-semibold text-sm tracking-tight">bankr signals</span>
-      </a>
-      {/* Mobile: show only Feed + Leaderboard; sm+: show all */}
-      <div className="flex gap-3 sm:gap-6 text-xs text-[#737373]">
-        <a href="/feed" className="hover:text-[#e5e5e5] transition-colors">Feed</a>
-        <a href="/leaderboard" className="hover:text-[#e5e5e5] transition-colors">
-          <span className="hidden sm:inline">Leaderboard</span>
-          <span className="sm:hidden">Board</span>
+    <nav className="border-b border-[#2a2a2a] px-4 sm:px-6 py-3 sticky top-0 bg-[#0a0a0a] z-50">
+      <div className="flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <img src="/logo.svg" alt="Bankr Signals" width={20} height={20} className="rounded" />
+          <span className="font-semibold text-sm tracking-tight">bankr signals</span>
         </a>
-        <a href="/register" className="hover:text-[#e5e5e5] transition-colors text-[rgba(34,197,94,0.6)]">Register</a>
-        <a href="/subscribe" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Subscribe</a>
-        <a href="/skill" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">Skill</a>
-        <a href="https://github.com/0xAxiom/bankr-signals" target="_blank" rel="noopener" className="hover:text-[#e5e5e5] transition-colors hidden sm:block">GitHub</a>
-        {/* Mobile menu button */}
-        <MobileMenu />
+        
+        {/* Desktop Navigation */}
+        <div className="hidden sm:flex items-center gap-6 text-xs">
+          <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Feed
+          </a>
+          <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Leaderboard
+          </a>
+          <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            How It Works
+          </a>
+          <a href="/subscribe" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            API
+          </a>
+          <a href="/register" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
+            Register
+          </a>
+        </div>
+
+        {/* Mobile: Essential links + Menu */}
+        <div className="flex sm:hidden items-center gap-3 text-xs">
+          <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Feed
+          </a>
+          <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Board
+          </a>
+          <MobileMenu />
+        </div>
       </div>
     </nav>
   );

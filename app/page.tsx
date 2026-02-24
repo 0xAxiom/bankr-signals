@@ -25,6 +25,11 @@ export default async function Home() {
   const avgWinRate = providersWithClosedSignals.length > 0
     ? Math.round(providersWithClosedSignals.reduce((s, p) => s + p.win_rate, 0) / providersWithClosedSignals.length)
     : 0;
+
+  // Calculate total verified volume
+  const totalVolume = providers.reduce((sum, p) => 
+    sum + p.trades.reduce((tradeSum, t) => 
+      tradeSum + (t.collateralUsd || 0), 0), 0);
   
   // Get latest trades for live ticker
   const allTrades = providers.flatMap(p =>
@@ -61,11 +66,11 @@ export default async function Home() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-12 pb-8 border-b border-[#2a2a2a]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10 pb-6 border-b border-[#2a2a2a]">
         <Stat label="Providers" value={String(providers.length)} />
-        <Stat label="Signals Published" value={totalSignals.toLocaleString()} />
-        <Stat label="Active Subscribers" value={totalSubs.toLocaleString()} />
-        <Stat label="Avg Win Rate" value={`${avgWinRate}%`} />
+        <Stat label="Signals" value={totalSignals.toLocaleString()} />
+        <Stat label="Volume" value={`$${(totalVolume / 1000000).toFixed(1)}M`} />
+        <Stat label="Win Rate" value={`${avgWinRate}%`} />
       </div>
 
       {/* Signal of the Day */}

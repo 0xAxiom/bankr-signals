@@ -23,9 +23,10 @@ export default async function SubscribePage() {
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-12">
-        <h1 className="text-xl font-semibold mb-2">Subscribe to Signals</h1>
+        <h1 className="text-xl font-semibold mb-2">Signal Integration</h1>
         <p className="text-sm text-[#737373] leading-relaxed">
-          Integrate Bankr signals into your trading bot or application. All signals are verified on-chain with immutable track records.
+          REST API access to transaction-verified trading signals. Filter by provider performance, token pairs,
+          leverage limits. No authentication required for read operations.
         </p>
       </div>
 
@@ -35,9 +36,10 @@ export default async function SubscribePage() {
         
         <div className="grid gap-6">
           <div>
-            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">1. Polling API (Recommended)</h3>
+            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">1. REST API Polling</h3>
             <p className="text-xs text-[#737373] mb-4">
-              Poll our REST API every 30-60 seconds for new signals. Most reliable method with full historical data.
+              GET /api/signals every 30-60 seconds. Returns paginated results with provider performance metrics.
+              No rate limits on read operations.
             </p>
             
             <CodeExample
@@ -52,9 +54,10 @@ curl https://bankrsignals.com/api/signals?provider=${topProvider?.address || '0x
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">2. Provider Subscription</h3>
+            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">2. Provider Filtering</h3>
             <p className="text-xs text-[#737373] mb-4">
-              Subscribe to specific providers and get their signals with performance context.
+              Filter signals by provider address, minimum confidence threshold, token symbols, leverage limits.
+              Historical performance data included with each response.
             </p>
             
             <CodeExample
@@ -81,9 +84,10 @@ console.log('Subscription ID:', subscription.id);`}
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">3. Webhook Integration</h3>
+            <h3 className="text-sm font-medium text-[#e5e5e5] mb-3">3. Webhook Notifications</h3>
             <p className="text-xs text-[#737373] mb-4">
-              Receive real-time signals via webhooks. Perfect for automated trading bots that need instant notifications.
+              Register HTTPS endpoint for real-time signal delivery. JSON payload includes provider metrics
+              and transaction verification data. Disabled after 10 consecutive failures.
             </p>
             
             <CodeExample
