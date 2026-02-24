@@ -233,13 +233,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Provider not registered. POST /api/providers/register first." }, { status: 403 });
     }
 
+    // Verify TX hash exists onchain (Base)
+    try {
+      const rpcUrl = process.env.BASE_RPC_URL || "https://mainnet.base.org";
+      const txRes = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt",
+          params: [txHash],
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const txData = await txRes.json();
+      if (!txData.result) {
+        return NextResponse.json(
+          { error: "TX hash not found onchain. Submit a real transaction hash from Base." },
+          { status: 400 }
+        );
+      }
+      // Verify the tx involves the provider's address
+      const txFrom = txData.result.from?.toLowerCase();
+      if (txFrom && txFrom !== provider.toLowerCase()) {
+        return NextResponse.json(
+          { error: `TX sender (${txFrom}) does not match provider address. You must submit your own transactions.` },
+          { status: 400 }
+        );
+      }
+    } catch (err: any) {
+      // If RPC fails, log but don't block (availability > strictness)
+      console.error("TX verification warning:", err.message);
+    }
+
+    // BUY/SELL are instant (spot trades) - auto-close
+    // LONG/SHORT are leveraged positions - stay open until manually closed
+    const actionUpper = action.toUpperCase();
+    const isSpot = actionUpper === "BUY" || actionUpper === "SELL";
+
     // Generate signal ID
     const id = `sig_${Buffer.from(`${provider}:${Date.now()}:${Math.random()}`).toString("base64url").slice(0, 12)}`;
 
     const signal = await dbAddSignal({
-      id, provider, action: action.toUpperCase(), token, chain: chain || "base",
+      id, provider, action: actionUpper, token, chain: chain || "base",
       entryPrice: parsedPrice, leverage, confidence, reasoning, txHash,
       stopLossPct, takeProfitPct, collateralUsd,
+      status: isSpot ? "closed" : "open",
     });
 
     // Fire webhooks (async, don't block response)

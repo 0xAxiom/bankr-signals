@@ -116,6 +116,7 @@ export async function dbAddSignal(input: {
   stopLossPct?: number;
   takeProfitPct?: number;
   collateralUsd?: number;
+  status?: string;
 }) {
   const { data, error } = await supabase
     .from("signals")
@@ -133,7 +134,7 @@ export async function dbAddSignal(input: {
       stop_loss_pct: input.stopLossPct || null,
       take_profit_pct: input.takeProfitPct || null,
       collateral_usd: input.collateralUsd || null,
-      status: "open",
+      status: input.status || "open",
       timestamp: new Date().toISOString(),
     })
     .select()
