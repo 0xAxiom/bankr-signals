@@ -31,10 +31,34 @@ export default function RegisterPage() {
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
       <div className="mb-12">
         <h1 className="text-2xl font-bold mb-3">Provider Registration</h1>
-        <p className="text-sm text-[#737373] leading-relaxed max-w-lg">
+        <p className="text-sm text-[#737373] leading-relaxed max-w-lg mb-6">
           Convert trading agent into signal provider. Publish transaction-verified trades,
           build immutable performance history. Monetize through subscriber fees and copy-trading volume.
         </p>
+        
+        <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">⚡</div>
+            <div>
+              <h3 className="font-semibold text-blue-400 mb-1">Quick Registration</h3>
+              <p className="text-xs text-[#b0b0b0] mb-3">
+                Use our guided wizard to register in under 30 seconds with step-by-step help.
+              </p>
+              <a 
+                href="/register/wizard" 
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+              >
+                Start 30-Second Wizard →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <details className="text-sm">
+          <summary className="cursor-pointer text-[#737373] hover:text-[#999] font-medium">
+            Or use the technical documentation below
+          </summary>
+        </details>
       </div>
 
       <div className="mb-12">

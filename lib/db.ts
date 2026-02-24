@@ -126,36 +126,27 @@ export async function dbAddSignal(input: {
   positionSize?: number | null;
   riskRewardRatio?: number | null;
 }) {
+  const row: Record<string, any> = {
+    id: input.id,
+    provider: input.provider.toLowerCase(),
+    action: input.action.toUpperCase(),
+    token: input.token,
+    chain: input.chain || "base",
+    entry_price: input.entryPrice,
+    leverage: input.leverage || null,
+    confidence: input.confidence || null,
+    reasoning: input.reasoning || null,
+    tx_hash: input.txHash || null,
+    stop_loss_pct: input.stopLossPct || null,
+    take_profit_pct: input.takeProfitPct || null,
+    collateral_usd: input.collateralUsd || null,
+    status: input.status || "open",
+    timestamp: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from("signals")
-    .insert({
-      id: input.id,
-      provider: input.provider.toLowerCase(),
-      action: input.action.toUpperCase(),
-      token: input.token,
-      chain: input.chain || "base",
-      entry_price: input.entryPrice,
-      leverage: input.leverage || null,
-      confidence: input.confidence || null,
-      reasoning: input.reasoning || null,
-      tx_hash: input.txHash || null,
-      stop_loss_pct: input.stopLossPct || null,
-      take_profit_pct: input.takeProfitPct || null,
-      collateral_usd: input.collateralUsd || null,
-      status: input.status || "open",
-      timestamp: new Date().toISOString(),
-      // Enhanced fields
-      category: input.category || "spot",
-      risk_level: input.riskLevel || "medium",
-      time_frame: input.timeFrame || "1d",
-      tags: input.tags || [],
-      expires_at: input.expiresAt || null,
-      position_size: input.positionSize || null,
-      risk_reward_ratio: input.riskRewardRatio || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      version: 1,
-    })
+    .insert(row)
     .select()
     .single();
   if (error) throw error;

@@ -284,10 +284,8 @@ export async function POST(req: NextRequest) {
       { field: "message", required: true, type: "string", minLength: 10 },
       { field: "signature", required: true, type: "string", pattern: /^0x[a-fA-F0-9]{130}$/ },
       
-      // Enhanced required fields
-      { field: "category", required: true, type: "string", enum: VALID_CATEGORIES },
-      
-      // Enhanced optional fields with better validation
+      // Enhanced optional fields
+      { field: "category", type: "string", enum: VALID_CATEGORIES },
       { field: "riskLevel", type: "string", enum: VALID_RISK_LEVELS },
       { field: "timeFrame", type: "string", enum: VALID_TIME_FRAMES },
       { field: "chain", type: "string", minLength: 1, maxLength: 20 },
@@ -495,7 +493,7 @@ export async function POST(req: NextRequest) {
 
     // Generate enhanced signal ID
     const timestamp = Date.now();
-    const id = `sig_${Buffer.from(`${provider}:${timestamp}:${Math.random()}`).toString("base64url").slice(0, 12)}`;
+    const id = `sig_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
     // Enhanced signal data with all new fields
     const signalData = {
@@ -529,8 +527,12 @@ export async function POST(req: NextRequest) {
       }),
     };
 
-    // Enhanced duplicate detection before saving
-    await checkForDuplicateSignals(signalData);
+    // Duplicate detection (non-blocking)
+    try {
+      await checkForDuplicateSignals(signalData);
+    } catch (e: any) {
+      console.warn("Duplicate check error:", e.message);
+    }
 
     const signal = await dbAddSignal(signalData);
     
@@ -563,7 +565,7 @@ export async function POST(req: NextRequest) {
     
     return createErrorResponse(
       APIErrorCode.INTERNAL_ERROR,
-      "Internal server error",
+      `Internal server error: ${error.message || 'unknown'}`,
       500
     );
   }

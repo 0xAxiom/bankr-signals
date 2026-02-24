@@ -188,9 +188,19 @@ export async function POST(req: NextRequest) {
         }
 
         const txFrom = txData.result.from?.toLowerCase();
+        const txTo = txData.result.to?.toLowerCase();
         const providerLower = signal.provider.toLowerCase();
         
-        if (txFrom !== providerLower) {
+        // ERC-4337 EntryPoint contracts
+        const ERC4337_ENTRYPOINTS = new Set([
+          "0x0000000071727de22e5e9d8baf0edac6f37da032",
+          "0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789",
+        ]);
+        
+        const isDirectSender = txFrom === providerLower;
+        const isERC4337 = ERC4337_ENTRYPOINTS.has(txTo || "");
+        
+        if (!isDirectSender && !isERC4337) {
           // Allow if provider is involved in transaction logs
           const logs = txData.result.logs || [];
           const involvedInLogs = logs.some((log: any) =>
@@ -217,17 +227,13 @@ export async function POST(req: NextRequest) {
     const holdingHours = Math.round((holdingTimeMs / (1000 * 60 * 60)) * 10) / 10;
 
     // Update signal with enhanced data
-    const updateData = {
+    // Only write columns that exist in the DB
+    const updateData: Record<string, any> = {
       status: SignalStatus.CLOSED,
       exit_price: exitPrice,
       exit_timestamp: new Date().toISOString(),
       pnl_pct: calculatedPnlPct,
       pnl_usd: calculatedPnlUsd,
-      holding_hours: holdingHours,
-      close_reason: reason || "manual",
-      fees_usd: feesUsd || null,
-      slippage_pct: slippagePct || null,
-      updated_at: new Date().toISOString(),
       ...(exitTxHash && { exit_tx_hash: exitTxHash }),
     };
 
