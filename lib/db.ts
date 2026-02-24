@@ -117,6 +117,14 @@ export async function dbAddSignal(input: {
   takeProfitPct?: number;
   collateralUsd?: number;
   status?: string;
+  // Enhanced fields
+  category?: string;
+  riskLevel?: string;
+  timeFrame?: string;
+  tags?: string[];
+  expiresAt?: string | null;
+  positionSize?: number | null;
+  riskRewardRatio?: number | null;
 }) {
   const { data, error } = await supabase
     .from("signals")
@@ -136,6 +144,17 @@ export async function dbAddSignal(input: {
       collateral_usd: input.collateralUsd || null,
       status: input.status || "open",
       timestamp: new Date().toISOString(),
+      // Enhanced fields
+      category: input.category || "spot",
+      risk_level: input.riskLevel || "medium",
+      time_frame: input.timeFrame || "1d",
+      tags: input.tags || [],
+      expires_at: input.expiresAt || null,
+      position_size: input.positionSize || null,
+      risk_reward_ratio: input.riskRewardRatio || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      version: 1,
     })
     .select()
     .single();

@@ -37,9 +37,27 @@ export default function RecentSignals() {
     return (
       <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 animate-pulse">
-            <div className="h-4 bg-[#2a2a2a] rounded w-2/3 mb-2"></div>
-            <div className="h-3 bg-[#2a2a2a] rounded w-1/3"></div>
+          <div key={i} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4 animate-pulse">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-6 bg-[#2a2a2a] rounded"></div>
+                <div className="w-16 h-6 bg-[#2a2a2a] rounded"></div>
+                <div className="w-8 h-4 bg-[#2a2a2a] rounded"></div>
+              </div>
+              <div className="w-12 h-4 bg-[#2a2a2a] rounded"></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mb-2">
+              {[...Array(3)].map((_, j) => (
+                <div key={j}>
+                  <div className="w-8 h-3 bg-[#2a2a2a] rounded mb-1"></div>
+                  <div className="w-12 h-4 bg-[#2a2a2a] rounded"></div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="w-20 h-3 bg-[#2a2a2a] rounded"></div>
+              <div className="w-4 h-3 bg-[#2a2a2a] rounded"></div>
+            </div>
           </div>
         ))}
       </div>
@@ -48,8 +66,12 @@ export default function RecentSignals() {
 
   if (signals.length === 0) {
     return (
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 text-center">
-        <p className="text-sm text-[#737373]">No signals yet</p>
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-8 text-center">
+        <div className="w-12 h-12 bg-[#2a2a2a] rounded-full flex items-center justify-center mx-auto mb-3">
+          <span className="text-[#737373] font-mono">📊</span>
+        </div>
+        <p className="text-sm text-[#737373] mb-2">No signals published yet</p>
+        <p className="text-xs text-[#555]">Once agents start trading, their signals will appear here</p>
       </div>
     );
   }

@@ -3,23 +3,80 @@
  * Uses CoinGecko free API with fallback.
  */
 
-// Token symbol -> CoinGecko ID mapping
+// Enhanced token symbol -> CoinGecko ID mapping
 const TOKEN_IDS: Record<string, string> = {
+  // Major cryptocurrencies
   ETH: "ethereum",
   BTC: "bitcoin",
   SOL: "solana",
-  LINK: "chainlink",
+  ADA: "cardano",
+  DOT: "polkadot",
+  AVAX: "avalanche-2",
+  ATOM: "cosmos",
+  NEAR: "near",
+  ICP: "internet-computer",
+  
+  // Layer 2 & Scaling
+  MATIC: "matic-network",
   ARB: "arbitrum",
   OP: "optimism",
-  AVAX: "avalanche-2",
-  MATIC: "matic-network",
-  DOGE: "dogecoin",
+  LRC: "loopring",
+  METIS: "metis-andromeda",
+  
+  // DeFi tokens
   UNI: "uniswap",
+  LINK: "chainlink",
   AAVE: "aave",
   SNX: "havven",
+  COMP: "compound-governance-token",
+  MKR: "maker",
+  CRV: "curve-dao-token",
+  BAL: "balancer",
+  SUSHI: "sushi",
+  "1INCH": "1inch",
+  
+  // Meme/Community tokens
+  DOGE: "dogecoin",
+  SHIB: "shiba-inu",
   PEPE: "pepe",
   WIF: "dogwifcoin",
   BONK: "bonk",
+  FLOKI: "floki",
+  
+  // Exchange tokens
+  BNB: "binancecoin",
+  CRO: "crypto-com-chain",
+  FTT: "ftx-token",
+  KCS: "kucoin-shares",
+  
+  // Stablecoins
+  USDC: "usd-coin",
+  USDT: "tether",
+  DAI: "dai",
+  FRAX: "frax",
+  LUSD: "liquity-usd",
+  
+  // AI/Gaming tokens
+  FET: "fetch-ai",
+  RNDR: "render-token",
+  THETA: "theta-network",
+  ENJ: "enjincoin",
+  SAND: "the-sandbox",
+  MANA: "decentraland",
+  
+  // Additional popular tokens
+  LTC: "litecoin",
+  BCH: "bitcoin-cash",
+  XRP: "ripple",
+  TRX: "tron",
+  VET: "vechain",
+  ALGO: "algorand",
+  XTZ: "tezos",
+  HBAR: "hedera-hashgraph",
+  
+  // Base ecosystem tokens
+  BRETT: "based-brett", // Example Base meme token
+  TOSHI: "toshi", // Another Base token
 };
 
 interface PriceData {

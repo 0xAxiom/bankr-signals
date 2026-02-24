@@ -50,6 +50,23 @@ async function fireWebhooks(signal: any) {
           webhook.token_filter.toLowerCase() !== signal.token.toLowerCase()) {
         return false;
       }
+
+      // Enhanced filters
+      if (webhook.category_filter && webhook.category_filter !== signal.category) {
+        return false;
+      }
+
+      if (webhook.risk_level_filter && webhook.risk_level_filter !== signal.risk_level) {
+        return false;
+      }
+
+      if (webhook.min_confidence && (signal.confidence || 0) < webhook.min_confidence) {
+        return false;
+      }
+
+      if (webhook.min_collateral_usd && (signal.collateral_usd || 0) < webhook.min_collateral_usd) {
+        return false;
+      }
       
       return true;
     });
@@ -61,14 +78,16 @@ async function fireWebhooks(signal: any) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'BankrSignals-Webhook/1.0'
+            'User-Agent': 'BankrSignals-Webhook/2.0',
+            'X-Webhook-ID': webhook.id,
           },
           body: JSON.stringify({
             type: 'new_signal',
-            signal,
-            timestamp: new Date().toISOString()
+            signal: dbToApiSignal(signal),
+            timestamp: new Date().toISOString(),
+            webhook_id: webhook.id,
           }),
-          signal: AbortSignal.timeout(10000) // 10 second timeout
+          signal: AbortSignal.timeout(webhook.timeout_ms || 10000)
         });
 
         if (response.ok) {
@@ -77,18 +96,23 @@ async function fireWebhooks(signal: any) {
             .from("webhooks")
             .update({ 
               last_triggered: new Date().toISOString(),
-              failures: 0 
+              success_count: (webhook.success_count || 0) + 1,
+              failure_count: 0 
             })
             .eq("id", webhook.id);
         } else {
           throw new Error(`HTTP ${response.status}`);
         }
       } catch (error: any) {
-        // Increment failure count, deactivate after 10 failures
-        const newFailures = (webhook.failures || 0) + 1;
-        const updates: any = { failures: newFailures };
+        // Increment failure count, deactivate after configured max failures
+        const newFailures = (webhook.failure_count || 0) + 1;
+        const maxFailures = webhook.max_failures || 10;
+        const updates: any = { 
+          failure_count: newFailures,
+          last_failure: new Date().toISOString(),
+        };
         
-        if (newFailures >= 10) {
+        if (newFailures >= maxFailures) {
           updates.active = false;
         }
         
@@ -104,7 +128,7 @@ async function fireWebhooks(signal: any) {
   }
 }
 
-// GET /api/signals - List signals
+// GET /api/signals - List signals with enhanced filtering and pagination
 export async function GET(req: NextRequest) {
   try {
     // Rate limiting for API reads
@@ -121,6 +145,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const token = searchParams.get("token");
     const riskLevel = searchParams.get("riskLevel");
+    const timeFrame = searchParams.get("timeFrame");
+    const minConfidence = searchParams.get("minConfidence");
+    const minCollateral = searchParams.get("minCollateral");
+    const tags = searchParams.get("tags")?.split(',').filter(Boolean) || [];
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
     const sortBy = searchParams.get("sortBy") || "timestamp";
@@ -158,11 +186,37 @@ export async function GET(req: NextRequest) {
       query = query.eq("risk_level", riskLevel);
     }
 
+    if (timeFrame && VALID_TIME_FRAMES.includes(timeFrame as TimeFrame)) {
+      query = query.eq("time_frame", timeFrame);
+    }
+
+    if (minConfidence) {
+      const conf = parseFloat(minConfidence);
+      if (!isNaN(conf)) {
+        query = query.gte("confidence", conf);
+      }
+    }
+
+    if (minCollateral) {
+      const collat = parseFloat(minCollateral);
+      if (!isNaN(collat)) {
+        query = query.gte("collateral_usd", collat);
+      }
+    }
+
+    if (tags.length > 0) {
+      // Filter by tags (PostgreSQL array overlap operator)
+      query = query.overlaps("tags", tags);
+    }
+
     // Pagination
     const offset = (page - 1) * limit;
+    const validSortFields = ["timestamp", "entry_price", "collateral_usd", "confidence", "pnl_pct"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "timestamp";
+    
     query = query
       .range(offset, offset + limit - 1)
-      .order(sortBy === "timestamp" ? "timestamp" : sortBy, { ascending: order === "asc" });
+      .order(sortField, { ascending: order === "asc" });
 
     const { data: signals, error, count } = await query;
 
@@ -181,15 +235,10 @@ export async function GET(req: NextRequest) {
     return createSuccessResponse(
       {
         signals: formatted,
-        pagination: {
-          page,
-          limit,
-          total: count || 0,
-          hasMore: (count || 0) > offset + limit,
-        },
       },
       200,
       {
+        timestamp: new Date().toISOString(),
         pagination: {
           page,
           limit,
@@ -208,104 +257,134 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/signals - Submit a new signal
+// POST /api/signals - Submit a new signal with enhanced validation and features
 export async function POST(req: NextRequest) {
   try {
+    // Request size validation
+    const sizeError = validateRequestSize(req, 50 * 1024); // 50KB max
+    if (sizeError) {
+      return createErrorResponse(sizeError.code, sizeError.message, 413);
+    }
+
     const body = await req.json();
+    
+    // Enhanced validation rules with stricter requirements
+    const validationError = validateRequest(body, [
+      { field: "provider", required: true, type: "string", custom: CustomValidators.ethAddress },
+      { field: "action", required: true, type: "string", enum: VALID_ACTIONS },
+      { field: "token", required: true, type: "string", pattern: ValidationPatterns.TOKEN_SYMBOL },
+      { field: "entryPrice", required: true, type: "number", custom: CustomValidators.positiveNumber },
+      { field: "collateralUsd", required: true, type: "number", custom: (value: number) => {
+        if (value <= 0) return "collateralUsd must be positive";
+        if (value < 1) return "collateralUsd must be at least $1";
+        if (value > 1000000) return "collateralUsd cannot exceed $1,000,000";
+        return null;
+      }},
+      { field: "txHash", required: true, type: "string", custom: CustomValidators.txHash },
+      { field: "message", required: true, type: "string", minLength: 10 },
+      { field: "signature", required: true, type: "string", pattern: /^0x[a-fA-F0-9]{130}$/ },
+      
+      // Enhanced required fields
+      { field: "category", required: true, type: "string", enum: VALID_CATEGORIES },
+      
+      // Enhanced optional fields with better validation
+      { field: "riskLevel", type: "string", enum: VALID_RISK_LEVELS },
+      { field: "timeFrame", type: "string", enum: VALID_TIME_FRAMES },
+      { field: "chain", type: "string", minLength: 1, maxLength: 20 },
+      { field: "leverage", type: "number", min: 1, max: 100 },
+      { field: "confidence", type: "number", min: 0, max: 1 },
+      { field: "stopLossPct", type: "number", min: 0.1, max: 90 }, // Minimum 0.1%, max 90%
+      { field: "takeProfitPct", type: "number", min: 0.1, max: 1000 }, // Minimum 0.1%, max 1000%
+      { field: "positionSize", type: "number", min: 0.01, max: 100 }, // Min 0.01%, max 100%
+      { field: "riskRewardRatio", type: "number", min: 0.1, max: 100 },
+      { field: "reasoning", type: "string", maxLength: 1000 },
+      { field: "expiresAt", type: "string", custom: CustomValidators.futureTimestamp },
+      { field: "tags", type: "array" }, // Allow array of strings
+    ]);
+
+    if (validationError) {
+      return createErrorResponse(validationError.code, validationError.message, 400, {}, validationError.field);
+    }
+
     const {
-      provider, action, token, chain, entryPrice,
-      leverage, confidence, reasoning, txHash,
-      stopLossPct, takeProfitPct, collateralUsd,
-      message, signature,
+      provider, action, token, chain, entryPrice, collateralUsd, txHash,
+      leverage, confidence, reasoning, stopLossPct, takeProfitPct,
+      category, riskLevel, timeFrame, tags, expiresAt, positionSize,
+      riskRewardRatio, technicalIndicators, message, signature,
     } = body;
 
-    // Validate required fields
-    if (!provider || !action || !token || !entryPrice || !txHash) {
-      return NextResponse.json(
-        { error: "Required fields: provider, action, token, entryPrice, txHash, collateralUsd" },
-        { status: 400 }
+    // Rate limiting per provider
+    const providerLimit = checkRateLimit(`signal:${provider.toLowerCase()}`, RATE_LIMITS.SIGNAL_SUBMIT);
+    if (!providerLimit.allowed) {
+      return rateLimitResponse(providerLimit, "Signal submission rate limit exceeded for this provider");
+    }
+
+    // Abuse detection
+    const abuseCheck = detectAbuse(provider, 'signal_submit', {
+      token,
+      entryPrice,
+      collateralUsd,
+    });
+    
+    if (abuseCheck.isAbusive) {
+      return createErrorResponse(
+        APIErrorCode.BUSINESS_LOGIC_ERROR,
+        `Suspicious activity detected: ${abuseCheck.reason}`,
+        429,
+        { severity: abuseCheck.severity }
       );
     }
 
-    // Require collateralUsd (position size) - essential for PnL tracking
-    if (collateralUsd === undefined || collateralUsd === null || collateralUsd === "") {
-      return NextResponse.json(
-        { error: "collateralUsd (position size in USD) is required. PnL cannot be calculated without it. Example: collateralUsd: 100" },
-        { status: 400 }
-      );
-    }
-
-    const parsedCollateral = parseFloat(collateralUsd);
-    if (isNaN(parsedCollateral) || parsedCollateral <= 0) {
-      return NextResponse.json(
-        { error: "collateralUsd must be a positive number representing your position size in USD" },
-        { status: 400 }
-      );
-    }
-
-    // Validate txHash format
-    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
-      return NextResponse.json(
-        { error: "txHash must be a valid transaction hash (0x + 64 hex chars)" },
-        { status: 400 }
-      );
-    }
-
-    if (!isValidAddress(provider)) {
-      return NextResponse.json({ error: "Invalid provider address" }, { status: 400 });
-    }
-
-    if (!VALID_ACTIONS.includes(action.toUpperCase())) {
-      return NextResponse.json({ error: `action must be one of: ${VALID_ACTIONS.join(", ")}` }, { status: 400 });
-    }
-
-    if (!isValidToken(token)) {
-      return NextResponse.json({ error: "Invalid token format" }, { status: 400 });
-    }
-
-    const parsedPrice = parseFloat(entryPrice);
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      return NextResponse.json({ error: "entryPrice must be a positive number" }, { status: 400 });
-    }
-
-    // Require signature
-    if (!message || !signature) {
-      return NextResponse.json(
-        { error: "message and signature required. Format: bankr-signals:signal:{provider}:{action}:{token}:{timestamp}" },
-        { status: 401 }
-      );
-    }
-
-    // Validate message format
+    // Enhanced message format validation
     const msgMatch = message.match(/^bankr-signals:signal:(0x[a-fA-F0-9]{40}):(\w+):(\w+):(\d+)$/);
     if (!msgMatch) {
-      return NextResponse.json({ error: "Invalid message format" }, { status: 400 });
+      return createErrorResponse(
+        APIErrorCode.AUTHENTICATION_ERROR,
+        "Invalid message format. Expected: bankr-signals:signal:{provider}:{action}:{token}:{timestamp}",
+        400
+      );
     }
 
     if (msgMatch[1].toLowerCase() !== provider.toLowerCase()) {
-      return NextResponse.json({ error: "Provider in message does not match" }, { status: 400 });
+      return createErrorResponse(
+        APIErrorCode.AUTHENTICATION_ERROR,
+        "Provider in message does not match request",
+        400
+      );
     }
 
-    // Check timestamp freshness
+    // Check timestamp freshness (5 min window)
     const msgTimestamp = parseInt(msgMatch[4]);
     const now = Math.floor(Date.now() / 1000);
     if (Math.abs(now - msgTimestamp) > 300) {
-      return NextResponse.json({ error: "Message timestamp expired" }, { status: 400 });
+      return createErrorResponse(
+        APIErrorCode.AUTHENTICATION_ERROR,
+        "Message timestamp expired (5 minute window)",
+        400
+      );
     }
 
     // Verify signature
     const valid = await verifySignature(provider, message, signature);
     if (!valid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      return createErrorResponse(
+        APIErrorCode.AUTHENTICATION_ERROR,
+        "Invalid signature",
+        401
+      );
     }
 
     // Check provider is registered
     const providerRecord = await dbGetProvider(provider);
     if (!providerRecord) {
-      return NextResponse.json({ error: "Provider not registered. POST /api/providers/register first." }, { status: 403 });
+      return createErrorResponse(
+        APIErrorCode.AUTHORIZATION_ERROR,
+        "Provider not registered. Register at /api/providers/register first",
+        403
+      );
     }
 
-    // Verify TX hash exists onchain (Base)
+    // Enhanced onchain verification
     try {
       const rpcUrl = process.env.BASE_RPC_URL || "https://mainnet.base.org";
       const txRes = await fetch(rpcUrl, {
@@ -317,55 +396,181 @@ export async function POST(req: NextRequest) {
         }),
         signal: AbortSignal.timeout(10000),
       });
+      
       const txData = await txRes.json();
       if (!txData.result) {
-        return NextResponse.json(
-          { error: "TX hash not found onchain. Submit a real transaction hash from Base." },
-          { status: 400 }
+        return createErrorResponse(
+          APIErrorCode.VALIDATION_ERROR,
+          "Transaction hash not found onchain. Submit a valid Base transaction.",
+          400
         );
       }
-      // Check if the provider's address is involved in the TX
-      // (as sender, or in logs). Don't require exact from-match
-      // because bundled/relayed TXs have the bundler as tx.from.
+
       const txFrom = txData.result.from?.toLowerCase();
       const providerLower = provider.toLowerCase();
       const logs = txData.result.logs || [];
+      
+      // Check if provider is involved in transaction (as sender or in event logs)
       const involvedInLogs = logs.some((log: any) =>
         log.topics?.some((t: string) => t.toLowerCase().includes(providerLower.slice(2))) ||
         log.data?.toLowerCase().includes(providerLower.slice(2))
       );
+      
       if (txFrom !== providerLower && !involvedInLogs) {
-        return NextResponse.json(
-          { error: `Provider address not found in TX. The transaction must involve your wallet (as sender or in event logs).` },
-          { status: 400 }
+        return createErrorResponse(
+          APIErrorCode.VALIDATION_ERROR,
+          "Provider address not found in transaction. Submit your own transactions only.",
+          400
         );
       }
     } catch (err: any) {
-      // If RPC fails, log but don't block (availability > strictness)
       console.error("TX verification warning:", err.message);
+      // Continue - availability over strictness for RPC issues
     }
 
-    // BUY/SELL are instant (spot trades) - auto-close
-    // LONG/SHORT are leveraged positions - stay open until manually closed
-    const actionUpper = action.toUpperCase();
-    const isSpot = actionUpper === "BUY" || actionUpper === "SELL";
+    // Enhanced signal status logic with better auto-close rules
+    const actionUpper = action.toUpperCase() as SignalAction;
+    
+    // Auto-close logic:
+    // - BUY signals are auto-closed (spot trades, immediate execution)
+    // - SELL signals are auto-closed (spot trades, immediate execution)  
+    // - LONG signals stay open (leveraged positions that need manual closing)
+    // - SHORT signals stay open (leveraged positions that need manual closing)
+    // - HOLD signals stay open (position holds that need manual closing)
+    const isAutoCloseAction = actionUpper === SignalAction.BUY || actionUpper === SignalAction.SELL;
+    const defaultStatus = isAutoCloseAction ? SignalStatus.CLOSED : SignalStatus.OPEN;
 
-    // Generate signal ID
-    const id = `sig_${Buffer.from(`${provider}:${Date.now()}:${Math.random()}`).toString("base64url").slice(0, 12)}`;
+    // Enhanced auto-expiry logic based on signal category and timeframe
+    let calculatedExpiresAt = expiresAt;
+    if (!calculatedExpiresAt && defaultStatus === SignalStatus.OPEN) {
+      const expiryDate = new Date();
+      
+      // Set expiry based on category and timeframe
+      const categoryExpiry: Record<SignalCategory, number> = {
+        [SignalCategory.SCALP]: 1, // 1 day for scalp trades
+        [SignalCategory.SWING]: 7, // 7 days for swing trades  
+        [SignalCategory.SPOT]: 3, // 3 days for spot trades
+        [SignalCategory.FUTURES]: 30, // 30 days for futures
+        [SignalCategory.OPTIONS]: 14, // 14 days for options
+        [SignalCategory.DeFi]: 14, // 14 days for DeFi positions
+        [SignalCategory.MACRO]: 90, // 90 days for macro positions
+        [SignalCategory.ARBITRAGE]: 1, // 1 day for arbitrage
+        [SignalCategory.NFT]: 7, // 7 days for NFT signals
+      };
 
-    const signal = await dbAddSignal({
-      id, provider, action: actionUpper, token, chain: chain || "base",
-      entryPrice: parsedPrice, leverage, confidence, reasoning, txHash,
-      stopLossPct, takeProfitPct, collateralUsd,
-      status: isSpot ? "closed" : "open",
-    });
+      const timeFrameMultiplier = {
+        [TimeFrame.M1]: 0.1, [TimeFrame.M5]: 0.2, [TimeFrame.M15]: 0.5, [TimeFrame.M30]: 0.8,
+        [TimeFrame.H1]: 1, [TimeFrame.H4]: 2, [TimeFrame.D1]: 3, [TimeFrame.W1]: 7, [TimeFrame.MN1]: 30
+      };
+      
+      const baseDays = categoryExpiry[category as SignalCategory] || 7;
+      const multiplier = timeFrame ? timeFrameMultiplier[timeFrame as TimeFrame] || 1 : 1;
+      const adjustedDays = Math.max(1, Math.round(baseDays * multiplier));
+      
+      expiryDate.setDate(expiryDate.getDate() + adjustedDays);
+      calculatedExpiresAt = expiryDate.toISOString();
+    }
+
+    // Generate enhanced signal ID
+    const timestamp = Date.now();
+    const id = `sig_${Buffer.from(`${provider}:${timestamp}:${Math.random()}`).toString("base64url").slice(0, 12)}`;
+
+    // Enhanced signal data with all new fields
+    const signalData = {
+      id,
+      provider: provider.toLowerCase(),
+      action: actionUpper,
+      token: token.toUpperCase(),
+      chain: chain || "base",
+      entryPrice: parseFloat(entryPrice),
+      collateralUsd: parseFloat(collateralUsd),
+      txHash,
+      leverage: leverage ? parseInt(leverage) : null,
+      confidence: confidence ? parseFloat(confidence) : null,
+      reasoning: reasoning || null,
+      stopLossPct: stopLossPct ? parseFloat(stopLossPct) : null,
+      takeProfitPct: takeProfitPct ? parseFloat(takeProfitPct) : null,
+      status: defaultStatus,
+      
+      // Enhanced fields
+      category: category as SignalCategory,
+      riskLevel: riskLevel as RiskLevel || RiskLevel.MEDIUM,
+      timeFrame: timeFrame as TimeFrame || TimeFrame.D1,
+      tags: Array.isArray(tags) ? tags.slice(0, 10) : [], // Limit tags
+      expiresAt: calculatedExpiresAt || null,
+      positionSize: positionSize ? parseFloat(positionSize) : null,
+      riskRewardRatio: riskRewardRatio ? parseFloat(riskRewardRatio) : null,
+      
+      // Calculate risk-reward if stop loss and take profit are provided
+      ...(stopLossPct && takeProfitPct && !riskRewardRatio && {
+        riskRewardRatio: takeProfitPct / stopLossPct
+      }),
+    };
+
+    // Enhanced duplicate detection before saving
+    await checkForDuplicateSignals(signalData);
+
+    const signal = await dbAddSignal(signalData);
+    
+    // Check for auto-close opportunities (BUY followed by SELL or SHORT followed by COVER)
+    if (signalData.action === SignalAction.SELL) {
+      // Import and call auto-close logic asynchronously
+      import("@/lib/position-manager").then(({ checkSignalPairAutoClose }) => {
+        checkSignalPairAutoClose(signal).catch(console.error);
+      });
+    }
 
     // Fire webhooks (async, don't block response)
     fireWebhooks(signal);
 
-    return NextResponse.json({ success: true, signal }, { status: 201 });
+    return createSuccessResponse(
+      { signal: dbToApiSignal(signal) },
+      201
+    );
+
   } catch (error: any) {
     console.error("Signal POST error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    
+    if (error.message?.includes('JSON')) {
+      return createErrorResponse(
+        APIErrorCode.VALIDATION_ERROR,
+        "Invalid JSON in request body",
+        400
+      );
+    }
+    
+    return createErrorResponse(
+      APIErrorCode.INTERNAL_ERROR,
+      "Internal server error",
+      500
+    );
+  }
+}
+// Helper function to check for duplicate signals
+async function checkForDuplicateSignals(signalData: any): Promise<void> {
+  try {
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    
+    const { data: recentSignals, error } = await supabase
+      .from("signals")
+      .select("id, tx_hash, entry_price, token, action")
+      .eq("provider", signalData.provider)
+      .eq("token", signalData.token)
+      .eq("action", signalData.action)
+      .gte("timestamp", oneMinuteAgo);
+
+    if (error) return; // Don't block on DB errors
+
+    const duplicates = recentSignals?.filter(s => 
+      s.tx_hash === signalData.txHash ||
+      (Math.abs(s.entry_price - signalData.entryPrice) / signalData.entryPrice < 0.001) // Same price within 0.1%
+    ) || [];
+
+    if (duplicates.length > 0) {
+      throw new Error("Potential duplicate signal detected");
+    }
+  } catch (error) {
+    console.warn("Duplicate check warning:", error);
+    // Don't throw - this is just a warning check
   }
 }

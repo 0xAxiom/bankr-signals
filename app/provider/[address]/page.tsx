@@ -79,16 +79,16 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         {[
           { label: "Total PnL", value: `${p.pnl_pct >= 0 ? "+" : ""}${p.pnl_pct.toFixed(1)}%`, color: p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]" },
           { label: "Win Rate", value: `${p.win_rate}%`, color: "text-[#e5e5e5]" },
           { label: "Avg Return", value: `${p.avg_return >= 0 ? "+" : ""}${p.avg_return.toFixed(1)}%`, color: p.avg_return >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]" },
           { label: "Streak", value: p.streak > 0 ? `${p.streak}W` : p.streak < 0 ? `${Math.abs(p.streak)}L` : "—", color: p.streak > 0 ? "text-[rgba(34,197,94,0.6)]" : p.streak < 0 ? "text-[rgba(239,68,68,0.6)]" : "text-[#737373]" },
         ].map(s => (
-          <div key={s.label} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <div className={`font-mono text-lg sm:text-xl font-semibold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-[#737373] mt-1">{s.label}</div>
+          <div key={s.label} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4">
+            <div className={`font-mono text-base sm:text-lg lg:text-xl font-semibold ${s.color}`}>{s.value}</div>
+            <div className="text-[10px] sm:text-xs text-[#737373] mt-1">{s.label}</div>
           </div>
         ))}
       </div>

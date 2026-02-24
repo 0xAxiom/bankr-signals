@@ -8,10 +8,10 @@ export default async function Leaderboard() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <h1 className="text-xl font-semibold mb-1">Leaderboard</h1>
+      <h1 className="text-xl font-semibold mb-1">Provider Rankings</h1>
       <p className="text-xs text-[#737373] mb-8">
-        Signal providers ranked by verified PnL. All trades have onchain TX
-        proof.
+        Signal providers ranked by transaction-verified PnL. Performance calculated from
+        Base blockchain data only.
       </p>
 
       <div className="border border-[#2a2a2a] rounded-lg overflow-x-auto">

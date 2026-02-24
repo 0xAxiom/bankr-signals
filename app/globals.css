@@ -5,12 +5,19 @@
   --color-card: #1a1a1a;
   --color-card-hover: #222222;
   --color-border: #2a2a2a;
+  --color-border-light: #3a3a3a;
   --color-text: #e5e5e5;
   --color-text-muted: #737373;
+  --color-text-subtle: #555555;
   --color-green: #22c55e;
   --color-green-muted: rgba(34, 197, 94, 0.6);
+  --color-green-bg: rgba(34, 197, 94, 0.1);
   --color-red: #ef4444;
   --color-red-muted: rgba(239, 68, 68, 0.6);
+  --color-red-bg: rgba(239, 68, 68, 0.1);
+  --color-yellow: #eab308;
+  --color-yellow-muted: rgba(234, 179, 8, 0.6);
+  --color-yellow-bg: rgba(234, 179, 8, 0.1);
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
@@ -75,3 +82,32 @@ body {
 .scroll-animate:nth-child(3) { animation-delay: 0.2s; }
 .scroll-animate:nth-child(4) { animation-delay: 0.3s; }
 .scroll-animate:nth-child(5) { animation-delay: 0.4s; }
+
+/* Utility classes for consistent styling */
+.signal-card {
+  @apply bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4 hover:border-[#3a3a3a] transition-all;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-lg hover:bg-[rgba(34,197,94,0.15)] transition-all font-medium;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-4 py-2.5 border border-[#2a2a2a] text-[#e5e5e5] rounded-lg hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all;
+}
+
+.stat-card {
+  @apply bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 sm:p-4;
+}
+
+.action-badge {
+  @apply text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded;
+}
+
+.action-badge-buy {
+  @apply bg-[rgba(34,197,94,0.1)] text-[rgba(34,197,94,0.8)];
+}
+
+.action-badge-sell {
+  @apply bg-[rgba(239,68,68,0.1)] text-[rgba(239,68,68,0.8)];
+}

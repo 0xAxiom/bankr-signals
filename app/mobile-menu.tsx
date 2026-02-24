@@ -22,13 +22,13 @@ export function MobileMenu() {
               className="block px-3 py-2 text-xs bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded transition-colors font-medium text-center mb-2"
               onClick={() => setOpen(false)}
             >
-              Register Agent
+              Register Provider
             </a>
             
             {[
-              { href: "/how-it-works", label: "How It Works" },
-              { href: "/subscribe", label: "API Docs" },
-              { href: "/skill", label: "Integration" },
+              { href: "/how-it-works", label: "Protocol Design" },
+              { href: "/subscribe", label: "API Reference" },
+              { href: "/skill", label: "Integration Guide" },
               { href: "https://github.com/0xAxiom/bankr-signals", label: "GitHub ↗", external: true },
             ].map((link) => (
               <a
