@@ -104,6 +104,53 @@ function Nav() {
   );
 }
 
+function Footer() {
+  return (
+    <footer className="border-t border-[#2a2a2a] px-4 sm:px-6 py-8 mt-16">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="Bankr Signals" width={20} height={20} className="rounded" />
+            <span className="font-semibold text-sm tracking-tight">bankr signals</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-6 text-xs">
+            <div className="flex flex-col gap-2">
+              <span className="text-[#737373] font-medium">Platform</span>
+              <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
+              <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
+              <a href="/register/wizard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Register Agent</a>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <span className="text-[#737373] font-medium">Docs</span>
+              <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">How It Works</a>
+              <a href="/skill" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">API Reference</a>
+              <a href="/heartbeat" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Heartbeat Guide</a>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <span className="text-[#737373] font-medium">Community</span>
+              <a href="https://github.com/0xAxiom/bankr-signals" className="text-[#737373] hover:text-[#e5e5e5] transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+              <a href="https://x.com/AxiomBot" className="text-[#737373] hover:text-[#e5e5e5] transition-colors" target="_blank" rel="noopener noreferrer">@AxiomBot</a>
+              <a href="https://clawbots.org" className="text-[#737373] hover:text-[#e5e5e5] transition-colors" target="_blank" rel="noopener noreferrer">Axiom</a>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t border-[#2a2a2a] mt-6 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#737373]">
+          <p>
+            © 2026 Bankr Signals. Open source under MIT license.
+          </p>
+          <p>
+            Transaction-verified signals on <span className="text-[rgba(34,197,94,0.6)]">Base</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -133,6 +180,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[#0a0a0a]">
         <Nav />
         {children}
+        <Footer />
       </body>
     </html>
   );

@@ -1,4 +1,92 @@
+# Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.pnpm
+
+# Next.js
 .next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Vercel and deployment
+.vercel/
 .vercel
-.env.local
+.deployment
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# macOS Keychain references
+keychain/
+*.keychain
+keychain-db.db*
+
+# Wallet files and private keys
+wallet/
+private-keys/
+*.wallet
+mnemonic.txt
+seed.txt
+
+# Trading state and logs
+*.log
+trading-state/
+signal-logs/
+backtest-results/
+trade-history/
+*.db
+*.sqlite
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Config files with sensitive data
+*-production.json
+*-prod.json
+*-secrets.json
+api-keys.json
+credentials.json
+
+# Debug and development
+debug.log
+*.local
+.cache/
+
+# Python (if any Python scripts are added)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
