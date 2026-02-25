@@ -69,9 +69,26 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
   }
   const allSignals = signals || [];
 
+  // Discover orphan providers (have signals but no registration)
+  const registeredAddresses = new Set(providers.map(p => p.address.toLowerCase()));
+  const orphanAddresses = new Set<string>();
+  for (const s of allSignals) {
+    const addr = s.provider.toLowerCase();
+    if (!registeredAddresses.has(addr)) orphanAddresses.add(addr);
+  }
+  // Create synthetic provider entries for orphans
+  const allProviders = [
+    ...providers,
+    ...[...orphanAddresses].map(addr => ({
+      address: addr,
+      name: `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+      avatar: null,
+    })),
+  ];
+
   const results: ProviderStats[] = [];
 
-  for (const provider of providers) {
+  for (const provider of allProviders) {
     const providerSignals = allSignals.filter(
       (s) => s.provider.toLowerCase() === provider.address.toLowerCase()
     );
