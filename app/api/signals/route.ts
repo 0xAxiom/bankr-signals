@@ -471,8 +471,28 @@ export async function POST(req: NextRequest) {
     }
     
     // Require either on-chain price or submitted price
-    const finalEntryPrice = onchainEntryPrice || (entryPrice ? parseFloat(entryPrice) : 0);
+    let finalEntryPrice = onchainEntryPrice || (entryPrice ? parseFloat(entryPrice) : 0);
     const finalCollateralUsd = onchainCollateralUsd || (collateralUsd ? parseFloat(collateralUsd) : 0);
+    
+    // For traditional assets (stocks, forex, metals, commodities, indices),
+    // validate the submitted entry price against real market data.
+    // Avantis perps don't have on-chain token swaps, so entry price comes from submission.
+    // Sanity check: submitted price must be within 10% of the actual market price.
+    const { isTraditionalAsset: isTradAsset, getTokenPrice: getTradPrice } = await import("@/lib/prices");
+    if (isTradAsset(token) && !onchainEntryPrice) {
+      try {
+        const marketPrice = await getTradPrice(token);
+        if (marketPrice && finalEntryPrice > 0) {
+          const deviation = Math.abs(finalEntryPrice - marketPrice.price) / marketPrice.price;
+          if (deviation > 0.10) {
+            console.warn(`Entry price sanity check failed for ${token}: submitted=$${finalEntryPrice}, market=$${marketPrice.price} (${(deviation * 100).toFixed(1)}% off). Using market price.`);
+            finalEntryPrice = marketPrice.price;
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Traditional asset price validation failed: ${err.message}`);
+      }
+    }
     
     if (finalEntryPrice <= 0) {
       return createErrorResponse(
