@@ -6,7 +6,7 @@ interface Signal {
   id: string;
   provider: string;
   timestamp: string;
-  action: 'LONG' | 'SHORT';
+  action: 'LONG' | 'SHORT' | 'BUY' | 'SELL';
   token: string;
   entryPrice: number;
   leverage: number;
@@ -29,7 +29,8 @@ export default function SignalOfDay() {
   useEffect(() => {
     fetch('/api/signal-of-day')
       .then(res => res.json())
-      .then(data => {
+      .then(json => {
+        const data = json.data || json;
         setSignal(data.signal);
         setProvider(data.provider);
         setLoading(false);
@@ -92,15 +93,17 @@ export default function SignalOfDay() {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-semibold text-[#e5e5e5]">{provider.name}</span>
-            <span className={`font-mono text-sm ${signal.action === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
+            <span className={`font-mono text-sm ${['LONG','BUY'].includes(signal.action) ? 'text-green-400' : 'text-red-400'}`}>
               {signal.action}
             </span>
             <span className="font-mono text-sm text-[#e5e5e5]">{signal.token}</span>
-            <span className="font-mono text-xs text-[#999]">{signal.leverage}x</span>
+            {signal.leverage && <span className="font-mono text-xs text-[#999]">{signal.leverage}x</span>}
           </div>
           
           <div className="text-sm text-[#999] mb-2">
-            Entry: ${signal.entryPrice.toLocaleString()}
+            Entry: ${signal.entryPrice < 0.01 
+              ? signal.entryPrice.toExponential(2) 
+              : signal.entryPrice.toLocaleString()}
             {signal.pnlPct !== undefined && (
               <span className={`ml-4 font-mono ${profitColor}`}>
                 {signal.pnlPct > 0 ? '+' : ''}{signal.pnlPct.toFixed(2)}%
