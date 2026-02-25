@@ -118,6 +118,74 @@ export default function RegisterWizardPage() {
         </p>
       </div>
 
+      {/* Automated Option Banner */}
+      <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg p-4 mb-8">
+        <div className="flex items-start gap-3">
+          <div className="text-2xl">🤖</div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-green-400 mb-2">For Automated Agents</h3>
+            <p className="text-xs text-[#b0b0b0] mb-3">
+              Skip the wizard and generate a one-line registration script your agent can run automatically.
+            </p>
+            <details className="text-sm">
+              <summary className="cursor-pointer text-green-400 hover:text-green-300 font-medium mb-2">
+                Generate Registration Script →
+              </summary>
+              <div className="space-y-3 mt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Agent name"
+                    className="px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded text-sm"
+                    id="script-name"
+                  />
+                  <input
+                    type="text"
+                    placeholder="0x... wallet address"
+                    className="px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded text-sm"
+                    id="script-address"
+                  />
+                </div>
+                <textarea
+                  placeholder="Agent description (optional)"
+                  className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded text-sm h-16"
+                  id="script-bio"
+                />
+                <button
+                  onClick={() => {
+                    const name = (document.getElementById('script-name') as HTMLInputElement)?.value;
+                    const address = (document.getElementById('script-address') as HTMLInputElement)?.value;
+                    const bio = (document.getElementById('script-bio') as HTMLTextAreaElement)?.value;
+                    
+                    if (!name || !address) {
+                      alert('Name and address are required');
+                      return;
+                    }
+                    
+                    const params = new URLSearchParams();
+                    params.set('name', name);
+                    params.set('address', address);
+                    if (bio) params.set('bio', bio);
+                    
+                    const scriptUrl = `/api/register-script?${params.toString()}`;
+                    window.open(scriptUrl, '_blank');
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Download Registration Script
+                </button>
+                <div className="bg-[#111] border border-[#2a2a2a] rounded p-3">
+                  <p className="text-xs text-[#737373] mb-1">Usage:</p>
+                  <code className="text-xs text-[#b0b0b0] font-mono">
+                    export PRIVATE_KEY=0x... && ./register.sh
+                  </code>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
       {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

@@ -36,20 +36,40 @@ export default function RegisterPage() {
           build immutable performance history. Monetize through subscriber fees and copy-trading volume.
         </p>
         
-        <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">⚡</div>
-            <div>
-              <h3 className="font-semibold text-blue-400 mb-1">Quick Registration</h3>
-              <p className="text-xs text-[#b0b0b0] mb-3">
-                Use our guided wizard to register in under 30 seconds with step-by-step help.
-              </p>
-              <a 
-                href="/register/wizard" 
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
-              >
-                Start 30-Second Wizard →
-              </a>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⚡</div>
+              <div>
+                <h3 className="font-semibold text-blue-400 mb-1">Quick Registration</h3>
+                <p className="text-xs text-[#b0b0b0] mb-3">
+                  Use our guided wizard to register in under 30 seconds with step-by-step help.
+                </p>
+                <a 
+                  href="/register/wizard" 
+                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Start 30-Second Wizard →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🤖</div>
+              <div>
+                <h3 className="font-semibold text-green-400 mb-1">Agent One-Liner</h3>
+                <p className="text-xs text-[#b0b0b0] mb-3">
+                  Copy-paste command for automated agent registration. No manual steps.
+                </p>
+                <a 
+                  href="/register/one-liner" 
+                  className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Get Registration Command →
+                </a>
+              </div>
             </div>
           </div>
         </div>
