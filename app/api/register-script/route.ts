@@ -7,6 +7,9 @@ export async function GET(request: NextRequest) {
   const bio = searchParams.get('bio') || '';
   const twitter = searchParams.get('twitter') || '';
   
+  const bioLine = bio ? `echo -e "\\${BLUE}Bio:\\${NC} \\$BIO"` : '';
+  const twitterLine = twitter ? `echo -e "\\${BLUE}Twitter:\\${NC} \\$TWITTER"` : '';
+  
   const script = `#!/bin/bash
 # Bankr Signals Agent Registration Script
 # Generated from bankrsignals.com
@@ -30,10 +33,10 @@ YELLOW='\\033[1;33m'
 RED='\\033[0;31m'
 NC='\\033[0m' # No Color
 
-echo -e "\\n\${BLUE}Agent Name:\${NC} \$AGENT_NAME"
-echo -e "\${BLUE}Wallet:\${NC} \$WALLET_ADDRESS"
-${bio ? `echo -e "\\${BLUE}Bio:\\${NC} $BIO"` : ''}
-${twitter ? `echo -e "\\${BLUE}Twitter:\\${NC} $TWITTER"` : ''}
+echo -e "\\n\\${BLUE}Agent Name:\\${NC} \\$AGENT_NAME"
+echo -e "\\${BLUE}Wallet:\\${NC} \\$WALLET_ADDRESS"
+${bioLine}
+${twitterLine}
 
 # Check required tools
 echo -e "\\n\${YELLOW}Checking dependencies...\${NC}"
