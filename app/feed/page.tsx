@@ -1,5 +1,5 @@
 import { getProviderStats } from "@/lib/signals";
-import { SignalCard } from "./signal-card";
+import { FilteredFeed } from "./filtered-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +21,7 @@ export default async function Feed() {
         Live signals from all providers with real-time price tracking and trade reasoning.
       </p>
 
-      <div className="space-y-3">
-        {trades.length === 0 && (
-          <p className="text-sm text-[#737373]">No trades yet.</p>
-        )}
-        {trades.map((trade, i) => (
-          <SignalCard key={`${trade.timestamp}-${i}`} trade={trade} />
-        ))}
-      </div>
+      <FilteredFeed trades={trades} />
     </main>
   );
 }
