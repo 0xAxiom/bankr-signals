@@ -106,7 +106,7 @@ export default function SignalOfDay() {
               : signal.entryPrice.toLocaleString()}
             {signal.pnlPct !== undefined && (
               <span className={`ml-4 font-mono ${profitColor}`}>
-                {signal.pnlPct > 0 ? '+' : ''}{signal.pnlPct.toFixed(2)}%
+                {(signal.pnlPct ?? 0) > 0 ? '+' : ''}{(signal.pnlPct ?? 0).toFixed(2)}%
               </span>
             )}
           </div>

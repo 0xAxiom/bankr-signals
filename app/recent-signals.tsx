@@ -143,7 +143,7 @@ export default function RecentSignals() {
                 <div className="font-mono font-medium">
                   {signal.status === 'closed' && hasPnl ? (
                     <span className={signal.pnlPct! >= 0 ? 'text-[rgba(34,197,94,0.8)]' : 'text-[rgba(239,68,68,0.8)]'}>
-                      {signal.pnlPct! > 0 ? '+' : ''}{signal.pnlPct!.toFixed(1)}%
+                      {(signal.pnlPct ?? 0) > 0 ? '+' : ''}{(signal.pnlPct ?? 0).toFixed(1)}%
                     </span>
                   ) : signal.status === 'closed' ? (
                     <span className="text-[#555]">CLOSED</span>

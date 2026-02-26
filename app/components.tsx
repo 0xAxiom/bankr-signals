@@ -108,7 +108,7 @@ export function AggregateEquityCurve({ providers }: AggregateEquityCurveProps) {
         <h3 className="text-sm font-medium text-[#e5e5e5]">Aggregate PnL</h3>
         <div className="text-xs text-[#737373]">
           Total: <span className={`font-mono ${isPositive ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-            {isPositive ? "+" : ""}{equityPoints[equityPoints.length - 1].pnl.toFixed(1)}%
+            {isPositive ? "+" : ""}{(equityPoints[equityPoints.length - 1].pnl ?? 0).toFixed(1)}%
           </span>
         </div>
       </div>
@@ -217,8 +217,8 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
   };
 
   const sortedProviders = [...providers].sort((a, b) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
+    const aVal = a[sortField] ?? 0;
+    const bVal = b[sortField] ?? 0;
     const multiplier = sortDirection === "asc" ? 1 : -1;
     const primary = (aVal - bVal) * multiplier;
     if (primary !== 0) return primary;
@@ -274,8 +274,8 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
                   </div>
                 </a>
               </td>
-              <td className={`px-4 py-3 text-right font-mono ${p.pnl_pct >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
-                {p.pnl_pct >= 0 ? "+" : ""}{p.pnl_pct.toFixed(1)}%
+              <td className={`px-4 py-3 text-right font-mono ${(p.pnl_pct ?? 0) >= 0 ? "text-[rgba(34,197,94,0.6)]" : "text-[rgba(239,68,68,0.6)]"}`}>
+                {(p.pnl_pct ?? 0) >= 0 ? "+" : ""}{(p.pnl_pct ?? 0).toFixed(1)}%
               </td>
               <td className="px-4 py-3 text-right font-mono">{p.win_rate}%</td>
               <td className="px-4 py-3 text-right font-mono text-[#737373]">{p.signal_count}</td>
