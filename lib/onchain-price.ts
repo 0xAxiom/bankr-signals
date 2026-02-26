@@ -34,6 +34,7 @@ interface OnchainPriceResult {
   collateralUsd: number;
   tokensReceived: number;
   tokenAddress: string;
+  tokenSymbol: string;   // actual token symbol found on-chain
   quoteToken: string;
   ethPriceUsed?: number;  // if WETH was the intermediary
   method: "blockscout" | "rpc-logs";
@@ -191,6 +192,7 @@ export async function extractEntryPrice(
       collateralUsd,
       tokensReceived,
       tokenAddress,
+      tokenSymbol: mainTokenTransfer.symbol,
       quoteToken,
       ethPriceUsed,
       method: "blockscout",

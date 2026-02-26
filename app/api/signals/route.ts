@@ -458,6 +458,26 @@ export async function POST(req: NextRequest) {
       try {
         const priceResult = await extractEntryPrice(txHash, token, provider);
         if (priceResult) {
+          // Validate that on-chain token matches claimed token
+          const onchainSymbol = priceResult.tokenSymbol?.toUpperCase();
+          const claimedSymbol = token.toUpperCase();
+          // Well-known aliases (ETH/WETH are the same)
+          const ALIASES: Record<string, string[]> = {
+            "ETH": ["WETH", "ETH"],
+            "WETH": ["WETH", "ETH"],
+            "BTC": ["WBTC", "BTC", "cbBTC"],
+            "WBTC": ["WBTC", "BTC", "cbBTC"],
+          };
+          const acceptableSymbols = ALIASES[claimedSymbol] || [claimedSymbol];
+          
+          if (onchainSymbol && !acceptableSymbols.includes(onchainSymbol)) {
+            return createErrorResponse(
+              APIErrorCode.VALIDATION_ERROR,
+              `Token mismatch: signal claims ${claimedSymbol} but on-chain TX trades ${onchainSymbol}. Submit the correct token symbol.`,
+              400
+            );
+          }
+          
           onchainEntryPrice = priceResult.entryPrice;
           onchainCollateralUsd = priceResult.collateralUsd;
           onchainTokenAddress = priceResult.tokenAddress;
