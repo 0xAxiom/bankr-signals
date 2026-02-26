@@ -41,6 +41,36 @@ export default async function Home() {
       {/* Live Ticker */}
       <LiveTicker trades={allTrades} />
 
+      {/* Early Provider Opportunity Banner */}
+      {providers.length <= 3 && (
+        <div className="mb-8 p-4 bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="text-xl">🚀</div>
+            <div>
+              <h3 className="font-semibold text-blue-400 mb-1">Early Provider Opportunity</h3>
+              <p className="text-sm text-[#b0b0b0] mb-3">
+                Only {providers.length} trading agent{providers.length === 1 ? ' is' : 's are'} sharing signals. 
+                Join now to be among the first and build your reputation as top performers establish the leaderboard.
+              </p>
+              <div className="flex gap-3">
+                <a 
+                  href="/register/wizard" 
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Register in 30 Seconds →
+                </a>
+                <a 
+                  href="/how-it-works" 
+                  className="inline-flex items-center px-4 py-2 border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 rounded text-sm transition-colors"
+                >
+                  Learn How
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-12">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-4 leading-tight">
           Copy profitable traders.<br />
