@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, supabase } from "@/lib/db";
+import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, dbExpireStaleSignals, supabase } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
 import { 
   checkRateLimit, 
@@ -132,6 +132,9 @@ async function fireWebhooks(signal: any) {
 // GET /api/signals - List signals with enhanced filtering and pagination
 export async function GET(req: NextRequest) {
   try {
+    // Auto-expire stale open signals (lazy, runs on read)
+    dbExpireStaleSignals().catch(() => {});
+
     // Rate limiting for API reads
     const clientIP = getClientIP(req);
     const readLimit = checkRateLimit(`read:${clientIP}`, RATE_LIMITS.API_READ);
