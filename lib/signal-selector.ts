@@ -36,7 +36,8 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
     // Today = last 24 hours
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // First: try closed signals with realized PnL from today
+    // First: try closed signals with meaningful realized PnL from today
+    // Skip 0% PnL signals — they didn't do anything worth featuring
     const { data: closedSignals } = await supabase
       .from("signals")
       .select("*, signal_providers!inner (name, avatar, address)")
@@ -44,10 +45,11 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
       .not("pnl_pct", "is", null)
       .gte("timestamp", dayAgo)
       .order("pnl_pct", { ascending: false })
-      .limit(1);
+      .limit(10);
 
-    if (closedSignals && closedSignals.length > 0) {
-      const signal = closedSignals[0];
+    const meaningfulClosed = closedSignals?.filter(s => Math.abs(s.pnl_pct) >= 0.5);
+    if (meaningfulClosed && meaningfulClosed.length > 0) {
+      const signal = meaningfulClosed[0];
       return formatResult(signal, `Top performer today: ${signal.pnl_pct > 0 ? '+' : ''}${signal.pnl_pct.toFixed(1)}% realized PnL`);
     }
 
