@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { MobileMenu } from "./mobile-menu";
 import "./globals.css";
 
@@ -181,6 +182,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Nav />
         {children}
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
