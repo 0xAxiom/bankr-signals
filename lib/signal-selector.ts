@@ -81,7 +81,7 @@ async function findBestSignalInWindow(hours: number, timeLabel: string): Promise
     .eq("status", "open")
     .not("entry_price", "is", null)
     .gte("timestamp", windowStart)
-    .order("confidence", { ascending: false, nullsLast: true })
+    .order("confidence", { ascending: false, nullsFirst: false })
     .limit(20);
 
   if (!openSignals || openSignals.length === 0) return null;
