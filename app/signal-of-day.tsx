@@ -52,12 +52,7 @@ export default function SignalOfDay() {
   }
 
   if (!signal || !provider) {
-    return (
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] border border-[#2a2a2a] rounded-xl p-6">
-        <h3 className="text-lg font-semibold mb-2 text-[#e5e5e5]">📊 Signal of the Day</h3>
-        <p className="text-[#999] text-sm">No signals available</p>
-      </div>
-    );
+    return null;
   }
 
   const profitColor = signal.pnlPct !== undefined 

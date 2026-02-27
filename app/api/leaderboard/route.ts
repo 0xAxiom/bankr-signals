@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { dbGetLeaderboard } from "@/lib/db";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -14,88 +14,67 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
-    const tier = searchParams.get("tier") as ProviderTier | null;
-    const timeframe = searchParams.get("timeframe") || "all"; // all, 30d, 7d, 24h
     const sortBy = searchParams.get("sortBy") || "total_pnl"; // total_pnl, win_rate, signals, roi
-    const verified = searchParams.get("verified");
 
-    // Use materialized view for better performance
-    let query = supabase
-      .from("provider_leaderboard")
-      .select("*")
-      .limit(limit);
+    // Get leaderboard data from existing function
+    const leaderboard = await dbGetLeaderboard();
 
-    // Apply filters
-    if (tier && Object.values(ProviderTier).includes(tier)) {
-      query = query.eq("tier", tier);
-    }
-
-    if (verified === "true") {
-      query = query.eq("verified", true);
-    } else if (verified === "false") {
-      query = query.eq("verified", false);
-    }
-
-    // Apply sorting
-    switch (sortBy) {
-      case "win_rate":
-        query = query.order("calculated_win_rate", { ascending: false });
-        break;
-      case "signals":
-        query = query.order("signal_count", { ascending: false });
-        break;
-      case "roi":
-        query = query.order("avg_roi", { ascending: false });
-        break;
-      case "reputation":
-        query = query.order("reputation", { ascending: false });
-        break;
-      default:
-        query = query.order("total_pnl_usd", { ascending: false });
-    }
-
-    const { data: leaderboard, error } = await query;
-
-    if (error) {
-      console.error("Leaderboard query error:", error);
+    if (!leaderboard) {
       return createErrorResponse(
         APIErrorCode.INTERNAL_ERROR,
-        "Database query failed",
+        "Failed to fetch leaderboard data",
         500
       );
     }
 
+    // Apply sorting
+    let sortedLeaderboard = [...leaderboard];
+    switch (sortBy) {
+      case "win_rate":
+        sortedLeaderboard.sort((a, b) => b.win_rate - a.win_rate);
+        break;
+      case "signals":
+        sortedLeaderboard.sort((a, b) => b.total_signals - a.total_signals);
+        break;
+      case "roi":
+        sortedLeaderboard.sort((a, b) => b.avg_pnl_pct - a.avg_pnl_pct);
+        break;
+      default:
+        sortedLeaderboard.sort((a, b) => b.total_pnl_usd - a.total_pnl_usd);
+    }
+
+    // Apply limit
+    const limitedLeaderboard = sortedLeaderboard.slice(0, limit);
+
     // Calculate additional metrics and format response
-    const formatted = (leaderboard || []).map((provider, index) => {
-      const rankChange = provider.rank - (index + 1); // Simple rank change calculation
-      
+    const formatted = limitedLeaderboard.map((provider, index) => {
       return {
         ...dbToApiProvider(provider),
         
         // Leaderboard-specific fields
         rank: index + 1,
-        rankChange,
+        rankChange: 0, // Simple placeholder
         score: calculateLeaderboardScore(provider),
         
-        // Performance metrics
-        totalSignals: provider.signal_count,
-        closedSignals: provider.closed_count,
-        winRate: provider.calculated_win_rate,
+        // Performance metrics  
+        totalSignals: provider.total_signals,
+        closedSignals: provider.wins + provider.losses,
+        winRate: provider.win_rate,
         avgROI: provider.avg_pnl_pct,
         totalPnL: provider.total_pnl_usd,
-        maxDrawdown: provider.calculated_max_drawdown,
+        openPositions: provider.open_positions,
         
         // Recent performance (placeholder - would need time-series data)
         recentPerformance: {
-          winRate7d: provider.calculated_win_rate, // TODO: Calculate actual 7d metrics
+          winRate7d: provider.win_rate, // TODO: Calculate actual 7d metrics
           roi7d: provider.avg_pnl_pct,
-          signalCount7d: Math.min(5, provider.signal_count),
+          signalCount7d: Math.min(5, provider.total_signals),
         },
         
-        // Enhanced fields from new schema
-        tier: provider.tier,
-        verified: provider.verified,
-        reputation: provider.reputation,
+        // Basic fields (will be null for existing providers)
+        tier: provider.tier || ProviderTier.BASIC,
+        verified: provider.verified || false,
+        reputation: provider.reputation || 0,
         badges: provider.badges || [],
         specialties: provider.specialties || [],
       };
@@ -122,13 +101,10 @@ export async function GET(req: NextRequest) {
         leaderboard: formatted,
         summary,
         filters: {
-          tier,
-          timeframe,
           sortBy,
-          verified,
           limit,
         },
-        lastUpdated: new Date().toISOString(), // TODO: Get actual last refresh time
+        lastUpdated: new Date().toISOString(),
       }
     );
   } catch (error: any) {
@@ -148,22 +124,23 @@ function calculateLeaderboardScore(provider: any): number {
   let score = 0;
 
   // Performance component (40%)
-  const winRate = provider.calculated_win_rate || 0;
+  const winRate = provider.win_rate || 0;
   const avgPnl = provider.avg_pnl_pct || 0;
-  score += (winRate * 0.2) + (avgPnl * 2); // Win rate % + PnL impact
+  score += (winRate * 0.4) + (avgPnl * 0.1); // Win rate % + PnL impact
 
   // Activity component (30%)
-  const signalCount = provider.signal_count || 0;
-  score += Math.min(50, signalCount * 0.5); // Max 50 points for signals
+  const signalCount = provider.total_signals || 0;
+  score += Math.min(30, signalCount * 0.5); // Max 30 points for signals
 
-  // Verification component (20%)
-  const reputation = provider.reputation || 0;
-  score += reputation * 0.02; // Scale reputation (0-1000) to 0-20
+  // Volume component (20%)
+  const totalPnl = Math.abs(provider.total_pnl_usd || 0);
+  score += Math.min(20, totalPnl * 0.01); // $1 PnL = 0.01 points, max 20
 
   // Consistency component (10%)
-  if (provider.calculated_max_drawdown) {
-    const drawdownPenalty = Math.abs(provider.calculated_max_drawdown) * 0.1;
-    score = Math.max(0, score - drawdownPenalty);
+  const closedSignals = provider.wins + provider.losses;
+  if (closedSignals >= 3) { // Only penalize with enough sample size
+    const consistency = closedSignals > 0 ? (provider.wins / closedSignals) : 0;
+    score += consistency * 10; // 0-10 points for consistency
   }
 
   return Math.round(score * 10) / 10;

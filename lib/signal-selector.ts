@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "./db";
-import { getTokenPrice } from "./prices";
+import { getTokenPrice, calculateUnrealizedPnl } from "./prices";
 
 export interface SignalScore {
   signalId: string;
@@ -64,22 +64,7 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
       .limit(50);
 
     if (!openSignals || openSignals.length === 0) {
-      // Last resort: any signal from last 7 days with PnL
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: recentSignals } = await supabase
-        .from("signals")
-        .select("*, signal_providers!inner (name, avatar, address)")
-        .not("pnl_pct", "is", null)
-        .gte("timestamp", weekAgo)
-        .order("pnl_pct", { ascending: false })
-        .limit(1);
-
-      if (recentSignals && recentSignals.length > 0) {
-        const signal = recentSignals[0];
-        return formatResult(signal, `Best recent signal: ${signal.pnl_pct > 0 ? '+' : ''}${signal.pnl_pct.toFixed(1)}% PnL`);
-      }
-
-      return null;
+      return null; // No fallback to week-old signals - only show signals from last 24h
     }
 
     // Compute live PnL for open signals
@@ -91,15 +76,13 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
         const tokenAddress = signal.token_address;
         if (!tokenAddress || !signal.entry_price) continue;
 
-        const currentPrice = await getTokenPrice(tokenAddress) as number | null;
-        if (!currentPrice) continue;
+        const priceData = await getTokenPrice(tokenAddress);
+        if (!priceData) continue;
+        const currentPrice = priceData.price;
 
         const entry = Number(signal.entry_price);
-        const isLong = ['LONG', 'BUY'].includes(signal.action);
         const leverage = Number(signal.leverage) || 1;
-        const pnlPct = isLong
-          ? ((currentPrice - entry) / entry) * 100 * leverage
-          : ((entry - currentPrice) / entry) * 100 * leverage;
+        const pnlPct = calculateUnrealizedPnl(signal.action, entry, currentPrice, leverage);
 
         if (pnlPct > bestPnl) {
           bestPnl = pnlPct;

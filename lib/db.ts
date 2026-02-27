@@ -173,23 +173,8 @@ export async function dbCloseSignal(id: string, exitPrice: number, pnlPct?: numb
   return data;
 }
 
-// Auto-expire stale open signals (older than 48 hours)
-export async function dbExpireStaleSignals() {
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
-    .from("signals")
-    .update({
-      status: "closed",
-      exit_timestamp: new Date().toISOString(),
-      pnl_pct: 0,
-      pnl_usd: 0,
-    })
-    .eq("status", "open")
-    .lt("timestamp", cutoff)
-    .select("id");
-  if (error) console.error("Auto-expire error:", error);
-  return data?.length || 0;
-}
+// NOTE: No auto-expiry of open signals. Leveraged positions can stay open for weeks.
+// Signals are only closed when the provider explicitly closes them via the API.
 
 // Stats
 export async function dbGetProviderStats(address: string) {

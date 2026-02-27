@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { calculateUnrealizedPnl } from "@/lib/prices";
 
 interface OpenPosition {
   token: string;
@@ -19,19 +20,6 @@ interface LivePnLProps {
 interface PriceInfo {
   price: number;
   change24h: number;
-}
-
-function calcPnl(
-  action: string,
-  entry: number,
-  current: number,
-  leverage: number
-): number {
-  const isLong = action === "BUY" || action === "LONG";
-  const change = isLong
-    ? (current - entry) / entry
-    : (entry - current) / entry;
-  return change * leverage * 100;
 }
 
 export function LivePnLTracker({ positions }: LivePnLProps) {
@@ -95,7 +83,7 @@ export function LivePnLTracker({ positions }: LivePnLProps) {
           const leverage = pos.leverage || 1;
           const pnl =
             currentPrice != null
-              ? calcPnl(pos.action, pos.entryPrice, currentPrice, leverage)
+              ? calculateUnrealizedPnl(pos.action, pos.entryPrice, currentPrice, leverage)
               : null;
           const dollarPnl =
             pnl != null && pos.collateralUsd

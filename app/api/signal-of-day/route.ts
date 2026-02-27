@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       return createSuccessResponse({
         signal: null,
         provider: null,
-        reasoning: "No signals found in the last 7 days"
+        reasoning: "No signals found in the last 24 hours"
       });
     }
 

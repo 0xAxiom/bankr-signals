@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, dbExpireStaleSignals, supabase } from "@/lib/db";
+import { dbGetSignals, dbGetSignalsByProvider, dbGetProvider, dbAddSignal, supabase } from "@/lib/db";
 import { verifySignature } from "@/lib/auth";
 import { 
   checkRateLimit, 
@@ -132,8 +132,7 @@ async function fireWebhooks(signal: any) {
 // GET /api/signals - List signals with enhanced filtering and pagination
 export async function GET(req: NextRequest) {
   try {
-    // Auto-expire stale open signals (lazy, runs on read)
-    dbExpireStaleSignals().catch(() => {});
+    // No auto-expiry — positions can stay open for weeks
 
     // Rate limiting for API reads
     const clientIP = getClientIP(req);
@@ -533,6 +532,65 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Enhanced Data Validation ──
+    // Reject signals with obviously wrong entry prices
+    const tokenUpper = token.toUpperCase();
+    
+    // Price sanity checks for major tokens
+    const PRICE_BOUNDS: Record<string, { min: number, max: number }> = {
+      'ETH': { min: 100, max: 100000 },      // ETH: $100 - $100,000
+      'BTC': { min: 10000, max: 1000000 },   // BTC: $10,000 - $1,000,000  
+      'SOL': { min: 5, max: 5000 },          // SOL: $5 - $5,000
+      'AVAX': { min: 5, max: 5000 },         // AVAX: $5 - $5,000
+      'MATIC': { min: 0.1, max: 100 },       // MATIC: $0.10 - $100
+      'LINK': { min: 1, max: 1000 },         // LINK: $1 - $1,000
+      'DOGE': { min: 0.01, max: 10 },        // DOGE: $0.01 - $10
+      'ARB': { min: 0.1, max: 100 },         // ARB: $0.10 - $100
+      'OP': { min: 0.1, max: 100 },          // OP: $0.10 - $100
+    };
+    
+    const bounds = PRICE_BOUNDS[tokenUpper];
+    if (bounds && (finalEntryPrice < bounds.min || finalEntryPrice > bounds.max)) {
+      return createErrorResponse(
+        APIErrorCode.VALIDATION_ERROR,
+        `Invalid ${tokenUpper} entry price $${finalEntryPrice}. Expected range: $${bounds.min} - $${bounds.max}. Please verify the price is correct.`,
+        400
+      );
+    }
+    
+    // Detect scientific notation parsing errors (like $2e-9 for ETH)
+    if (finalEntryPrice < 0.000001) {
+      return createErrorResponse(
+        APIErrorCode.VALIDATION_ERROR,
+        `Entry price $${finalEntryPrice} is too small and may be a parsing error. Please submit a reasonable price.`,
+        400
+      );
+    }
+
+    // ── Duplicate Signal Detection (Enhanced) ──
+    // Check for exact duplicate TX hashes first (blocking)
+    try {
+      const { data: existingTx, error: txError } = await supabase
+        .from("signals")
+        .select("id, provider, action, token, entry_price, timestamp")
+        .eq("tx_hash", txHash)
+        .limit(1);
+      
+      if (txError) {
+        console.warn("Duplicate TX check error:", txError);
+      } else if (existingTx && existingTx.length > 0) {
+        const existing = existingTx[0];
+        return createErrorResponse(
+          APIErrorCode.VALIDATION_ERROR,
+          `Duplicate transaction hash already published: Signal ${existing.id} (${existing.action} ${existing.token} @ $${existing.entry_price} by ${existing.provider.slice(0,6)}... at ${existing.timestamp})`,
+          400
+        );
+      }
+    } catch (err: any) {
+      console.warn("Duplicate TX check failed:", err.message);
+      // Continue - don't block for DB issues
+    }
+
     // Enhanced signal status logic with better auto-close rules
     const actionUpper = action.toUpperCase() as SignalAction;
     
@@ -545,36 +603,19 @@ export async function POST(req: NextRequest) {
     const isAutoCloseAction = actionUpper === SignalAction.BUY || actionUpper === SignalAction.SELL;
     const defaultStatus = isAutoCloseAction ? SignalStatus.CLOSED : SignalStatus.OPEN;
 
-    // Enhanced auto-expiry logic based on signal category and timeframe
-    let calculatedExpiresAt = expiresAt;
-    if (!calculatedExpiresAt && defaultStatus === SignalStatus.OPEN) {
-      const expiryDate = new Date();
-      
-      // Set expiry based on category and timeframe
-      const categoryExpiry: Record<SignalCategory, number> = {
-        [SignalCategory.SCALP]: 1, // 1 day for scalp trades
-        [SignalCategory.SWING]: 7, // 7 days for swing trades  
-        [SignalCategory.SPOT]: 3, // 3 days for spot trades
-        [SignalCategory.FUTURES]: 30, // 30 days for futures
-        [SignalCategory.OPTIONS]: 14, // 14 days for options
-        [SignalCategory.DeFi]: 14, // 14 days for DeFi positions
-        [SignalCategory.MACRO]: 90, // 90 days for macro positions
-        [SignalCategory.ARBITRAGE]: 1, // 1 day for arbitrage
-        [SignalCategory.NFT]: 7, // 7 days for NFT signals
-      };
-
-      const timeFrameMultiplier = {
-        [TimeFrame.M1]: 0.1, [TimeFrame.M5]: 0.2, [TimeFrame.M15]: 0.5, [TimeFrame.M30]: 0.8,
-        [TimeFrame.H1]: 1, [TimeFrame.H4]: 2, [TimeFrame.D1]: 3, [TimeFrame.W1]: 7, [TimeFrame.MN1]: 30
-      };
-      
-      const baseDays = categoryExpiry[category as SignalCategory] || 7;
-      const multiplier = timeFrame ? timeFrameMultiplier[timeFrame as TimeFrame] || 1 : 1;
-      const adjustedDays = Math.max(1, Math.round(baseDays * multiplier));
-      
-      expiryDate.setDate(expiryDate.getDate() + adjustedDays);
-      calculatedExpiresAt = expiryDate.toISOString();
+    // ── Stale Signal Flagging ──
+    // For open signals, add metadata about age for monitoring
+    const signalAge = Date.now() - msgTimestamp * 1000;
+    const ageHours = signalAge / (1000 * 60 * 60);
+    const isStaleSignal = ageHours > 24 && defaultStatus === SignalStatus.OPEN;
+    
+    if (isStaleSignal) {
+      console.warn(`Potentially stale signal: ${ageHours.toFixed(1)}h old for ${action} ${token}`);
     }
+
+    // Only use provider-specified expiresAt. Never auto-assign one.
+    // Positions can stay open for weeks — the provider closes them when they're done.
+    let calculatedExpiresAt = expiresAt || null;
 
     // Generate enhanced signal ID
     const timestamp = Date.now();
@@ -601,7 +642,14 @@ export async function POST(req: NextRequest) {
       category: category as SignalCategory,
       riskLevel: riskLevel as RiskLevel || RiskLevel.MEDIUM,
       timeFrame: timeFrame as TimeFrame || TimeFrame.D1,
-      tags: Array.isArray(tags) ? tags.slice(0, 10) : [], // Limit tags
+      tags: (() => {
+        let signalTags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+        // Add stale signal flag for monitoring
+        if (isStaleSignal) {
+          signalTags.push('stale_at_submission');
+        }
+        return signalTags;
+      })(),
       expiresAt: calculatedExpiresAt || null,
       positionSize: positionSize ? parseFloat(positionSize) : null,
       riskRewardRatio: riskRewardRatio ? parseFloat(riskRewardRatio) : null,
