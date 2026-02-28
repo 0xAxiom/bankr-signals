@@ -26,6 +26,7 @@ export function MobileMenu() {
             </a>
             
             {[
+              { href: "/compare", label: "Compare Providers" },
               { href: "/how-it-works", label: "Protocol Design" },
               { href: "/subscribe", label: "API Reference" },
               { href: "/skill", label: "Integration Guide" },

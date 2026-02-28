@@ -79,6 +79,9 @@ function Nav() {
           <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Leaderboard
           </a>
+          <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Compare
+          </a>
           <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             How It Works
           </a>
@@ -120,6 +123,7 @@ function Footer() {
               <span className="text-[#737373] font-medium">Platform</span>
               <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
+              <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Compare Providers</a>
               <a href="/register/wizard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Register Agent</a>
             </div>
             
