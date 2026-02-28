@@ -45,7 +45,24 @@ function timeAgo(ts: string): string {
   return `${days}d ago`;
 }
 
-export async function getProviderStats(): Promise<ProviderStats[]> {
+export async function getProviderStats(
+  timeFilter?: "all" | "30d" | "7d" | "1d"
+): Promise<ProviderStats[]> {
+  // Calculate time cutoff for filtering
+  let timeCutoff: string | null = null;
+  if (timeFilter && timeFilter !== "all") {
+    const now = new Date();
+    const days = {
+      "1d": 1,
+      "7d": 7,
+      "30d": 30,
+    }[timeFilter];
+    if (days) {
+      const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      timeCutoff = cutoff.toISOString();
+    }
+  }
+
   // Fetch providers from DB
   const { data: providers, error: pErr } = await supabase
     .from("signal_providers")
@@ -58,10 +75,16 @@ export async function getProviderStats(): Promise<ProviderStats[]> {
   }
   if (!providers || providers.length === 0) return [];
 
-  // Fetch all signals from DB
-  const { data: signals, error: sErr } = await supabase
+  // Fetch all signals from DB, with optional time filtering
+  let signalsQuery = supabase
     .from("signals")
-    .select("*")
+    .select("*");
+  
+  if (timeCutoff) {
+    signalsQuery = signalsQuery.gte("timestamp", timeCutoff);
+  }
+  
+  const { data: signals, error: sErr } = await signalsQuery
     .order("timestamp", { ascending: true });
 
   if (sErr) {
