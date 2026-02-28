@@ -31,5 +31,27 @@
     "growth_focus": "stickiness",
     "deployment": "https://bankrsignals.com",
     "next_step": "Set up daily cron job at 9 AM PT"
+  },
+  {
+    "date": "2026-02-27",
+    "type": "feature_development", 
+    "improvement": "leaderboard_time_filters",
+    "description": "Added time-based filtering to leaderboard for improved stickiness",
+    "features": [
+      "All Time performance view",
+      "Last 30 Days filtering", 
+      "Last 7 Days filtering",
+      "Last 24 Hours filtering",
+      "Dynamic client-side filtering",
+      "Improved API endpoint"
+    ],
+    "growth_focus": "stickiness",
+    "deployment": "https://bankrsignals.com/leaderboard",
+    "value_proposition": "Users can now track recent performance trends and compare short-term vs long-term performance",
+    "next_steps": [
+      "Monitor usage of different time filters",
+      "Consider adding provider follow system",
+      "Add shareable signal cards"
+    ]
   }
 ]
