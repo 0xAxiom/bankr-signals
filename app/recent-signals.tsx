@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { LivePnLBadge } from './live-pnl-badge';
+import { useFollowedProviders } from '../hooks/useFollowedProviders';
 
 function formatMicroPrice(price: number): string {
   if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -34,6 +35,7 @@ interface Signal {
 export default function RecentSignals() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isFollowing } = useFollowedProviders();
 
   useEffect(() => {
     fetch('/api/feed?limit=10')
@@ -157,7 +159,10 @@ export default function RecentSignals() {
 
             {/* Footer */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[#555] font-mono truncate">
+              <span className="text-[10px] text-[#555] font-mono truncate flex items-center gap-1">
+                {isFollowing(signal.provider) && (
+                  <span className="text-[rgba(234,179,8,0.8)]" title="Following">★</span>
+                )}
                 {signal.providerName || signal.provider.slice(0, 10) + '...'}
               </span>
               {signal.txHash && (

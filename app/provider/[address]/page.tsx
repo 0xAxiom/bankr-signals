@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 import { Avatar } from "../../avatar";
 import { LivePnLTracker } from "../../live-pnl";
+import { FollowButton } from "../../components/follow-button";
 import { computeBadges, getBadgeColor } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +40,15 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
       <div className="mb-8">
         <div className="flex items-start gap-4">
           <Avatar address={p.address} name={p.name} avatarUrl={profile?.avatar} size="lg" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold">{p.name}</h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-xl font-semibold">{p.name}</h1>
+              <FollowButton 
+                providerAddress={p.address} 
+                providerName={p.name}
+                className="flex-shrink-0"
+              />
+            </div>
             {profile?.bio && (
               <p className="text-sm text-[#737373] mt-1 max-w-lg">{profile.bio}</p>
             )}

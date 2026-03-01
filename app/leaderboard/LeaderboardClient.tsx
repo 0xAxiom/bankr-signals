@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ProviderStats } from "@/lib/signals";
+import { useFollowedProviders } from "../../hooks/useFollowedProviders";
 
 type TimePeriod = "all" | "30d" | "7d" | "1d";
 
@@ -20,6 +21,8 @@ export default function LeaderboardClient({
   const [providers, setProviders] = useState<ProviderStats[]>(initialData);
   const [period, setPeriod] = useState<TimePeriod>("all");
   const [loading, setLoading] = useState(false);
+  const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+  const { isFollowing, followedProviders } = useFollowedProviders();
 
   const fetchLeaderboard = async (newPeriod: TimePeriod) => {
     if (newPeriod === "all") {
@@ -48,6 +51,10 @@ export default function LeaderboardClient({
     fetchLeaderboard(newPeriod);
   };
 
+  const filteredProviders = showFollowedOnly 
+    ? providers.filter(p => isFollowing(p.address))
+    : providers;
+
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-6">
@@ -57,8 +64,23 @@ export default function LeaderboardClient({
           Base blockchain data only.
         </p>
 
-        {/* Time Period Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {/* Followed Filter */}
+          {followedProviders.length > 0 && (
+            <button
+              onClick={() => setShowFollowedOnly(!showFollowedOnly)}
+              className={`px-4 py-2 rounded text-sm font-medium transition-all border ${
+                showFollowedOnly
+                  ? "bg-[rgba(234,179,8,0.15)] text-[rgba(234,179,8,0.9)] border-[rgba(234,179,8,0.3)]"
+                  : "bg-[#1a1a1a] text-[#737373] border-[#2a2a2a] hover:bg-[#2a2a2a] hover:text-[#999]"
+              }`}
+            >
+              ★ Following {showFollowedOnly ? `(${followedProviders.length})` : ''}
+            </button>
+          )}
+          
+          {/* Time Period Filters */}
           {(Object.keys(PERIOD_LABELS) as TimePeriod[]).map((p) => (
             <button
               key={p}
@@ -101,7 +123,7 @@ export default function LeaderboardClient({
             </tr>
           </thead>
           <tbody>
-            {providers.map((p, i) => (
+            {filteredProviders.map((p, i) => (
               <tr
                 key={p.address}
                 className="border-b border-[#2a2a2a] last:border-0 hover:bg-[#1a1a1a] transition-colors"
@@ -114,7 +136,12 @@ export default function LeaderboardClient({
                     href={`/provider/${p.address}`}
                     className="hover:text-[rgba(34,197,94,0.6)] transition-colors"
                   >
-                    <div className="font-medium">{p.name}</div>
+                    <div className="font-medium flex items-center gap-1">
+                      {isFollowing(p.address) && (
+                        <span className="text-[rgba(234,179,8,0.8)]" title="Following">★</span>
+                      )}
+                      {p.name}
+                    </div>
                     <div className="text-[#737373] text-xs font-mono">
                       {p.address.slice(0, 10)}…{p.address.slice(-6)}
                     </div>
@@ -173,11 +200,21 @@ export default function LeaderboardClient({
         </table>
       </div>
 
-      {providers.length === 0 && !loading && (
+      {filteredProviders.length === 0 && !loading && (
         <div className="text-center py-12">
           <div className="text-4xl mb-4">📊</div>
-          <p className="text-[#737373] mb-2">No providers found for this time period</p>
-          <p className="text-sm text-[#555]">Try selecting a different time range</p>
+          <p className="text-[#737373] mb-2">
+            {showFollowedOnly 
+              ? "No followed providers found for this time period" 
+              : "No providers found for this time period"
+            }
+          </p>
+          <p className="text-sm text-[#555]">
+            {showFollowedOnly 
+              ? "Follow some providers to see them here" 
+              : "Try selecting a different time range"
+            }
+          </p>
         </div>
       )}
     </main>
