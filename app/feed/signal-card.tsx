@@ -1,6 +1,7 @@
 "use client";
 
 import { RelativeTimestamp } from "./components";
+import { LivePnLBadge } from "../live-pnl-badge";
 
 function formatMicroPrice(price: number): string {
   if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -74,13 +75,16 @@ export function SignalCard({ trade }: SignalCardProps) {
         </div>
         <div className="flex items-center gap-2 text-[10px] sm:text-xs text-[#737373] flex-shrink-0">
           <RelativeTimestamp timestamp={trade.timestamp} />
-          {trade.pnl != null && (
-            <span className={`font-mono font-bold ${
-              trade.pnl >= 0 ? "text-[rgba(34,197,94,0.8)]" : "text-[rgba(239,68,68,0.8)]"
-            }`}>
-              {trade.pnl > 0 ? "+" : ""}{trade.pnl.toFixed(1)}%
-            </span>
-          )}
+          <LivePnLBadge
+            token={trade.token}
+            entryPrice={trade.entryPrice}
+            action={trade.action}
+            leverage={trade.leverage}
+            status={trade.status === "stopped" ? "closed" : trade.status}
+            pnlPct={trade.pnl}
+            collateralUsd={trade.collateralUsd}
+            className="font-bold"
+          />
         </div>
       </div>
 

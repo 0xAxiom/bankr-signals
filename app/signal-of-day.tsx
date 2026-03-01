@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LivePnLBadge } from './live-pnl-badge';
 
 interface Signal {
   id: string;
@@ -99,11 +100,16 @@ export default function SignalOfDay() {
             Entry: ${signal.entryPrice < 0.01 
               ? signal.entryPrice.toExponential(2) 
               : signal.entryPrice.toLocaleString()}
-            {signal.pnlPct !== undefined && (
-              <span className={`ml-4 font-mono ${profitColor}`}>
-                {(signal.pnlPct ?? 0) > 0 ? '+' : ''}{(signal.pnlPct ?? 0).toFixed(2)}%
-              </span>
-            )}
+            <span className="ml-4">
+              <LivePnLBadge
+                token={signal.token}
+                entryPrice={signal.entryPrice}
+                action={signal.action}
+                leverage={signal.leverage}
+                status={signal.status}
+                pnlPct={signal.pnlPct}
+              />
+            </span>
           </div>
           
           {signal.reasoning && (

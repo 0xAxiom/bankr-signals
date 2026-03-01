@@ -594,14 +594,9 @@ export async function POST(req: NextRequest) {
     // Enhanced signal status logic with better auto-close rules
     const actionUpper = action.toUpperCase() as SignalAction;
     
-    // Auto-close logic:
-    // - BUY signals are auto-closed (spot trades, immediate execution)
-    // - SELL signals are auto-closed (spot trades, immediate execution)  
-    // - LONG signals stay open (leveraged positions that need manual closing)
-    // - SHORT signals stay open (leveraged positions that need manual closing)
-    // - HOLD signals stay open (position holds that need manual closing)
-    const isAutoCloseAction = actionUpper === SignalAction.BUY || actionUpper === SignalAction.SELL;
-    const defaultStatus = isAutoCloseAction ? SignalStatus.CLOSED : SignalStatus.OPEN;
+    // All signals start open — positions are closed explicitly by the provider.
+    // BUY/SELL are entries, not completed trades.
+    const defaultStatus = SignalStatus.OPEN;
 
     // ── Stale Signal Flagging ──
     // For open signals, add metadata about age for monitoring

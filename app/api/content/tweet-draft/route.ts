@@ -13,6 +13,7 @@ interface TweetDraft {
 }
 
 async function getTopPerformers(days: number = 7) {
+  if (!supabase) return [];
   const { data: signals, error } = await supabase
     .from('signals')
     .select(`
@@ -28,6 +29,7 @@ async function getTopPerformers(days: number = 7) {
 }
 
 async function getMarketStats() {
+  if (!supabase) return { active_providers: 0, total_signals: 0 };
   // Get basic stats without RPC function
   const { data: providerStats, error: providerError } = await supabase
     .from('signal_providers')

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getCurrentPrice } from "@/lib/onchain-price";
+import { getTokenPrice } from "@/lib/prices";
 import { ShareEmbed } from "./share-embed";
 
 export const dynamic = "force-dynamic";
@@ -94,14 +95,25 @@ export default async function SignalPage({ params }: SignalPageProps) {
 
   const isBuy = signal.action === "BUY" || signal.action === "LONG";
   
-  // Live PnL for open positions with token_address
+  // Live PnL for open positions
   let livePnlPct: number | null = null;
   let livePriceUsd: number | null = null;
-  if (signal.status === "open" && signal.token_address && signal.entry_price > 0) {
-    livePriceUsd = await getCurrentPrice(signal.token_address);
+  if (signal.status === "open" && signal.entry_price > 0) {
+    // Try token_address first (on-chain price), then symbol-based lookup
+    if (signal.token_address) {
+      livePriceUsd = await getCurrentPrice(signal.token_address);
+    }
+    if (!livePriceUsd && signal.token) {
+      const priceData = await getTokenPrice(signal.token);
+      if (priceData) livePriceUsd = priceData.price;
+    }
     if (livePriceUsd && livePriceUsd > 0) {
-      livePnlPct = ((livePriceUsd - signal.entry_price) / signal.entry_price) * 100;
-      if (signal.action === "SHORT") livePnlPct = -livePnlPct;
+      const leverage = signal.leverage || 1;
+      const isLong = signal.action === "BUY" || signal.action === "LONG";
+      const priceChange = isLong
+        ? (livePriceUsd - signal.entry_price) / signal.entry_price
+        : (signal.entry_price - livePriceUsd) / signal.entry_price;
+      livePnlPct = priceChange * leverage * 100;
     }
   }
   

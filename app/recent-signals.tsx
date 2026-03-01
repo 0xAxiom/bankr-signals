@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LivePnLBadge } from './live-pnl-badge';
 
 function formatMicroPrice(price: number): string {
   if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -141,15 +142,15 @@ export default function RecentSignals() {
               <div>
                 <div className="text-[#555] text-[10px]">PnL</div>
                 <div className="font-mono font-medium">
-                  {signal.status === 'closed' && hasPnl ? (
-                    <span className={signal.pnlPct! >= 0 ? 'text-[rgba(34,197,94,0.8)]' : 'text-[rgba(239,68,68,0.8)]'}>
-                      {(signal.pnlPct ?? 0) > 0 ? '+' : ''}{(signal.pnlPct ?? 0).toFixed(1)}%
-                    </span>
-                  ) : signal.status === 'closed' ? (
-                    <span className="text-[#555]">CLOSED</span>
-                  ) : (
-                    <span className="text-[rgba(234,179,8,0.6)]">OPEN</span>
-                  )}
+                  <LivePnLBadge
+                    token={signal.token}
+                    entryPrice={signal.entryPrice}
+                    action={signal.action}
+                    leverage={signal.leverage}
+                    status={signal.status as "open" | "closed"}
+                    pnlPct={signal.pnlPct}
+                    collateralUsd={signal.collateralUsd}
+                  />
                 </div>
               </div>
             </div>

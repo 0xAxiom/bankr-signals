@@ -1,18 +1,58 @@
 import { createClient } from "@supabase/supabase-js";
+import { mockProviders, mockSignals } from "./mock-data";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Development mode detection
+const isDevelopment = process.env.NODE_ENV === 'development';
+const hasSupabaseConfig = supabaseUrl && supabaseKey && 
+  !supabaseUrl.includes('placeholder') && 
+  !supabaseKey.includes('placeholder');
+
+// Create client only if we have valid config
+const supabaseClient = hasSupabaseConfig 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
+
+// Non-null export for direct usage (throws if not configured)
+export const supabase = supabaseClient as NonNullable<typeof supabaseClient>;
+
+// Mock mode detection
+const useMockData = isDevelopment && !hasSupabaseConfig;
+
+console.log(`Database mode: ${useMockData ? 'MOCK DATA' : 'SUPABASE'} (dev: ${isDevelopment}, config: ${hasSupabaseConfig})`);
+
+// Helper to execute database operations with fallback to mock data
+async function withFallback<T>(
+  supabaseOp: () => Promise<T>, 
+  mockOp: () => T | Promise<T>
+): Promise<T> {
+  if (useMockData) {
+    console.log('Using mock data for development');
+    return await mockOp();
+  }
+  
+  if (!supabase) {
+    throw new Error('Database not configured properly');
+  }
+  
+  return await supabaseOp();
+}
 
 // Provider operations
 export async function dbGetProviders() {
-  const { data, error } = await supabase
-    .from("signal_providers")
-    .select("*")
-    .order("registered_at", { ascending: true });
-  if (error) throw error;
-  return data || [];
+  return withFallback(
+    async () => {
+      const { data, error } = await supabase!
+        .from("signal_providers")
+        .select("*")
+        .order("registered_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    () => mockProviders
+  );
 }
 
 export async function dbGetProvider(address: string) {
@@ -72,13 +112,18 @@ export async function dbRegisterProvider(input: {
 
 // Signal operations
 export async function dbGetSignals(limit = 50) {
-  const { data, error } = await supabase
-    .from("signals")
-    .select("*")
-    .order("timestamp", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data || [];
+  return withFallback(
+    async () => {
+      const { data, error } = await supabase!
+        .from("signals")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data || [];
+    },
+    () => mockSignals.slice(0, limit)
+  );
 }
 
 export async function dbGetSignalsByProvider(address: string, limit = 50) {
@@ -178,28 +223,51 @@ export async function dbCloseSignal(id: string, exitPrice: number, pnlPct?: numb
 
 // Stats
 export async function dbGetProviderStats(address: string) {
-  const { data: signals } = await supabase
-    .from("signals")
-    .select("status, pnl_pct, pnl_usd")
-    .ilike("provider", address);
+  return withFallback(
+    async () => {
+      const { data: signals } = await supabase!
+        .from("signals")
+        .select("status, pnl_pct, pnl_usd")
+        .ilike("provider", address);
 
-  const all = signals || [];
-  const closed = all.filter(s => s.status === "closed");
-  const wins = closed.filter(s => (s.pnl_pct || 0) > 0).length;
-  const losses = closed.filter(s => (s.pnl_pct || 0) <= 0).length;
-  const openCount = all.filter(s => s.status === "open").length;
-  const avgPnl = closed.length > 0 ? closed.reduce((s, c) => s + (c.pnl_pct || 0), 0) / closed.length : 0;
-  const totalPnlUsd = closed.reduce((s, c) => s + (c.pnl_usd || 0), 0);
+      const all = signals || [];
+      const closed = all.filter(s => s.status === "closed");
+      const wins = closed.filter(s => (s.pnl_pct || 0) > 0).length;
+      const losses = closed.filter(s => (s.pnl_pct || 0) <= 0).length;
+      const openCount = all.filter(s => s.status === "open").length;
+      const avgPnl = closed.length > 0 ? closed.reduce((s, c) => s + (c.pnl_pct || 0), 0) / closed.length : 0;
+      const totalPnlUsd = closed.reduce((s, c) => s + (c.pnl_usd || 0), 0);
 
-  return {
-    total_signals: all.length,
-    wins,
-    losses,
-    open_positions: openCount,
-    avg_pnl_pct: avgPnl,
-    total_pnl_usd: totalPnlUsd,
-    win_rate: closed.length > 0 ? Math.round((wins / closed.length) * 100) : 0,
-  };
+      return {
+        total_signals: all.length,
+        wins,
+        losses,
+        open_positions: openCount,
+        avg_pnl_pct: avgPnl,
+        total_pnl_usd: totalPnlUsd,
+        win_rate: closed.length > 0 ? Math.round((wins / closed.length) * 100) : 0,
+      };
+    },
+    () => {
+      const providerSignals = mockSignals.filter(s => s.provider.toLowerCase() === address.toLowerCase());
+      const closed = providerSignals.filter(s => s.status === "closed");
+      const wins = closed.filter(s => (s.pnl_pct || 0) > 0).length;
+      const losses = closed.filter(s => (s.pnl_pct || 0) <= 0).length;
+      const openCount = providerSignals.filter(s => s.status === "open").length;
+      const avgPnl = closed.length > 0 ? closed.reduce((s, c) => s + (c.pnl_pct || 0), 0) / closed.length : 0;
+      const totalPnlUsd = closed.reduce((s, c) => s + (c.pnl_usd || 0), 0);
+
+      return {
+        total_signals: providerSignals.length,
+        wins,
+        losses,
+        open_positions: openCount,
+        avg_pnl_pct: avgPnl,
+        total_pnl_usd: totalPnlUsd,
+        win_rate: closed.length > 0 ? Math.round((wins / closed.length) * 100) : 0,
+      };
+    }
+  );
 }
 
 export async function dbGetLeaderboard() {
