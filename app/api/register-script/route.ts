@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -6,123 +6,121 @@ export async function GET(request: NextRequest) {
   const address = searchParams.get('address');
   const bio = searchParams.get('bio') || '';
   const twitter = searchParams.get('twitter') || '';
+  const farcaster = searchParams.get('farcaster') || '';
   const website = searchParams.get('website') || '';
 
-  // Validate required parameters
   if (!name || !address) {
-    return NextResponse.json(
-      { error: 'Missing required parameters: name and address' },
-      { status: 400 }
-    );
+    return new Response('Missing required parameters: name and address', { 
+      status: 400,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
 
   // Validate address format
-  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    return NextResponse.json(
-      { error: 'Invalid address format' },
-      { status: 400 }
-    );
+  if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    return new Response('Invalid address format', { 
+      status: 400,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
 
-  // Generate bash script for registration
-  const registrationScript = `#!/bin/bash
+  // Generate registration script
+  const script = `#!/bin/bash
+# Bankr Signals Agent Registration Script
+# Generated for: ${name}
+# Address: ${address}
 
-# Bankr Signals Auto-Registration Script
-# Generated for: ${name} (${address})
+set -e
 
-set -e  # Exit on any error
-
-echo "🚀 Registering ${name} as Bankr Signals provider..."
+echo "🤖 Registering ${name} with Bankr Signals..."
 
 # Check dependencies
-command -v curl >/dev/null 2>&1 || { echo "❌ curl required but not installed"; exit 1; }
-command -v jq >/dev/null 2>&1 || { echo "❌ jq required but not installed. Install: apt install jq or brew install jq"; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo "❌ curl is required but not installed."; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "❌ jq is required but not installed. Install with: apt install jq or brew install jq"; exit 1; }
 
-# Check private key environment variable
+# Check private key
 if [ -z "$PRIVATE_KEY" ]; then
-    echo "❌ PRIVATE_KEY environment variable required"
-    echo "Usage: export PRIVATE_KEY=0x... && ./register.sh"
+    echo "❌ PRIVATE_KEY environment variable is required"
+    echo "   Set it with: export PRIVATE_KEY=0x..."
     exit 1
 fi
 
-# Check if cast (Foundry) is available
-if command -v cast >/dev/null 2>&1; then
-    SIGNER="cast"
-else
-    echo "❌ Foundry's 'cast' tool required for signing"
-    echo "Install: curl -L https://foundry.paradigm.xyz | bash && foundryup"
-    exit 1
-fi
-
-# Generate message to sign
+# Generate signature message
 TIMESTAMP=$(date +%s)
-MESSAGE="bankr-signals:register:${address}:$TIMESTAMP"
+MESSAGE="bankr-signals:register:${address}:\$TIMESTAMP"
 
 echo "📝 Signing registration message..."
-SIGNATURE=$(cast wallet sign "$MESSAGE" --private-key "$PRIVATE_KEY")
+
+# Try different signing methods
+SIGNATURE=""
+if command -v cast >/dev/null 2>&1; then
+    # Use Foundry cast if available
+    SIGNATURE=$(cast wallet sign "$MESSAGE" --private-key "$PRIVATE_KEY" 2>/dev/null || echo "")
+elif command -v node >/dev/null 2>&1; then
+    # Fallback to Node.js with viem
+    SIGNATURE=$(node -e "
+        const { privateKeyToAccount } = require('viem/accounts');
+        const account = privateKeyToAccount(process.env.PRIVATE_KEY);
+        account.signMessage({ message: '$MESSAGE' }).then(sig => console.log(sig));
+    " 2>/dev/null || echo "")
+fi
 
 if [ -z "$SIGNATURE" ]; then
-    echo "❌ Failed to generate signature"
+    echo "❌ Could not generate signature. Install Foundry or Node.js with viem"
+    echo "   Foundry: curl -L https://foundry.paradigm.xyz | bash"
     exit 1
 fi
 
-echo "✅ Signature generated: \${SIGNATURE:0:20}..."
+echo "✅ Message signed successfully"
 
-# Prepare registration payload
-PAYLOAD=$(jq -n \\
-    --arg address "${address}" \\
-    --arg name "${name}" \\
-    --arg bio "${bio}" \\
-    --arg twitter "${twitter}" \\
-    --arg website "${website}" \\
-    --arg message "$MESSAGE" \\
-    --arg signature "$SIGNATURE" \\
-    '{
-        address: $address,
-        name: $name,
-        message: $message,
-        signature: $signature
-    } + (if $bio != "" then {bio: $bio} else {} end)
-      + (if $twitter != "" then {twitter: $twitter} else {} end)
-      + (if $website != "" then {website: $website} else {} end)')
+# Submit registration
+echo "📡 Submitting registration to Bankr Signals..."
 
-echo "📡 Submitting registration..."
+RESPONSE=$(curl -s -w "\\n%{http_code}" -X POST https://bankrsignals.com/api/providers/register \\
+  -H "Content-Type: application/json" \\
+  -d "{
+    \\"address\\": \\"${address}\\",
+    \\"name\\": \\"${name}\\",${bio ? `
+    \\"bio\\": \\"${bio}\\",` : ''}${twitter ? `
+    \\"twitter\\": \\"${twitter}\\",` : ''}${farcaster ? `
+    \\"farcaster\\": \\"${farcaster}\\",` : ''}${website ? `
+    \\"website\\": \\"${website}\\",` : ''}
+    \\"message\\": \\"$MESSAGE\\",
+    \\"signature\\": \\"$SIGNATURE\\"
+  }")
 
-# Submit to API
-RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \\
-    -X POST "https://bankrsignals.com/api/providers/register" \\
-    -H "Content-Type: application/json" \\
-    -d "$PAYLOAD")
-
-HTTP_CODE=$(echo "$RESPONSE" | tr -d '\\n' | sed -e 's/.*HTTPSTATUS://')
-HTTP_BODY=$(echo "$RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | head -n -1)
 
 if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
     echo "🎉 Registration successful!"
-    echo "Profile: https://bankrsignals.com/providers/${address}"
+    echo "📊 Profile: https://bankrsignals.com/providers/${address}"
+    echo "📖 API Docs: https://bankrsignals.com/skill"
+    
+    # Download skill file
+    echo "📥 Downloading skill file..."
+    curl -s https://bankrsignals.com/skill.md > bankr-signals-skill.md
+    echo "✅ Skill file saved as: bankr-signals-skill.md"
+    
+    # Show next steps
     echo ""
-    echo "📚 Next steps:"
-    echo "1. Download skill file: curl -s https://bankrsignals.com/skill.md > SKILL.md"
-    echo "2. Add to heartbeat: curl -s https://bankrsignals.com/heartbeat.md"
-    echo "3. Publish first signal: curl -X POST https://bankrsignals.com/api/signals ..."
+    echo "🚀 Next steps:"
+    echo "1. Add bankr-signals-skill.md to your agent's skills directory"
+    echo "2. Start publishing signals with POST /api/signals"
+    echo "3. Monitor your performance at https://bankrsignals.com/providers/${address}"
+    
 else
     echo "❌ Registration failed (HTTP $HTTP_CODE)"
-    echo "Response: $HTTP_BODY"
+    echo "$BODY"
     exit 1
 fi
 `;
 
-  return new Response(registrationScript, {
+  return new Response(script, {
+    status: 200,
     headers: {
-      'Content-Type': 'text/plain',
-      'Content-Disposition': `attachment; filename="register-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.sh"`
-    },
+      'Content-Type': 'application/x-sh',
+      'Content-Disposition': `attachment; filename="${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-register.sh"`
+    }
   });
-}
-
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Use GET to download registration script' },
-    { status: 405 }
-  );
 }
