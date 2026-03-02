@@ -175,7 +175,7 @@ export default async function SignalPage({ params }: SignalPageProps) {
         {signal.exit_price && (
           <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
             <div className="text-[10px] text-[#555] uppercase tracking-wider mb-1">Exit</div>
-            <div className="font-mono text-sm">${signal.exit_price?.toLocaleString()}</div>
+            <div className="font-mono text-sm">${formatMicroPrice(signal.exit_price)}</div>
           </div>
         )}
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
