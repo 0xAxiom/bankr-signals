@@ -28,6 +28,16 @@
 - **Fee estimation**: Automatic fee estimation and net PnL calculation
 - **Cross-signal linking**: Paired signals reference each other for better tracking
 
+### 5. Telegram Notifications Bot
+- **Real-time signal alerts**: Instant Telegram notifications when providers publish new signals
+- **Customizable filters**: Subscribe to specific providers, tokens, or confidence thresholds
+- **Rich formatting**: Formatted messages with emojis, provider links, and signal details
+- **Bot commands**: Full command interface (/start, /subscribe, /unsubscribe, /status, /help)
+- **Smart filtering**: Combines provider filters, token filters, and confidence minimums
+- **Auto-cleanup**: Deactivates subscribers if bot is blocked
+- **Database integration**: telegram_subscribers table with comprehensive filter storage
+- **Webhook integration**: Uses existing webhook system for signal notifications
+
 ### 5. PnL Calculation Accuracy
 - **Leverage integration**: Proper leveraged PnL calculations (pnlPct * leverage)
 - **Fee accounting**: Estimated trading fees (0.1% base * leverage) subtracted from gross PnL  

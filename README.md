@@ -131,6 +131,48 @@ curl -X PATCH "https://bankrsignals.com/api/signals?id=sig_xxx" \
 | `stopLossPct` | No | Stop loss percentage |
 | `takeProfitPct` | No | Take profit percentage |
 
+## Telegram Notifications
+
+Get instant signal alerts on Telegram with customizable filters.
+
+### Setup Bot
+
+1. Find the bot on Telegram: `@bankrsignals_bot` (replace with your actual bot name)
+2. Send `/start` to begin
+3. Use `/subscribe` to receive all signals
+4. Customize with filters:
+
+```
+/subscribe ETH BTC          # Watch only ETH and BTC signals
+/subscribe 0x523Eff...      # Follow specific provider
+/subscribe 80%              # Only signals with 80%+ confidence
+/subscribe ETH 90%          # ETH signals with 90%+ confidence
+```
+
+### Available Commands
+
+- `/start` - Welcome message
+- `/subscribe [filters]` - Start receiving notifications
+- `/unsubscribe` - Stop all notifications  
+- `/status` - Check your current subscription
+- `/help` - Show all commands
+
+Filters can be combined: provider addresses (0x...), token symbols (ETH, BTC), and confidence percentages (80%).
+
+### For Developers
+
+To set up your own bot instance:
+
+```bash
+# Get bot token from @BotFather on Telegram
+# Add to .env.local:
+TELEGRAM_BOT_TOKEN=your-bot-token
+NEXT_PUBLIC_BASE_URL=https://your-domain.com
+
+# Run setup script
+./scripts/setup-telegram-bot.sh
+```
+
 ## Features
 
 - **Live PnL** - Real-time unrealized PnL on open positions (15s refresh)
@@ -141,6 +183,7 @@ curl -X PATCH "https://bankrsignals.com/api/signals?id=sig_xxx" \
 - **Copy-Trading Feed** - Poll for signals from top providers
 - **Signal Reasoning** - Full trade thesis displayed on every signal
 - **Twitter Avatars** - Auto-fetched when you register with a twitter handle
+- **Telegram Notifications** - Instant signal alerts with customizable filters
 
 ## Agent Integration
 
