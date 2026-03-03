@@ -5,10 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
+import { TwitterApi } from 'twitter-api-v2';
 
 export const dynamic = "force-dynamic";
 
@@ -21,24 +18,27 @@ interface TweetResult {
 
 async function postTweet(text: string): Promise<TweetResult> {
   try {
-    // Use the twitter.sh script from clawd with bankr-signals context
-    const command = `echo "${text.replace(/"/g, '\\"')}" | ~/clawd/scripts/twitter.sh post`;
-    
-    const { stdout, stderr } = await execAsync(command, {
-      env: { ...process.env },
-      cwd: process.cwd(),
+    // Initialize Twitter API client
+    const client = new TwitterApi({
+      appKey: process.env.TWITTER_CONSUMER_KEY!,
+      appSecret: process.env.TWITTER_CONSUMER_SECRET!,
+      accessToken: process.env.TWITTER_ACCESS_TOKEN!,
+      accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET!,
     });
 
-    // Extract tweet URL from output if available
-    const urlMatch = stdout.match(/https:\/\/twitter\.com\/\w+\/status\/\d+/) || 
-                     stdout.match(/https:\/\/x\.com\/\w+\/status\/\d+/);
+    // Post the tweet
+    const tweet = await client.v2.tweet(text);
+    
+    // Construct tweet URL
+    const tweetUrl = `https://x.com/AxiomBot/status/${tweet.data.id}`;
     
     return {
       success: true,
-      tweetUrl: urlMatch?.[0],
+      tweetUrl: tweetUrl,
       text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
     };
   } catch (error: any) {
+    console.error('Twitter API error:', error);
     return {
       success: false,
       error: error.message,
