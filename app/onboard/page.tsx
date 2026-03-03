@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Download, ExternalLink } from 'lucide-react';
+// Icons replaced with Unicode for simplicity
 
 interface FormData {
   name: string;
@@ -196,8 +196,7 @@ export default function OnboardPage() {
                       onClick={() => copyToClipboard(generateCurlCommand())}
                       className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                     >
-                      <Copy size={12} />
-                      Copy
+                      📋 Copy
                     </button>
                   </div>
                   <code className="text-sm text-[#b0b0b0] font-mono break-all block">
@@ -210,8 +209,7 @@ export default function OnboardPage() {
                     onClick={downloadScript}
                     className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
                   >
-                    <Download size={16} />
-                    Download Script
+                    ⬇️ Download Script
                   </button>
                 </div>
 
@@ -259,8 +257,7 @@ export default function OnboardPage() {
                   href="/register/wizard"
                   className="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors text-center flex items-center justify-center gap-2"
                 >
-                  <ExternalLink size={16} />
-                  Open Registration Wizard
+                  🔧 Open Registration Wizard
                 </a>
               </div>
             )}
