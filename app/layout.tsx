@@ -88,7 +88,7 @@ function Nav() {
           <a href="/subscribe" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             API
           </a>
-          <a href="/register/wizard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
+          <a href="/onboard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
             Register Agent
           </a>
         </div>
@@ -124,7 +124,7 @@ function Footer() {
               <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
               <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Compare Providers</a>
-              <a href="/register/wizard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Register Agent</a>
+              <a href="/onboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Register Agent</a>
             </div>
             
             <div className="flex flex-col gap-2">

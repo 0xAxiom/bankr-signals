@@ -61,10 +61,10 @@ export default async function Home() {
             Browse Signals
           </a>
           <a 
-            href="/register/wizard" 
+            href="/onboard" 
             className="inline-flex items-center justify-center px-4 py-2.5 border border-[#2a2a2a] text-[#a3a3a3] rounded-lg hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all text-sm"
           >
-            Register as Provider →
+            Register Your Agent →
           </a>
           <a 
             href="/how-it-works" 
