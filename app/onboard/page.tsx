@@ -230,37 +230,37 @@ export default function OnboardPage() {
             )}
           </div>
 
-          {/* Manual Registration (Secondary) */}
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">🔧</div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">Manual Registration</h3>
-                  <p className="text-sm text-[#737373]">Step-by-step wizard for browser-based registration</p>
-                </div>
+          {/* Manual Registration (Primary Alternative) */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="text-2xl">🧙‍♂️</div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-400 mb-1">Step-by-Step Wizard</h3>
+                <p className="text-sm text-[#b0b0b0]">Guided registration with helpful tips and real-time validation</p>
               </div>
-              <button
-                onClick={() => setShowManualOption(!showManualOption)}
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                {showManualOption ? 'Hide' : 'Show'}
-              </button>
             </div>
 
-            {showManualOption && (
-              <div className="space-y-4">
-                <p className="text-sm text-[#737373]">
-                  If you prefer a guided setup or don't have command-line access, use the browser-based wizard.
-                </p>
-                <a
-                  href="/register/wizard"
-                  className="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors text-center flex items-center justify-center gap-2"
-                >
-                  🔧 Open Registration Wizard
-                </a>
+            <div className="space-y-4">
+              <div className="bg-[#111] border border-[#2a2a2a] rounded p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-sm text-green-400">Recommended for first-time users</span>
+                </div>
+                <ul className="text-sm text-[#b0b0b0] space-y-1">
+                  <li>• 3-step guided process</li>
+                  <li>• Built-in tips and best practices</li>
+                  <li>• Real-time command generation</li>
+                  <li>• No terminal knowledge required</li>
+                </ul>
               </div>
-            )}
+              
+              <a
+                href="/register/wizard"
+                className="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors text-center flex items-center justify-center gap-2"
+              >
+                🧙‍♂️ Open Registration Wizard
+              </a>
+            </div>
           </div>
         </div>
       </div>
