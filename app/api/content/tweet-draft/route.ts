@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight';
   hashtags: string[];
   url?: string;
 }
@@ -244,6 +244,22 @@ function generateTradingWisdom(): TweetDraft {
     {
       text: `💡 Trading Wisdom #4\n\n"Timing beats picking"\n\n⏰ Entry timing > coin selection\n⏰ Risk management > profit targets\n⏰ Consistency > home runs\n\nSee perfect timing: bankrsignals.com`,
       topic: 'timing'
+    },
+    {
+      text: `🎯 Alpha Insight\n\n"The best traders are machines"\n\n🤖 No FOMO emotions\n🤖 Perfect trade execution\n🤖 24/7 market monitoring\n🤖 Data-driven decisions only\n\nWatch AI traders outperform: bankrsignals.com`,
+      topic: 'ai_advantage'
+    },
+    {
+      text: `⚡ Market Reality Check\n\n"Most traders lose because they hide their losses"\n\n🎭 Cherry-picked screenshots\n🎭 No transaction proofs\n🎭 Fake win rates\n\nDemand transparency: bankrsignals.com`,
+      topic: 'transparency_reality'
+    },
+    {
+      text: `📈 Compounding Secrets\n\n"Small consistent wins > big gambles"\n\n🔥 2% daily = 1,377% yearly\n🔥 Risk management = longevity\n🔥 Discipline beats luck\n\nStudy consistent winners: bankrsignals.com`,
+      topic: 'compounding'
+    },
+    {
+      text: `🧠 Psychology Hack\n\n"Track your reasoning, not just PnL"\n\n📝 Why did you enter?\n📝 What was your thesis?\n📝 Did it play out?\n\nLearn from documented thinking: bankrsignals.com`,
+      topic: 'psychology'
     }
   ];
   
@@ -256,6 +272,186 @@ function generateTradingWisdom(): TweetDraft {
     type: 'trading_wisdom',
     hashtags: ['#TradingWisdom', '#DeFi', '#Alpha', '#Education'],
     url: 'https://bankrsignals.com'
+  };
+}
+
+function generateStreakHighlight(signals: any[]): TweetDraft | null {
+  const providers = new Map();
+  
+  // Group recent signals by provider
+  const recentSignals = signals.filter(s => 
+    new Date(s.timestamp) > new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) &&
+    s.status === 'closed' && s.pnl_pct !== null
+  );
+  
+  recentSignals.forEach(signal => {
+    const provider = signal.providers;
+    if (!provider) return;
+    
+    if (!providers.has(provider.address)) {
+      providers.set(provider.address, {
+        provider,
+        signals: [],
+        streak: 0,
+        currentStreak: 0
+      });
+    }
+    
+    providers.get(provider.address).signals.push(signal);
+  });
+  
+  // Calculate streaks for each provider
+  for (const [_, data] of providers) {
+    const sortedSignals = data.signals
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    let currentStreak = 0;
+    for (const signal of sortedSignals) {
+      if (signal.pnl_pct > 0) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    
+    data.currentStreak = currentStreak;
+    data.streak = currentStreak;
+  }
+  
+  // Find provider with best streak (minimum 3)
+  let bestStreak = null;
+  for (const [_, data] of providers) {
+    if (data.streak >= 3 && (!bestStreak || data.streak > bestStreak.streak)) {
+      bestStreak = data;
+    }
+  }
+  
+  if (!bestStreak) return null;
+  
+  const streakEmojis = bestStreak.streak >= 5 ? '🔥🔥🔥' : bestStreak.streak >= 4 ? '🔥🔥' : '🔥';
+  const totalWins = bestStreak.signals.slice(0, bestStreak.streak);
+  const avgPnL = totalWins.reduce((sum, s) => sum + s.pnl_pct, 0) / totalWins.length;
+  
+  let text = `${streakEmojis} HOT STREAK ALERT\n\n`;
+  text += `@${bestStreak.provider.twitter || bestStreak.provider.name}\n`;
+  text += `${bestStreak.streak} wins in a row!\n`;
+  text += `Avg PnL: ${formatPnL(avgPnL)}\n\n`;
+  text += `🎯 Latest wins:\n`;
+  
+  totalWins.slice(0, 2).forEach(signal => {
+    text += `• ${signal.action} ${signal.token} ${formatPnL(signal.pnl_pct)}\n`;
+  });
+  
+  text += `\nRide the momentum: bankrsignals.com/provider/${bestStreak.provider.address}`;
+  
+  return {
+    text,
+    type: 'streak_highlight',
+    hashtags: ['#HotStreak', '#Alpha', '#Winning', '#DeFi'],
+    url: `https://bankrsignals.com/provider/${bestStreak.provider.address}`
+  };
+}
+
+function generateCommunityMilestone(stats: any): TweetDraft {
+  const milestones = [
+    {
+      condition: () => stats.active_providers >= 25,
+      text: `🎉 Milestone Unlocked!\n\n25+ active signal providers now on Bankr Signals!\n\n🤖 AI agents from across crypto\n📊 100% verified performance\n⚡ Real-time tracking\n\nThe signal revolution is here 🚀\n\nbankrsignals.com`,
+      achieved: '25_providers'
+    },
+    {
+      condition: () => stats.total_signals >= 100,
+      text: `📈 100 Signals Published!\n\n🎯 Every signal backed by tx hash\n🎯 No fake screenshots\n🎯 Public track records\n🎯 Copy-tradeable strategies\n\nTransparency wins 🏆\n\nbankrsignals.com`,
+      achieved: '100_signals'
+    },
+    {
+      condition: () => stats.total_signals >= 500,
+      text: `🚀 500+ Verified Signals!\n\n📊 The largest collection of verified AI trading signals\n🤖 Real agents, real results\n💯 Transaction-proven performance\n\nThe future of trading signals is here\n\nbankrsignals.com`,
+      achieved: '500_signals'
+    },
+    {
+      condition: () => true, // Always available fallback
+      text: `🌟 Building the Future\n\n🎯 ${stats.active_providers} AI agents publishing signals\n🎯 ${stats.total_signals} transaction-verified trades\n🎯 Zero tolerance for fake results\n\nTransparent trading is winning 📈\n\nbankrsignals.com`,
+      achieved: 'growth_update'
+    }
+  ];
+  
+  // Find the highest milestone we've achieved
+  const achievedMilestone = milestones.find(m => m.condition()) || milestones[milestones.length - 1];
+  
+  return {
+    text: achievedMilestone.text,
+    type: 'community_milestone',
+    hashtags: ['#Milestone', '#Community', '#Growth', '#DeFi'],
+    url: 'https://bankrsignals.com'
+  };
+}
+
+function generateTokenSpotlight(signals: any[]): TweetDraft | null {
+  // Analyze signals from last 7 days
+  const recentSignals = signals.filter(s => 
+    new Date(s.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) &&
+    s.status === 'closed' && s.pnl_pct !== null
+  );
+  
+  if (recentSignals.length < 3) return null;
+  
+  // Group by token and calculate performance
+  const tokenStats = new Map();
+  
+  recentSignals.forEach(signal => {
+    const token = signal.token;
+    if (!tokenStats.has(token)) {
+      tokenStats.set(token, {
+        signals: [],
+        totalPnL: 0,
+        wins: 0,
+        providers: new Set()
+      });
+    }
+    
+    const stats = tokenStats.get(token);
+    stats.signals.push(signal);
+    stats.totalPnL += signal.pnl_pct;
+    if (signal.pnl_pct > 0) stats.wins++;
+    stats.providers.add(signal.providers?.name || 'Unknown');
+  });
+  
+  // Find token with best performance (min 2 signals)
+  let bestToken = null;
+  let bestScore = -Infinity;
+  
+  for (const [token, stats] of tokenStats) {
+    if (stats.signals.length >= 2) {
+      const avgPnL = stats.totalPnL / stats.signals.length;
+      const winRate = stats.wins / stats.signals.length;
+      const score = avgPnL * 0.7 + winRate * 30; // Weight avg PnL and win rate
+      
+      if (score > bestScore && avgPnL > 0) {
+        bestScore = score;
+        bestToken = { token, ...stats };
+      }
+    }
+  }
+  
+  if (!bestToken) return null;
+  
+  const avgPnL = bestToken.totalPnL / bestToken.signals.length;
+  const winRate = Math.round((bestToken.wins / bestToken.signals.length) * 100);
+  const providersText = Array.from(bestToken.providers).slice(0, 2).join(' & ');
+  
+  let text = `🎯 Token Spotlight: $${bestToken.token}\n\n`;
+  text += `📊 ${bestToken.signals.length} signals this week\n`;
+  text += `📈 ${formatPnL(avgPnL)} avg PnL\n`;
+  text += `🎯 ${winRate}% win rate\n\n`;
+  text += `🤖 Signaled by: ${providersText}\n\n`;
+  text += `See all ${bestToken.token} signals: bankrsignals.com/feed?token=${bestToken.token}`;
+  
+  return {
+    text,
+    type: 'token_spotlight',
+    hashtags: ['#TokenSpotlight', '#Alpha', '#DeFi', bestToken.token],
+    url: `https://bankrsignals.com/feed?token=${bestToken.token}`
   };
 }
 
@@ -312,12 +508,34 @@ export async function GET(request: Request) {
       drafts.push(wisdom);
     }
     
+    if (type === 'auto' || type === 'streak_highlight') {
+      if (topSignals.length > 0) {
+        const streak = generateStreakHighlight(topSignals);
+        if (streak) drafts.push(streak);
+      }
+    }
+    
+    if (type === 'auto' || type === 'community_milestone') {
+      const milestone = generateCommunityMilestone(marketStats);
+      drafts.push(milestone);
+    }
+    
+    if (type === 'auto' || type === 'token_spotlight') {
+      if (topSignals.length > 0) {
+        const tokenSpot = generateTokenSpotlight(topSignals);
+        if (tokenSpot) drafts.push(tokenSpot);
+      }
+    }
+    
     // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
-      // Preference order: signal spotlight > provider highlight > performance > platform stats > trading wisdom > market insight
+      // Updated preference order with new content types for better engagement
       const bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
+                       drafts.find(d => d.type === 'streak_highlight') ||
                        drafts.find(d => d.type === 'provider_highlight') ||
+                       drafts.find(d => d.type === 'token_spotlight') ||
                        drafts.find(d => d.type === 'performance_update') ||
+                       drafts.find(d => d.type === 'community_milestone') ||
                        drafts.find(d => d.type === 'platform_stats') ||
                        drafts.find(d => d.type === 'trading_wisdom') ||
                        drafts[0];
