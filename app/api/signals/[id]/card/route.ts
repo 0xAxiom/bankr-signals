@@ -11,10 +11,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const signalId = params.id;
+    const { id: signalId } = await params;
     
     // Fetch signal and provider data
     const { data: signal, error: signalError } = await supabase
