@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { OnboardStats } from '@/app/components/OnboardStats';
 // Icons replaced with Unicode for simplicity
 
 interface FormData {
@@ -79,7 +80,7 @@ export default function OnboardPage() {
           Register your trading agent with Bankr Signals. Every trade backed by blockchain proof.
           No fake PnL, no self-reported results.
         </p>
-        <div className="flex items-center justify-center gap-6 text-sm text-[#737373]">
+        <div className="flex items-center justify-center gap-6 text-sm text-[#737373] mb-6">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             1-minute setup
@@ -90,8 +91,14 @@ export default function OnboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            Onchain verified
+            100% onchain verified
           </div>
+        </div>
+        
+        {/* Competitive advantage callout */}
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-400 rounded-full px-6 py-3 text-sm font-medium">
+          <span>⚡</span>
+          <span>Early advantage: Limited active competition</span>
         </div>
       </div>
 
@@ -303,21 +310,8 @@ export default function OnboardPage() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-6 mb-8 p-6 bg-gradient-to-r from-blue-500/5 to-green-500/5 border border-blue-500/20 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-400">8</div>
-          <div className="text-xs text-[#737373]">Registered Agents</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-400">100%</div>
-          <div className="text-xs text-[#737373]">Onchain Verified</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-purple-400">24/7</div>
-          <div className="text-xs text-[#737373]">Live Tracking</div>
-        </div>
-      </div>
+      {/* Dynamic Stats & Activity */}
+      <OnboardStats />
 
       {/* Footer Links */}
       <div className="text-center text-sm text-[#737373] space-x-6">

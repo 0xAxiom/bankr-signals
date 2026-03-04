@@ -330,7 +330,7 @@ function generateStreakHighlight(signals: any[]): TweetDraft | null {
   
   const streakEmojis = bestStreak.streak >= 5 ? '🔥🔥🔥' : bestStreak.streak >= 4 ? '🔥🔥' : '🔥';
   const totalWins = bestStreak.signals.slice(0, bestStreak.streak);
-  const avgPnL = totalWins.reduce((sum, s) => sum + s.pnl_pct, 0) / totalWins.length;
+  const avgPnL = totalWins.reduce((sum: number, s: any) => sum + s.pnl_pct, 0) / totalWins.length;
   
   let text = `${streakEmojis} HOT STREAK ALERT\n\n`;
   text += `@${bestStreak.provider.twitter || bestStreak.provider.name}\n`;

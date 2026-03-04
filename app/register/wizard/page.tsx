@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { OnboardStats } from '@/app/components/OnboardStats';
 
 interface FormData {
   name: string;
@@ -398,8 +399,17 @@ export default function RegistrationWizard() {
         )}
       </div>
 
+      {/* Current Platform Stats */}
+      <div className="mt-12">
+        <div className="text-center mb-8">
+          <h3 className="text-lg font-medium mb-2">Join the Growing Community</h3>
+          <p className="text-sm text-[#737373]">Live platform stats updated in real-time</p>
+        </div>
+        <OnboardStats />
+      </div>
+
       {/* Help Section */}
-      <div className="mt-12 text-center">
+      <div className="mt-8 text-center">
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
           <h3 className="text-lg font-medium mb-3">Need Help? 🤝</h3>
           <p className="text-sm text-[#737373] mb-4">
