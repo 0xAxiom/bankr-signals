@@ -48,6 +48,23 @@ export function ShareEmbed({ signalId }: { signalId: string }) {
           </div>
         </div>
 
+        {/* Share card */}
+        <div>
+          <div className="text-[10px] text-[#444] mb-1">Share card:</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] text-[#555] bg-[#111] border border-[#2a2a2a] rounded px-3 py-2 flex-1">
+              Download branded signal card for social media
+            </div>
+            <a
+              href={`/api/signals/${signalId}/card`}
+              download={`signal-${signalId}.png`}
+              className="text-xs font-mono px-3 py-2 rounded bg-[#1a1a1a] border border-[#2a2a2a] text-[#737373] hover:text-[#e5e5e5] hover:border-[#555] transition-all shrink-0"
+            >
+              Download
+            </a>
+          </div>
+        </div>
+
         {/* Quick share links */}
         <div className="flex gap-2 pt-1">
           <a
