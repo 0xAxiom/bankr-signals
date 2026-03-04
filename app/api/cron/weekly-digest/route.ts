@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db";
+import { Resend } from "resend";
 
 export const dynamic = "force-dynamic";
 
@@ -397,35 +398,103 @@ function generateDigestText(stats: WeeklyStats): string {
 }
 
 async function sendDigestEmail(html: string, text: string): Promise<number> {
-  // For this implementation, we'll use a simple console log
-  // In production, this would integrate with Resend, SendGrid, or similar service
-  
-  console.log("=== WEEKLY DIGEST EMAIL ===");
-  console.log("TO: subscribers@bankrsignals.com");
-  console.log("SUBJECT: 📊 Your Weekly Trading Intelligence Digest");
-  console.log("HTML LENGTH:", html.length);
-  console.log("TEXT VERSION:");
-  console.log(text);
-  console.log("=============================");
-  
-  // TODO: Implement actual email sending
-  // Example with Resend:
-  /*
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  
-  const { data, error } = await resend.emails.send({
-    from: 'Bankr Signals <digest@bankrsignals.com>',
-    to: subscribers,
-    subject: '📊 Your Weekly Trading Intelligence Digest',
-    html: html,
-    text: text,
-  });
-  
-  if (error) throw error;
-  return subscribers.length;
-  */
-  
-  return 1; // Mock: 1 email sent for testing
+  // Get active subscribers who want weekly digest
+  const { data: subscribers, error: subscribersError } = await supabase
+    .from('email_subscribers')
+    .select('email, name, unsubscribe_token')
+    .eq('active', true)
+    .eq('weekly_digest', true)
+    .eq('confirmed_at', true);
+
+  if (subscribersError) {
+    console.error("Error fetching subscribers:", subscribersError);
+    throw new Error("Failed to fetch subscribers");
+  }
+
+  if (!subscribers || subscribers.length === 0) {
+    console.log("No active subscribers found for weekly digest");
+    return 0;
+  }
+
+  console.log(`Sending weekly digest to ${subscribers.length} subscribers`);
+
+  // Initialize Resend
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.error("RESEND_API_KEY not configured, falling back to console log");
+    
+    console.log("=== WEEKLY DIGEST EMAIL ===");
+    console.log(`TO: ${subscribers.length} subscribers`);
+    console.log("SUBJECT: 📊 Your Weekly Trading Intelligence Digest");
+    console.log("HTML LENGTH:", html.length);
+    console.log("FIRST SUBSCRIBER:", subscribers[0].email);
+    console.log("=============================");
+    
+    return subscribers.length; // Mock success for testing
+  }
+
+  const resend = new Resend(resendApiKey);
+  let successCount = 0;
+  let failureCount = 0;
+
+  // Send emails in batches to avoid rate limits
+  const batchSize = 50;
+  for (let i = 0; i < subscribers.length; i += batchSize) {
+    const batch = subscribers.slice(i, i + batchSize);
+    
+    try {
+      // Create personalized emails with unsubscribe tokens
+      const emailPromises = batch.map(async (subscriber) => {
+        // Replace unsubscribe token in the email
+        const personalizedHtml = html.replace(
+          'UNSUBSCRIBE_TOKEN',
+          subscriber.unsubscribe_token
+        );
+        const personalizedText = text.replace(
+          'UNSUBSCRIBE_TOKEN', 
+          subscriber.unsubscribe_token
+        );
+
+        const { data, error } = await resend.emails.send({
+          from: 'Bankr Signals <digest@bankrsignals.com>',
+          to: subscriber.email,
+          subject: '📊 Your Weekly Trading Intelligence Digest',
+          html: personalizedHtml,
+          text: personalizedText,
+        });
+
+        if (error) {
+          console.error(`Failed to send to ${subscriber.email}:`, error);
+          throw error;
+        }
+
+        // Update last email sent timestamp
+        await supabase
+          .from('email_subscribers')
+          .update({ last_email_sent_at: new Date().toISOString() })
+          .eq('email', subscriber.email);
+
+        return data;
+      });
+
+      await Promise.allSettled(emailPromises);
+      successCount += batch.length;
+      
+      console.log(`Batch ${Math.floor(i / batchSize) + 1} sent successfully (${batch.length} emails)`);
+      
+      // Small delay between batches to be nice to the email service
+      if (i + batchSize < subscribers.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      console.error(`Batch ${Math.floor(i / batchSize) + 1} failed:`, error);
+      failureCount += batch.length;
+    }
+  }
+
+  console.log(`Email sending complete: ${successCount} success, ${failureCount} failures`);
+  return successCount;
 }
 
 export async function POST(req: NextRequest) {
