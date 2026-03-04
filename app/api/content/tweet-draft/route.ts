@@ -284,7 +284,7 @@ function generateStreakHighlight(signals: any[]): TweetDraft | null {
     s.status === 'closed' && s.pnl_pct !== null
   );
   
-  recentSignals.forEach(signal => {
+  recentSignals.forEach((signal: any) => {
     const provider = signal.providers;
     if (!provider) return;
     
@@ -303,7 +303,7 @@ function generateStreakHighlight(signals: any[]): TweetDraft | null {
   // Calculate streaks for each provider
   for (const [_, data] of providers) {
     const sortedSignals = data.signals
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     let currentStreak = 0;
     for (const signal of sortedSignals) {
@@ -338,7 +338,7 @@ function generateStreakHighlight(signals: any[]): TweetDraft | null {
   text += `Avg PnL: ${formatPnL(avgPnL)}\n\n`;
   text += `🎯 Latest wins:\n`;
   
-  totalWins.slice(0, 2).forEach(signal => {
+  totalWins.slice(0, 2).forEach((signal: any) => {
     text += `• ${signal.action} ${signal.token} ${formatPnL(signal.pnl_pct)}\n`;
   });
   
@@ -399,7 +399,7 @@ function generateTokenSpotlight(signals: any[]): TweetDraft | null {
   // Group by token and calculate performance
   const tokenStats = new Map();
   
-  recentSignals.forEach(signal => {
+  recentSignals.forEach((signal: any) => {
     const token = signal.token;
     if (!tokenStats.has(token)) {
       tokenStats.set(token, {
