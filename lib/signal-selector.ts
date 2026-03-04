@@ -1,10 +1,13 @@
 /**
- * Signal of the Day — simply the highest PnL% signal from today.
- * If no closed signals today, falls back to highest unrealized PnL open signal.
+ * Signal of the Day — highlights the most impressive signal from other providers.
+ * NEVER features our own signals (Axiom / 0x523Eff...) — that looks self-promotional.
+ * Prioritizes OPEN signals with high live PnL (exciting to visitors) over closed ones.
  */
 
 import { supabase } from "./db";
-import { getTokenPrice, calculateUnrealizedPnl } from "./prices";
+
+// Our wallet address — NEVER feature our own signals
+const OUR_WALLET = "0x523eff3db03938eaa31a5a6fbd41e3b9d23edde5";
 
 export interface SignalScore {
   signalId: string;
@@ -27,18 +30,22 @@ export interface SignalOfDayResult {
   reasoning: string;
 }
 
+function isOurSignal(signal: any): boolean {
+  const addr = signal.signal_providers?.address || signal.provider_address || "";
+  return addr.toLowerCase() === OUR_WALLET;
+}
+
 /**
- * Select signal of the day: best signal from recent time periods.
- * Priority: closed signals with realized PnL > open signals with live PnL.
- * Falls back from 24h -> 3d -> 7d if no signals found.
+ * Select signal of the day.
+ * Priority: open signals with best live PnL > closed signals with best realized PnL.
+ * Never picks our own signals.
  */
 export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> {
   try {
-    // Try different time windows
     const timeWindows = [
       { hours: 24, label: "today" },
-      { hours: 72, label: "this week" }, 
-      { hours: 168, label: "recently" }, // 7 days
+      { hours: 72, label: "this week" },
+      { hours: 168, label: "recently" },
     ];
 
     for (const window of timeWindows) {
@@ -56,7 +63,46 @@ export async function selectSignalOfTheDay(): Promise<SignalOfDayResult | null> 
 async function findBestSignalInWindow(hours: number, timeLabel: string): Promise<SignalOfDayResult | null> {
   const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-  // First: try closed signals with meaningful realized PnL 
+  // FIRST: Open signals — these are live and exciting for visitors
+  const { data: openSignals } = await supabase
+    .from("signals")
+    .select("*, signal_providers!inner (name, avatar, address)")
+    .eq("status", "open")
+    .not("entry_price", "is", null)
+    .gte("timestamp", windowStart)
+    .order("timestamp", { ascending: false })
+    .limit(30);
+
+  if (openSignals && openSignals.length > 0) {
+    // Filter out our own signals
+    const otherSignals = openSignals.filter(s => !isOurSignal(s));
+    
+    if (otherSignals.length > 0) {
+      // Pick by highest confidence + leverage combo (we don't have live PnL in DB)
+      let best = otherSignals[0];
+      let bestScore = -Infinity;
+
+      for (const signal of otherSignals) {
+        const confidence = Number(signal.confidence) || 0.5;
+        const leverage = Number(signal.leverage) || 1;
+        const collateral = Number(signal.collateral_usd) || 0;
+        
+        let score = confidence * 100;
+        if (leverage > 1) score += Math.log(leverage) * 10;
+        if (collateral >= 100) score += Math.log(collateral / 100) * 5;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          best = signal;
+        }
+      }
+
+      const lev = best.leverage ? `${best.leverage}x ` : "";
+      return formatResult(best, `Live ${timeLabel}: ${lev}${best.action} ${best.token} by ${best.signal_providers.name}`);
+    }
+  }
+
+  // SECOND: Closed signals with realized PnL
   const { data: closedSignals } = await supabase
     .from("signals")
     .select("*, signal_providers!inner (name, avatar, address)")
@@ -66,70 +112,39 @@ async function findBestSignalInWindow(hours: number, timeLabel: string): Promise
     .order("pnl_pct", { ascending: false })
     .limit(20);
 
-  // Filter for meaningful PnL (>= 0.5% absolute)
-  const meaningfulClosed = closedSignals?.filter(s => Math.abs(s.pnl_pct) >= 0.5);
-  if (meaningfulClosed && meaningfulClosed.length > 0) {
-    const signal = meaningfulClosed[0];
-    const pnlText = signal.pnl_pct > 0 ? '+' : '';
-    return formatResult(signal, `Top performer ${timeLabel}: ${pnlText}${signal.pnl_pct.toFixed(1)}% realized PnL`);
-  }
+  if (closedSignals && closedSignals.length > 0) {
+    // Filter out our own + require meaningful PnL
+    const others = closedSignals
+      .filter(s => !isOurSignal(s))
+      .filter(s => Math.abs(s.pnl_pct) >= 0.5);
 
-  // Fallback: open signals with high conviction
-  const { data: openSignals } = await supabase
-    .from("signals") 
-    .select("*, signal_providers!inner (name, avatar, address)")
-    .eq("status", "open")
-    .not("entry_price", "is", null)
-    .gte("timestamp", windowStart)
-    .order("confidence", { ascending: false, nullsFirst: false })
-    .limit(20);
-
-  if (!openSignals || openSignals.length === 0) return null;
-
-  // Score open signals by confidence + provider track record
-  let bestSignal = null;
-  let bestScore = -Infinity;
-
-  for (const signal of openSignals) {
-    const confidence = Number(signal.confidence) || 0.5;
-    const leverage = Number(signal.leverage) || 1;
-    const collateral = Number(signal.collateral_usd) || 0;
-    
-    // Score: confidence (0-1) + leverage bonus + size bonus
-    let score = confidence * 100;
-    if (leverage > 1) score += Math.log(leverage) * 10; // Leverage adds risk/reward
-    if (collateral >= 100) score += Math.log(collateral / 100) * 5; // Size shows conviction
-    
-    if (score > bestScore) {
-      bestScore = score;
-      bestSignal = signal;
+    if (others.length > 0) {
+      const signal = others[0];
+      const pnlText = signal.pnl_pct > 0 ? "+" : "";
+      return formatResult(signal, `Top performer ${timeLabel}: ${pnlText}${signal.pnl_pct.toFixed(1)}% by ${signal.signal_providers.name}`);
     }
   }
 
-  if (bestSignal) {
-    const confidence = Number(bestSignal.confidence) || 0.5;
-    const confidencePct = Math.round(confidence * 100);
-    return formatResult(bestSignal, `High conviction signal ${timeLabel}: ${confidencePct}% confidence, ${bestSignal.action} ${bestSignal.token}`);
-  }
-
-  // Final fallback: most recent signal with reasoning
-  const { data: latestSignals } = await supabase
+  // LAST RESORT: Any recent signal from another provider
+  const { data: anySignals } = await supabase
     .from("signals")
     .select("*, signal_providers!inner (name, avatar, address)")
     .gte("timestamp", windowStart)
-    .not("reasoning", "is", null)
     .order("timestamp", { ascending: false })
-    .limit(1);
+    .limit(20);
 
-  if (latestSignals && latestSignals.length > 0) {
-    return formatResult(latestSignals[0], `Latest signal ${timeLabel} with analysis`);
+  if (anySignals && anySignals.length > 0) {
+    const others = anySignals.filter(s => !isOurSignal(s));
+    if (others.length > 0) {
+      return formatResult(others[0], `Latest signal ${timeLabel} by ${others[0].signal_providers.name}`);
+    }
   }
 
   return null;
 }
 
 function formatResult(signal: any, reasoning: string): SignalOfDayResult {
-  const pnl = signal.pnl_pct ?? signal.live_pnl_pct ?? 0;
+  const pnl = signal.pnl_pct ?? 0;
   return {
     signal,
     provider: signal.signal_providers,
@@ -151,7 +166,7 @@ function formatResult(signal: any, reasoning: string): SignalOfDayResult {
 }
 
 /**
- * Get trending signals by category (kept for /api/signal-of-day?trending=true)
+ * Get trending signals by category
  */
 export async function getTrendingSignalsByCategory(hours: number = 24): Promise<Record<string, any[]>> {
   try {
