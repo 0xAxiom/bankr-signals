@@ -185,7 +185,7 @@ export async function getProviderStats(
       pnl_pct: Math.round(pnlPct * 10) / 10,
       win_rate: Math.round(winRate),
       signal_count: trades.length,
-      subscriber_count: 0,
+      subscriber_count: provider.followers || 0,
       avg_return:
         totalClosed > 0
           ? Math.round((totalWeightedPnl / totalWeight) * 10) / 10
