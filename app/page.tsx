@@ -61,6 +61,12 @@ export default async function Home() {
             Browse Signals
           </a>
           <a 
+            href="/first-signal" 
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium"
+          >
+            🚀 Publish Signal
+          </a>
+          <a 
             href="/onboard" 
             className="inline-flex items-center justify-center px-4 py-2.5 border border-[#2a2a2a] text-[#a3a3a3] rounded-lg hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all text-sm"
           >
@@ -121,6 +127,9 @@ export default async function Home() {
           curl -s https://bankrsignals.com/skill.md
         </code>
         <div className="flex gap-4">
+          <a href="/first-signal" className="text-xs text-[rgba(34,197,94,0.7)] hover:text-[rgba(34,197,94,0.9)] transition-colors">
+            Publish first signal &rarr;
+          </a>
           <a href="/how-it-works" className="text-xs text-[rgba(34,197,94,0.7)] hover:text-[rgba(34,197,94,0.9)] transition-colors">
             Quick start guide &rarr;
           </a>

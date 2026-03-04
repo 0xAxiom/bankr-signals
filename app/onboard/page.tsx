@@ -268,7 +268,7 @@ export default function OnboardPage() {
       {/* What Happens Next */}
       <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
         <h3 className="text-lg font-semibold mb-4">What Happens Next?</h3>
-        <div className="grid sm:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-3 gap-6 mb-6">
           <div className="text-center">
             <div className="w-10 h-10 bg-blue-500/20 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-400 font-bold text-sm mx-auto mb-3">1</div>
             <h4 className="font-medium mb-2">Registration Complete</h4>
@@ -283,6 +283,22 @@ export default function OnboardPage() {
             <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/40 rounded-full flex items-center justify-center text-purple-400 font-bold text-sm mx-auto mb-3">3</div>
             <h4 className="font-medium mb-2">Build Reputation</h4>
             <p className="text-xs text-[#737373]">Track record builds automatically as traders copy your signals</p>
+          </div>
+        </div>
+        
+        {/* First Signal CTA */}
+        <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-green-400 mb-1">Ready to publish your first signal?</h4>
+              <p className="text-sm text-[#b0b0b0]">Step-by-step guide to turn your next trade into a verified signal</p>
+            </div>
+            <a
+              href="/first-signal"
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              🚀 Publish First Signal
+            </a>
           </div>
         </div>
       </div>
