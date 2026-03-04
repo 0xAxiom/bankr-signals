@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom';
   hashtags: string[];
   url?: string;
 }
@@ -138,6 +138,127 @@ function generateMarketInsight(signals: any[], stats: any): TweetDraft {
   };
 }
 
+function generateProviderHighlight(signals: any[]): TweetDraft | null {
+  const providers = new Map();
+  
+  // Group signals by provider and calculate stats
+  signals.forEach(signal => {
+    const provider = signal.providers;
+    if (!provider) return;
+    
+    if (!providers.has(provider.address)) {
+      providers.set(provider.address, {
+        provider,
+        signals: [],
+        totalPnL: 0,
+        wins: 0
+      });
+    }
+    
+    const providerData = providers.get(provider.address);
+    providerData.signals.push(signal);
+    if (signal.pnl_pct !== null) {
+      providerData.totalPnL += signal.pnl_pct;
+      if (signal.pnl_pct > 0) providerData.wins++;
+    }
+  });
+  
+  // Find best performing provider
+  let bestProvider = null;
+  let bestScore = -Infinity;
+  
+  for (const [_, data] of providers) {
+    if (data.signals.length >= 2) { // Only consider providers with multiple signals
+      const winRate = data.wins / data.signals.filter(s => s.pnl_pct !== null).length;
+      const avgPnL = data.totalPnL / data.signals.filter(s => s.pnl_pct !== null).length;
+      const score = winRate * 50 + avgPnL * 2; // Weighted score
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestProvider = data;
+      }
+    }
+  }
+  
+  if (!bestProvider) return null;
+  
+  const winRate = Math.round((bestProvider.wins / bestProvider.signals.filter(s => s.pnl_pct !== null).length) * 100);
+  const avgPnL = bestProvider.totalPnL / bestProvider.signals.filter(s => s.pnl_pct !== null).length;
+  
+  let text = `🏆 Provider Spotlight\n\n`;
+  text += `@${bestProvider.provider.twitter || bestProvider.provider.name}\n`;
+  text += `${bestProvider.signals.length} signals • ${winRate}% win rate\n`;
+  text += `Avg PnL: ${formatPnL(avgPnL)}\n\n`;
+  text += `Follow their strategy: bankrsignals.com/provider/${bestProvider.provider.address}`;
+  
+  return {
+    text,
+    type: 'provider_highlight',
+    hashtags: ['#TopTrader', '#Alpha', '#AI', '#DeFi'],
+    url: `https://bankrsignals.com/provider/${bestProvider.provider.address}`
+  };
+}
+
+function generatePlatformStats(stats: any): TweetDraft {
+  const insights = [
+    {
+      text: `🚀 Platform Growth\n\n📊 ${stats.active_providers} active signal providers\n🎯 ${stats.total_signals} verified signals published\n⚡ 100% transaction-verified results\n\nThe future of transparent trading is here\n\nbankrsignals.com`,
+      focus: 'growth'
+    },
+    {
+      text: `🔍 Why Bankr Signals?\n\n✅ No fake results (tx hash required)\n✅ Real-time PnL tracking\n✅ Copy-tradeable strategies\n✅ Public performance history\n\nFinally, trading signals you can trust\n\nbankrsignals.com`,
+      focus: 'trust'
+    },
+    {
+      text: `🤖 Agent Trading Revolution\n\n• No emotions, pure data\n• 24/7 market monitoring\n• Backtested strategies\n• Transparent track records\n\nWatch the best AI traders: bankrsignals.com`,
+      focus: 'ai'
+    }
+  ];
+  
+  // Rotate insights based on day
+  const dayOfWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % insights.length;
+  const insight = insights[dayOfWeek];
+  
+  return {
+    text: insight.text,
+    type: 'platform_stats',
+    hashtags: ['#DeFi', '#AI', '#Trading', '#Transparency'],
+    url: 'https://bankrsignals.com'
+  };
+}
+
+function generateTradingWisdom(): TweetDraft {
+  const wisdomPosts = [
+    {
+      text: `💡 Trading Wisdom #1\n\n"Position sizing is everything"\n\n🎯 Risk 1-2% per trade\n🎯 Use stop losses religiously\n🎯 Let winners run, cut losers fast\n\nSee how the pros size positions:\nbankrsignals.com`,
+      topic: 'risk_management'
+    },
+    {
+      text: `💡 Trading Wisdom #2\n\n"Backtesting beats gut feeling"\n\n📊 Test your strategy on historical data\n📊 Track every metric that matters\n📊 Adapt when markets change\n\nWatch data-driven traders: bankrsignals.com`,
+      topic: 'backtesting'
+    },
+    {
+      text: `💡 Trading Wisdom #3\n\n"Transparency builds trust"\n\n🔍 Share your reasoning\n🔍 Show your track record\n🔍 Own your mistakes\n\nFollow transparent traders: bankrsignals.com`,
+      topic: 'transparency'
+    },
+    {
+      text: `💡 Trading Wisdom #4\n\n"Timing beats picking"\n\n⏰ Entry timing > coin selection\n⏰ Risk management > profit targets\n⏰ Consistency > home runs\n\nSee perfect timing: bankrsignals.com`,
+      topic: 'timing'
+    }
+  ];
+  
+  // Rotate wisdom posts
+  const postIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % wisdomPosts.length;
+  const wisdom = wisdomPosts[postIndex];
+  
+  return {
+    text: wisdom.text,
+    type: 'trading_wisdom',
+    hashtags: ['#TradingWisdom', '#DeFi', '#Alpha', '#Education'],
+    url: 'https://bankrsignals.com'
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -174,11 +295,31 @@ export async function GET(request: Request) {
       drafts.push(insight);
     }
     
-    // If auto mode, return the best draft
+    if (type === 'auto' || type === 'provider_highlight') {
+      if (topSignals.length > 0) {
+        const highlight = generateProviderHighlight(topSignals);
+        if (highlight) drafts.push(highlight);
+      }
+    }
+    
+    if (type === 'auto' || type === 'platform_stats') {
+      const stats = generatePlatformStats(marketStats);
+      drafts.push(stats);
+    }
+    
+    if (type === 'auto' || type === 'trading_wisdom') {
+      const wisdom = generateTradingWisdom();
+      drafts.push(wisdom);
+    }
+    
+    // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
-      // Prefer signal spotlight if available, otherwise performance
+      // Preference order: signal spotlight > provider highlight > performance > platform stats > trading wisdom > market insight
       const bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
+                       drafts.find(d => d.type === 'provider_highlight') ||
                        drafts.find(d => d.type === 'performance_update') ||
+                       drafts.find(d => d.type === 'platform_stats') ||
+                       drafts.find(d => d.type === 'trading_wisdom') ||
                        drafts[0];
       return createSuccessResponse({ draft: bestDraft });
     }

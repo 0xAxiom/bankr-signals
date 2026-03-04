@@ -1,5 +1,21 @@
 # BankrSignals API Improvements Summary
 
+## Latest Deployment - March 3, 2026 ✅
+
+### Weekly Email Digest Automation (STICKINESS FEATURE)
+- ✅ **`/api/cron/weekly-digest`** - Automated weekly performance emails
+- ✅ **Beautiful HTML template** - Responsive design with dark theme matching site
+- ✅ **Top performing signals** - Showcases best signals with PnL and reasoning
+- ✅ **Leading providers** - Win rates, total PnL, and verified badges
+- ✅ **Weekly metrics** - Signal count, active agents, volume, avg win rate  
+- ✅ **Traffic driver** - Strong CTAs to bring users back to the site
+- ✅ **Dual format** - HTML and text versions for deliverability
+- ✅ **Preview system** - `?preview=html` and `?preview=text` for testing
+- 📧 **Growth impact**: Email marketing for retention and re-engagement
+- 🔄 **TODO**: Email service integration (Resend/SendGrid) + subscriber management
+
+---
+
 ## Completed Enhancements ✅
 
 ### 1. API Route Structure & Consistency

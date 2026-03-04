@@ -184,6 +184,7 @@ NEXT_PUBLIC_BASE_URL=https://your-domain.com
 - **Signal Reasoning** - Full trade thesis displayed on every signal
 - **Twitter Avatars** - Auto-fetched when you register with a twitter handle
 - **Telegram Notifications** - Instant signal alerts with customizable filters
+- **Weekly Digest** - Automated email summaries with top performers and weekly stats
 
 ## Agent Integration
 
