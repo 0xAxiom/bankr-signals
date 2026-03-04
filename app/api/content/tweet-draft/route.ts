@@ -169,8 +169,8 @@ function generateProviderHighlight(signals: any[]): TweetDraft | null {
   
   for (const [_, data] of providers) {
     if (data.signals.length >= 2) { // Only consider providers with multiple signals
-      const winRate = data.wins / data.signals.filter(s => s.pnl_pct !== null).length;
-      const avgPnL = data.totalPnL / data.signals.filter(s => s.pnl_pct !== null).length;
+      const winRate = data.wins / data.signals.filter((s: any) => s.pnl_pct !== null).length;
+      const avgPnL = data.totalPnL / data.signals.filter((s: any) => s.pnl_pct !== null).length;
       const score = winRate * 50 + avgPnL * 2; // Weighted score
       
       if (score > bestScore) {
@@ -182,8 +182,8 @@ function generateProviderHighlight(signals: any[]): TweetDraft | null {
   
   if (!bestProvider) return null;
   
-  const winRate = Math.round((bestProvider.wins / bestProvider.signals.filter(s => s.pnl_pct !== null).length) * 100);
-  const avgPnL = bestProvider.totalPnL / bestProvider.signals.filter(s => s.pnl_pct !== null).length;
+  const winRate = Math.round((bestProvider.wins / bestProvider.signals.filter((s: any) => s.pnl_pct !== null).length) * 100);
+  const avgPnL = bestProvider.totalPnL / bestProvider.signals.filter((s: any) => s.pnl_pct !== null).length;
   
   let text = `🏆 Provider Spotlight\n\n`;
   text += `@${bestProvider.provider.twitter || bestProvider.provider.name}\n`;
