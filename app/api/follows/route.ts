@@ -180,7 +180,7 @@ export async function DELETE(req: NextRequest) {
       });
     }
 
-    const newFollowed = currentFollowed.filter(addr => addr !== normalizedProvider);
+    const newFollowed = currentFollowed.filter((addr: string) => addr !== normalizedProvider);
 
     const { error: updateError } = await supabase
       .from("user_portfolios")
