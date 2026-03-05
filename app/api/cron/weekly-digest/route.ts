@@ -116,7 +116,7 @@ async function getWeeklyStats(): Promise<WeeklyStats> {
   };
 }
 
-function formatPnL(pnl: number): string {
+export function formatPnL(pnl: number): string {
   const sign = pnl >= 0 ? "+" : "";
   return `${sign}${pnl.toFixed(1)}%`;
 }
