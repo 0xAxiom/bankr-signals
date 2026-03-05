@@ -109,11 +109,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update provider's signal count
+    // Update provider's signal count by using RPC function or fetch current count
+    const { data: providerData } = await supabase
+      .from('signal_providers')
+      .select('total_signals')
+      .eq('address', demoProviderId)
+      .single();
+
     const { error: updateProviderError } = await supabase
       .from('signal_providers')
       .update({ 
-        total_signals: supabase.raw('total_signals + 1'),
+        total_signals: (providerData?.total_signals || 0) + 1,
         last_signal_at: new Date().toISOString()
       })
       .eq('address', demoProviderId);
