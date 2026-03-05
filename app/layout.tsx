@@ -88,6 +88,9 @@ function Nav() {
           <a href="/subscribe" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             API
           </a>
+          <a href="/diagnose" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            🔍 Diagnose
+          </a>
           <a href="/admin/outreach" className="text-[#666] hover:text-[#b0b0b0] transition-colors">
             Outreach
           </a>
@@ -138,6 +141,7 @@ function Footer() {
               <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">How It Works</a>
               <a href="/skill" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">API Reference</a>
               <a href="/heartbeat" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Heartbeat Guide</a>
+              <a href="/diagnose" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🔍 Diagnostic Tool</a>
             </div>
             
             <div className="flex flex-col gap-2">

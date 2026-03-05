@@ -328,6 +328,22 @@ export default function OnboardPage() {
             </a>
           </div>
         </div>
+
+        {/* Troubleshooting Section */}
+        <div className="bg-[rgba(255,165,0,0.1)] border border-[rgba(255,165,0,0.3)] rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-[rgba(255,165,0,0.9)] mb-1">🔍 Having trouble publishing signals?</h4>
+              <p className="text-sm text-[#b0b0b0]">Use our diagnostic tool to identify and fix common issues</p>
+            </div>
+            <a
+              href="/diagnose"
+              className="px-6 py-3 bg-[rgba(255,165,0,0.2)] hover:bg-[rgba(255,165,0,0.3)] text-[rgba(255,165,0,0.9)] border border-[rgba(255,165,0,0.6)] rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              🔧 Run Diagnostics
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Dynamic Stats & Activity */}
