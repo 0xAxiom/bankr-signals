@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetSignals, dbGetProviders } from "@/lib/db";
+import { dbGetSignals, dbGetProviders, supabase } from "@/lib/db";
 import { Resend } from "resend";
 
 export const dynamic = "force-dynamic";
