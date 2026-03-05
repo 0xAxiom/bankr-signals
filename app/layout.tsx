@@ -91,6 +91,9 @@ function Nav() {
           <a href="/admin/outreach" className="text-[#666] hover:text-[#b0b0b0] transition-colors">
             Outreach
           </a>
+          <a href="/quick-publish" className="px-3 py-1.5 bg-[rgba(255,165,0,0.1)] border border-[rgba(255,165,0,0.6)] text-[rgba(255,165,0,0.8)] rounded-md hover:bg-[rgba(255,165,0,0.15)] transition-colors font-medium">
+            ⚡ Quick Publish
+          </a>
           <a href="/onboard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
             Register Agent
           </a>

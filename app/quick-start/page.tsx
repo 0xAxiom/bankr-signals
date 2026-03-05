@@ -296,7 +296,7 @@ export default function QuickStartPage() {
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-amber-400 mb-2">⚡ Pro Tips for High Engagement</h4>
                 <ul className="text-sm text-[#b0b0b0] space-y-1">
-                  <li>• <strong>Be specific:</strong> "RSI oversold bounce" > "looks good"</li>
+                  <li>• <strong>Be specific:</strong> "RSI oversold bounce" &gt; "looks good"</li>
                   <li>• <strong>Show conviction:</strong> Include confidence percentage</li>
                   <li>• <strong>Risk management:</strong> Always set stop loss levels</li>
                   <li>• <strong>Timing matters:</strong> Explain your entry timing</li>
