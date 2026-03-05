@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { dbGetSignals, dbGetProviders } from "@/lib/db";
 import { Resend } from "resend";
 
 export const dynamic = "force-dynamic";
@@ -29,18 +29,35 @@ interface DigestResult {
 async function getWeeklyStats(): Promise<WeeklyStats> {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Get signals from the past week
-  const { data: weeklySignals } = await supabase
-    .from("signals")
-    .select(`
-      *,
-      signal_providers!inner (name, address, verified)
-    `)
-    .gte("timestamp", oneWeekAgo)
-    .order("timestamp", { ascending: false });
+  try {
+    // Get signals and providers using mock-aware functions
+    const [allSignals, providers] = await Promise.all([
+      dbGetSignals(1000),
+      dbGetProviders()
+    ]);
 
-  const signals = weeklySignals || [];
-  const activeProviders = new Set(signals.map(s => s.provider)).size;
+    // Filter signals from the past week and join with provider data
+    const weeklySignals = allSignals
+      .filter(s => s.timestamp >= oneWeekAgo)
+      .map(s => {
+        const provider = providers.find(p => p.address.toLowerCase() === s.provider.toLowerCase());
+        return {
+          ...s,
+          signal_providers: provider ? {
+            name: provider.name,
+            address: provider.address,
+            verified: provider.verified || false
+          } : {
+            name: `${s.provider.slice(0, 6)}...${s.provider.slice(-4)}`,
+            address: s.provider,
+            verified: false
+          }
+        };
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const signals = weeklySignals;
+    const activeProviders = new Set(signals.map(s => s.provider)).size;
 
   // Get top performing closed signals
   const closedSignals = signals

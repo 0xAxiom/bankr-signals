@@ -1,4 +1,4 @@
-import { supabase } from "./db";
+import { dbGetProviders, dbGetSignals } from "./db";
 import { getTokenFromTx } from "./onchain-price";
 
 export interface ParsedTrade {
@@ -63,34 +63,29 @@ export async function getProviderStats(
     }
   }
 
-  // Fetch providers from DB
-  const { data: providers, error: pErr } = await supabase
-    .from("signal_providers")
-    .select("*")
-    .order("registered_at", { ascending: true });
-
-  if (pErr) {
-    console.error("Failed to fetch providers:", pErr.message);
+  // Fetch providers from DB (with mock fallback)
+  let providers;
+  try {
+    providers = await dbGetProviders();
+  } catch (error: any) {
+    console.error("Failed to fetch providers:", error.message);
     return [];
   }
   if (!providers || providers.length === 0) return [];
 
-  // Fetch all signals from DB, with optional time filtering
-  let signalsQuery = supabase
-    .from("signals")
-    .select("*");
-  
-  if (timeCutoff) {
-    signalsQuery = signalsQuery.gte("timestamp", timeCutoff);
+  // Fetch all signals from DB (with mock fallback)
+  let allSignals;
+  try {
+    allSignals = await dbGetSignals(1000); // Get more signals for full stats
+    
+    // Apply time filtering if needed
+    if (timeCutoff) {
+      allSignals = allSignals.filter(s => s.timestamp >= timeCutoff);
+    }
+  } catch (error: any) {
+    console.error("Failed to fetch signals:", error.message);
+    allSignals = [];
   }
-  
-  const { data: signals, error: sErr } = await signalsQuery
-    .order("timestamp", { ascending: true });
-
-  if (sErr) {
-    console.error("Failed to fetch signals:", sErr.message);
-  }
-  const allSignals = signals || [];
 
   // Discover orphan providers (have signals but no registration)
   const registeredAddresses = new Set(providers.map(p => p.address.toLowerCase()));

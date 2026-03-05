@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-interface InactiveProvider {
+interface Provider {
   address: string;
   name: string;
   bio?: string;
@@ -10,116 +10,67 @@ interface InactiveProvider {
   farcaster?: string;
   website?: string;
   registered_at: string;
-  last_signal_at?: string;
   total_signals: number;
-  days_inactive: number;
+  days_inactive?: number;
+  hours_since_registration?: number;
 }
 
-interface OutreachTemplate {
-  provider: InactiveProvider;
-  twitter_message: string;
-  farcaster_message: string;
-  email_subject: string;
-  email_body: string;
-  personalized_tips: string[];
+interface OutreachCampaign {
+  provider: Provider;
+  twitter_dm?: string;
+  twitter_message?: string;
+  farcaster_cast?: string;
+  farcaster_message?: string;
+  quick_start_tips?: string[];
+  personalized_tips?: string[];
 }
 
-interface OutreachStats {
-  total_inactive: number;
-  never_published: number;
-  stopped_publishing: number;
-  avg_days_inactive: number;
-}
-
-export default function OutreachPage() {
-  const [providers, setProviders] = useState<InactiveProvider[]>([]);
-  const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
-  const [stats, setStats] = useState<OutreachStats | null>(null);
+export default function OutreachAdmin() {
   const [loading, setLoading] = useState(false);
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
-  const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
-  
-  const [filters, setFilters] = useState({
-    minDaysInactive: 7,
-    maxProviders: 50
-  });
+  const [inactiveProviders, setInactiveProviders] = useState<Provider[]>([]);
+  const [newProviders, setNewProviders] = useState<Provider[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<'inactive' | 'followup'>('inactive');
+  const [campaigns, setCampaigns] = useState<OutreachCampaign[]>([]);
+  const [stats, setStats] = useState<any>(null);
 
-  const fetchInactiveProviders = async (generateTemplates = false) => {
+  const loadInactiveProviders = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        minDaysInactive: filters.minDaysInactive.toString(),
-        maxProviders: filters.maxProviders.toString(),
-        generateTemplates: generateTemplates.toString()
-      });
-
-      const response = await fetch(`/api/inactive-providers?${params}`);
+      const response = await fetch('/api/inactive-providers?generateTemplates=true&minDaysInactive=3');
       const data = await response.json();
-
-      if (data.providers) {
-        setProviders(data.providers);
-        setStats(data.stats);
-        
-        if (generateTemplates && data.templates) {
-          setTemplates(data.templates);
-        }
-      }
+      setInactiveProviders(data.providers || []);
+      setCampaigns(data.templates || []);
+      setStats(data.stats);
     } catch (error) {
-      console.error('Error fetching inactive providers:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading inactive providers:', error);
     }
+    setLoading(false);
+  };
+
+  const loadNewProviders = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/cron/follow-up-outreach?hoursThreshold=48');
+      const data = await response.json();
+      setNewProviders(data.providers || []);
+      setCampaigns(data.outreach_campaigns || []);
+      setStats(data.stats);
+    } catch (error) {
+      console.error('Error loading new providers:', error);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchInactiveProviders();
-  }, []);
-
-  const generateTemplatesForSelected = async () => {
-    if (selectedProviders.length === 0) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/inactive-providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'bulk_outreach',
-          provider_addresses: selectedProviders,
-          template_type: 'standard'
-        })
-      });
-
-      const data = await response.json();
-      if (data.templates) {
-        setTemplates(data.templates);
-      }
-    } catch (error) {
-      console.error('Error generating templates:', error);
-    } finally {
-      setLoading(false);
+    if (selectedCampaign === 'inactive') {
+      loadInactiveProviders();
+    } else {
+      loadNewProviders();
     }
-  };
+  }, [selectedCampaign]);
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // Could add a toast notification here
-    } catch (err) {
-      console.error('Failed to copy to clipboard');
-    }
-  };
-
-  const selectAll = () => {
-    setSelectedProviders(providers.map(p => p.address));
-  };
-
-  const selectNone = () => {
-    setSelectedProviders([]);
-  };
-
-  const selectNeverPublished = () => {
-    setSelectedProviders(providers.filter(p => p.total_signals === 0).map(p => p.address));
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
   };
 
   const formatDate = (dateStr: string) => {
@@ -127,328 +78,249 @@ export default function OutreachPage() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Provider Outreach Dashboard</h1>
-        <p className="text-[#737373] mb-6">
-          Identify and re-engage inactive providers to boost platform activity.
+        <h1 className="text-3xl font-bold mb-4">Agent Outreach Dashboard</h1>
+        <p className="text-[#737373] text-lg">
+          Manage outreach campaigns to activate registered but inactive trading agents.
         </p>
+      </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-2xl font-bold text-red-400">{stats.total_inactive}</div>
-              <div className="text-sm text-[#737373]">Total Inactive</div>
-            </div>
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-2xl font-bold text-amber-400">{stats.never_published}</div>
-              <div className="text-sm text-[#737373]">Never Published</div>
-            </div>
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-400">{stats.stopped_publishing}</div>
-              <div className="text-sm text-[#737373]">Stopped Publishing</div>
-            </div>
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-2xl font-bold text-[#e5e5e5]">{stats.avg_days_inactive}d</div>
-              <div className="text-sm text-[#737373]">Avg Days Inactive</div>
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Filters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium mb-2">Min Days Inactive</label>
-              <input
-                type="number"
-                value={filters.minDaysInactive}
-                onChange={(e) => setFilters({ ...filters, minDaysInactive: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded text-sm focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Max Results</label>
-              <input
-                type="number"
-                value={filters.maxProviders}
-                onChange={(e) => setFilters({ ...filters, maxProviders: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded text-sm focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => fetchInactiveProviders()}
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Loading...' : 'Refresh'}
-              </button>
-              <button
-                onClick={() => fetchInactiveProviders(true)}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Loading...' : 'Load + Templates'}
-              </button>
-            </div>
-          </div>
+      {/* Campaign Type Selector */}
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Select Campaign Type</h2>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setSelectedCampaign('inactive')}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              selectedCampaign === 'inactive'
+                ? 'bg-blue-600 text-white'
+                : 'bg-[#2a2a2a] text-[#e5e5e5] hover:bg-[#3a3a3a]'
+            }`}
+          >
+            📊 Long-term Inactive Providers
+          </button>
+          <button
+            onClick={() => setSelectedCampaign('followup')}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              selectedCampaign === 'followup'
+                ? 'bg-green-600 text-white'
+                : 'bg-[#2a2a2a] text-[#e5e5e5] hover:bg-[#3a3a3a]'
+            }`}
+          >
+            🚀 Recent Registration Follow-ups
+          </button>
         </div>
       </div>
 
-      {providers.length > 0 && (
-        <>
-          {/* Selection Controls */}
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Bulk Actions</h3>
-              <div className="text-sm text-[#737373]">
-                {selectedProviders.length} of {providers.length} selected
-              </div>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <button onClick={selectAll} className="px-3 py-1 bg-[#2a2a2a] hover:bg-[#333] text-sm rounded transition-colors">
-                Select All
-              </button>
-              <button onClick={selectNone} className="px-3 py-1 bg-[#2a2a2a] hover:bg-[#333] text-sm rounded transition-colors">
-                Select None
-              </button>
-              <button onClick={selectNeverPublished} className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded transition-colors">
-                Never Published Only
-              </button>
-            </div>
-            {selectedProviders.length > 0 && (
-              <button
-                onClick={generateTemplatesForSelected}
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Generating...' : `Generate Outreach Templates (${selectedProviders.length})`}
-              </button>
-            )}
+      {/* Stats Overview */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+            <h3 className="text-sm font-medium text-[#737373] mb-2">Total Targets</h3>
+            <p className="text-2xl font-bold">
+              {selectedCampaign === 'inactive' ? stats.total_inactive : stats.ready_for_outreach || 0}
+            </p>
           </div>
-
-          {/* Providers Table */}
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden mb-6">
-            <div className="p-4 border-b border-[#2a2a2a]">
-              <h3 className="text-lg font-semibold">Inactive Providers</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#111]">
-                  <tr>
-                    <th className="text-left py-3 px-4 text-sm font-medium">
-                      <input
-                        type="checkbox"
-                        checked={selectedProviders.length === providers.length}
-                        onChange={() => selectedProviders.length === providers.length ? selectNone() : selectAll()}
-                        className="rounded"
-                      />
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Provider</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Signals</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Registered</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Last Signal</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium">Social</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {providers.map((provider, idx) => (
-                    <tr key={provider.address} className={idx % 2 === 0 ? 'bg-[#1a1a1a]' : 'bg-[#111]'}>
-                      <td className="py-3 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedProviders.includes(provider.address)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedProviders([...selectedProviders, provider.address]);
-                            } else {
-                              setSelectedProviders(selectedProviders.filter(a => a !== provider.address));
-                            }
-                          }}
-                          className="rounded"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{provider.name}</div>
-                        <div className="text-xs text-[#737373] font-mono">{provider.address.slice(0, 12)}...</div>
-                        {provider.bio && <div className="text-xs text-[#737373] mt-1">{provider.bio.slice(0, 50)}...</div>}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          provider.total_signals === 0 
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        }`}>
-                          {provider.total_signals === 0 ? 'Never Published' : 'Stopped Publishing'}
-                        </span>
-                        <div className="text-xs text-[#737373] mt-1">{provider.days_inactive}d inactive</div>
-                      </td>
-                      <td className="py-3 px-4 text-sm">{provider.total_signals}</td>
-                      <td className="py-3 px-4 text-sm">{formatDate(provider.registered_at)}</td>
-                      <td className="py-3 px-4 text-sm">
-                        {provider.last_signal_at ? formatDate(provider.last_signal_at) : 'Never'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-2">
-                          {provider.twitter && (
-                            <a href={`https://twitter.com/${provider.twitter}`} target="_blank" rel="noopener noreferrer" 
-                               className="text-blue-400 hover:text-blue-300 text-xs">
-                              @{provider.twitter}
-                            </a>
-                          )}
-                          {provider.farcaster && (
-                            <a href={`https://warpcast.com/${provider.farcaster}`} target="_blank" rel="noopener noreferrer" 
-                               className="text-purple-400 hover:text-purple-300 text-xs">
-                              @{provider.farcaster}
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+            <h3 className="text-sm font-medium text-[#737373] mb-2">Never Published</h3>
+            <p className="text-2xl font-bold text-orange-400">
+              {selectedCampaign === 'inactive' ? stats.never_published : stats.very_recent || 0}
+            </p>
           </div>
-        </>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+            <h3 className="text-sm font-medium text-[#737373] mb-2">Previously Active</h3>
+            <p className="text-2xl font-bold text-yellow-400">
+              {selectedCampaign === 'inactive' ? stats.stopped_publishing : '—'}
+            </p>
+          </div>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+            <h3 className="text-sm font-medium text-[#737373] mb-2">Avg Days Inactive</h3>
+            <p className="text-2xl font-bold text-red-400">
+              {selectedCampaign === 'inactive' ? stats.avg_days_inactive : Math.round((stats.avg_hours_since_registration || 0) / 24)}
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* Templates Section */}
-      {templates.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold mb-4">Generated Outreach Templates</h3>
-          {templates.map((template, idx) => (
-            <div key={template.provider.address} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden">
-              <div 
-                className="p-4 cursor-pointer hover:bg-[#222] transition-colors"
-                onClick={() => setExpandedTemplate(
-                  expandedTemplate === template.provider.address ? null : template.provider.address
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{template.provider.name}</div>
-                    <div className="text-sm text-[#737373]">
-                      {template.provider.total_signals === 0 ? 'Never published' : `${template.provider.days_inactive}d inactive`}
-                    </div>
+      {/* Campaign Templates */}
+      <div className="space-y-6">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-lg text-[#737373]">Loading outreach campaigns...</div>
+          </div>
+        ) : campaigns.length === 0 ? (
+          <div className="text-center py-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
+            <div className="text-lg text-[#737373] mb-2">No campaigns available</div>
+            <p className="text-sm text-[#666]">
+              {selectedCampaign === 'inactive' 
+                ? 'All providers are active or recently engaged'
+                : 'No recent registrations need follow-up'
+              }
+            </p>
+          </div>
+        ) : (
+          campaigns.map((campaign, idx) => (
+            <div key={campaign.provider.address} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+              {/* Provider Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold">{campaign.provider.name}</h3>
+                  <p className="text-[#737373] text-sm font-mono">{campaign.provider.address.slice(0, 20)}...</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-[#737373]">
+                    <span>Registered: {formatDate(campaign.provider.registered_at)}</span>
+                    <span>•</span>
+                    <span>Signals: {campaign.provider.total_signals}</span>
+                    {campaign.provider.days_inactive && (
+                      <>
+                        <span>•</span>
+                        <span className="text-orange-400">
+                          {campaign.provider.days_inactive} days inactive
+                        </span>
+                      </>
+                    )}
+                    {campaign.provider.hours_since_registration && (
+                      <>
+                        <span>•</span>
+                        <span className="text-blue-400">
+                          {Math.floor(campaign.provider.hours_since_registration / 24)}d since registration
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <div className="text-[#737373]">
-                    {expandedTemplate === template.provider.address ? '−' : '+'}
+                  {campaign.provider.bio && (
+                    <p className="text-sm text-[#b0b0b0] mt-2 italic">"{campaign.provider.bio}"</p>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  {campaign.provider.twitter && (
+                    <a
+                      href={`https://twitter.com/${campaign.provider.twitter.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 text-sm"
+                    >
+                      Twitter
+                    </a>
+                  )}
+                  {campaign.provider.farcaster && (
+                    <a
+                      href={`https://warpcast.com/${campaign.provider.farcaster.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 text-sm"
+                    >
+                      Farcaster
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Outreach Messages */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Twitter Message */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-blue-400">📱 Twitter DM</h4>
+                    <button
+                      onClick={() => copyToClipboard(campaign.twitter_dm || campaign.twitter_message || '')}
+                      className="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded-md hover:bg-blue-500/30 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
+                    <pre className="text-sm text-[#e5e5e5] whitespace-pre-wrap">
+                      {campaign.twitter_dm || campaign.twitter_message}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Farcaster Message */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-purple-400">🟣 Farcaster Cast</h4>
+                    <button
+                      onClick={() => copyToClipboard(campaign.farcaster_cast || campaign.farcaster_message || '')}
+                      className="text-xs px-3 py-1 bg-purple-500/20 text-purple-400 rounded-md hover:bg-purple-500/30 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
+                    <pre className="text-sm text-[#e5e5e5] whitespace-pre-wrap">
+                      {campaign.farcaster_cast || campaign.farcaster_message}
+                    </pre>
                   </div>
                 </div>
               </div>
-              
-              {expandedTemplate === template.provider.address && (
-                <div className="border-t border-[#2a2a2a] p-4 space-y-6">
-                  {/* Twitter Message */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-blue-400">Twitter Message</h4>
-                      <button
-                        onClick={() => copyToClipboard(template.twitter_message)}
-                        className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                    <div className="bg-[#111] border border-[#2a2a2a] rounded p-3 text-sm">
-                      {template.twitter_message}
-                    </div>
-                  </div>
 
-                  {/* Farcaster Message */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-purple-400">Farcaster Message</h4>
-                      <button
-                        onClick={() => copyToClipboard(template.farcaster_message)}
-                        className="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                    <div className="bg-[#111] border border-[#2a2a2a] rounded p-3 text-sm">
-                      {template.farcaster_message}
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-green-400">Email</h4>
-                      <button
-                        onClick={() => copyToClipboard(`Subject: ${template.email_subject}\n\n${template.email_body}`)}
-                        className="text-xs px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-                      >
-                        Copy Email
-                      </button>
-                    </div>
-                    <div className="bg-[#111] border border-[#2a2a2a] rounded p-3 space-y-2">
-                      <div className="text-sm font-medium">Subject: {template.email_subject}</div>
-                      <div className="text-sm whitespace-pre-wrap text-[#b0b0b0]">{template.email_body}</div>
-                    </div>
-                  </div>
-
-                  {/* Personalized Tips */}
-                  <div>
-                    <h4 className="font-medium text-amber-400 mb-2">Personalized Tips</h4>
-                    <div className="bg-[#111] border border-[#2a2a2a] rounded p-3">
-                      <ul className="text-sm space-y-1 text-[#b0b0b0]">
-                        {template.personalized_tips.map((tip, tipIdx) => (
-                          <li key={tipIdx}>• {tip}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
-                    {template.provider.twitter && (
-                      <a
-                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(template.twitter_message)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-                      >
-                        Tweet Now
-                      </a>
-                    )}
-                    {template.provider.farcaster && (
-                      <a
-                        href={`https://warpcast.com/~/compose?text=${encodeURIComponent(template.farcaster_message)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors"
-                      >
-                        Cast Now
-                      </a>
-                    )}
-                    <a
-                      href={`/provider/${template.provider.address}`}
-                      target="_blank"
-                      className="px-3 py-1 bg-[#2a2a2a] hover:bg-[#333] text-white text-xs rounded transition-colors"
-                    >
-                      View Profile
-                    </a>
+              {/* Tips */}
+              {(campaign.quick_start_tips || campaign.personalized_tips) && (
+                <div className="mt-6">
+                  <h4 className="font-medium text-green-400 mb-3">💡 Personalized Tips</h4>
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                    <ul className="text-sm text-[#b0b0b0] space-y-1">
+                      {(campaign.quick_start_tips || campaign.personalized_tips)?.map((tip, tipIdx) => (
+                        <li key={tipIdx}>{tip}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
-      {providers.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🎉</div>
-          <h3 className="text-xl font-medium mb-2">No Inactive Providers Found!</h3>
-          <p className="text-[#737373]">All your providers are actively publishing signals.</p>
+      {/* Bulk Actions */}
+      {campaigns.length > 0 && (
+        <div className="mt-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">🚀 Bulk Actions</h3>
+          <div className="flex gap-4 flex-wrap">
+            <button
+              onClick={() => {
+                const allTwitter = campaigns
+                  .map(c => c.twitter_dm || c.twitter_message)
+                  .filter(Boolean)
+                  .join('\n\n---\n\n');
+                copyToClipboard(allTwitter);
+              }}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              📋 Copy All Twitter Messages
+            </button>
+            <button
+              onClick={() => {
+                const allFarcaster = campaigns
+                  .map(c => c.farcaster_cast || c.farcaster_message)
+                  .filter(Boolean)
+                  .join('\n\n---\n\n');
+                copyToClipboard(allFarcaster);
+              }}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+            >
+              📋 Copy All Farcaster Messages
+            </button>
+            <button
+              onClick={() => {
+                const summary = campaigns.map(c => 
+                  `${c.provider.name} (${c.provider.address.slice(0, 10)}...): ${c.provider.total_signals} signals, ${
+                    selectedCampaign === 'inactive' 
+                      ? `${c.provider.days_inactive}d inactive`
+                      : `${Math.floor((c.provider.hours_since_registration || 0) / 24)}d since registration`
+                  }`
+                ).join('\n');
+                copyToClipboard(summary);
+              }}
+              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+            >
+              📊 Copy Provider Summary
+            </button>
+          </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

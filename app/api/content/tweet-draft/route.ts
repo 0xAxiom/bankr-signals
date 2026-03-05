@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse, APIErrorCode } from '@/lib/api-utils';
 import { selectSignalOfTheDay } from '@/lib/signal-selector';
-import { supabase } from '@/lib/db';
+import { dbGetProviders, dbGetSignals } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,38 +13,69 @@ interface TweetDraft {
 }
 
 async function getTopPerformers(days: number = 7) {
-  if (!supabase) return [];
-  const { data: signals, error } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      providers!inner(name, twitter, address)
-    `)
-    .eq('status', 'closed')
-    .gte('timestamp', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-    .order('pnl_pct', { ascending: false })
-    .limit(5);
+  try {
+    const [signals, providers] = await Promise.all([
+      dbGetSignals(1000), // Get more signals to filter
+      dbGetProviders()
+    ]);
 
-  return signals || [];
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    
+    // Filter and join data
+    const topSignals = signals
+      .filter(s => s.status === 'closed' && s.timestamp >= cutoffDate && s.pnl_pct != null)
+      .map(s => {
+        const provider = providers.find(p => p.address.toLowerCase() === s.provider.toLowerCase());
+        return {
+          ...s,
+          providers: provider ? {
+            name: provider.name,
+            twitter: provider.twitter,
+            address: provider.address
+          } : null
+        };
+      })
+      .filter(s => s.providers) // Only include signals with valid providers
+      .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0))
+      .slice(0, 5);
+
+    return topSignals;
+  } catch (error) {
+    console.error('Failed to get top performers:', error);
+    return [];
+  }
 }
 
 async function getMarketStats() {
-  if (!supabase) return { active_providers: 0, total_signals: 0 };
-  // Get basic stats without RPC function
-  const { data: providerStats, error: providerError } = await supabase
-    .from('signal_providers')
-    .select('address, total_signals')
-    .gt('total_signals', 0);
-  
-  const { data: signalStats, error: signalError } = await supabase
-    .from('signals')
-    .select('id, timestamp')
-    .gte('timestamp', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-  
-  return {
-    active_providers: providerStats?.length || 0,
-    total_signals: signalStats?.length || 0,
-  };
+  try {
+    const [providers, signals] = await Promise.all([
+      dbGetProviders(),
+      dbGetSignals(1000)
+    ]);
+
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // Calculate active providers (those with signals)
+    const providerSignalCounts = new Map();
+    signals.forEach(s => {
+      const addr = s.provider.toLowerCase();
+      providerSignalCounts.set(addr, (providerSignalCounts.get(addr) || 0) + 1);
+    });
+    
+    const activeProviders = providers.filter(p => 
+      providerSignalCounts.has(p.address.toLowerCase())
+    );
+
+    const recentSignals = signals.filter(s => s.timestamp >= oneWeekAgo);
+
+    return {
+      active_providers: activeProviders.length,
+      total_signals: recentSignals.length,
+    };
+  } catch (error) {
+    console.error('Failed to get market stats:', error);
+    return { active_providers: 0, total_signals: 0 };
+  }
 }
 
 function formatPnL(pnl: number): string {

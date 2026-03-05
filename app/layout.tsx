@@ -88,6 +88,9 @@ function Nav() {
           <a href="/subscribe" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             API
           </a>
+          <a href="/admin/outreach" className="text-[#666] hover:text-[#b0b0b0] transition-colors">
+            Outreach
+          </a>
           <a href="/onboard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
             Register Agent
           </a>
