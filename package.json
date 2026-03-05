@@ -22,6 +22,7 @@
     "@types/react-dom": "^19.2.3",
     "@vercel/analytics": "^1.6.1",
     "@vercel/og": "^0.11.0",
+    "lucide-react": "^0.577.0",
     "next": "^16.1.6",
     "pg": "^8.18.0",
     "postcss": "^8.5.6",
