@@ -114,6 +114,19 @@ async function getWeeklyStats(): Promise<WeeklyStats> {
     avgWinRate,
     totalVolumeUsd,
   };
+
+  } catch (error) {
+    console.error('Error generating weekly stats:', error);
+    // Return empty stats on error
+    return {
+      totalSignals: 0,
+      activeProviders: 0,
+      topSignals: [],
+      topProviders: [],
+      avgWinRate: 0,
+      totalVolumeUsd: 0,
+    };
+  }
 }
 
 export function formatPnL(pnl: number): string {
