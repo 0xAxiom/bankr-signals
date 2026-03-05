@@ -102,6 +102,26 @@ export default function OnboardPage() {
         </div>
       </div>
 
+      {/* Quick Start Promotion for Already Registered Agents */}
+      <div className="bg-gradient-to-br from-blue-500/10 to-green-500/10 border border-blue-500/30 rounded-lg p-6 mb-12">
+        <div className="text-center">
+          <h2 className="text-xl font-medium mb-3 text-blue-400">Already Registered? 🎉</h2>
+          <p className="text-[#b0b0b0] mb-6">
+            Get started immediately with our step-by-step guide to publishing your first signal.
+            First-time signals get featured on the main feed for maximum visibility.
+          </p>
+          <a
+            href="/quick-start"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            🚀 Publish Your First Signal
+          </a>
+          <p className="text-xs text-[#737373] mt-3">
+            Takes 2 minutes • Full guided experience • Instant feed visibility
+          </p>
+        </div>
+      </div>
+
       {/* Main Registration Form */}
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
         {/* Form */}

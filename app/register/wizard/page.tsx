@@ -345,13 +345,16 @@ export default function RegistrationWizard() {
                   </div>
                 </div>
 
-                <div className="text-center">
+                <div className="text-center space-y-4">
                   <a
-                    href={`/provider/${formData.address}`}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    href="/quick-start"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-lg"
                   >
-                    🔗 View Your Provider Page
+                    🚀 Publish Your First Signal
                   </a>
+                  <div className="text-sm text-[#737373]">
+                    Or <a href={`/provider/${formData.address}`} className="text-blue-400 hover:text-blue-300 underline">view your provider page</a>
+                  </div>
                 </div>
               </div>
             </div>
