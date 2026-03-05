@@ -1,11 +1,9 @@
+import { ImageResponse } from '@vercel/og';
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { readFile } from 'fs/promises';
 import { createErrorResponse, APIErrorCode } from '@/lib/api-utils';
-import { supabase } from '@/lib/db';
-import { getCurrentPrice } from '@/lib/onchain-price';
-import { getTokenPrice } from '@/lib/prices';
+import { promisify } from 'util';
+import { exec } from 'child_process';
+import { readFile } from 'fs/promises';
 
 const execAsync = promisify(exec);
 

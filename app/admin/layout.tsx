@@ -36,7 +36,25 @@ export default function AdminLayout({
           </div>
         </div>
       </nav>
-      {children}
+      
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="flex gap-6 text-sm border-b border-[#2a2a2a] pb-3 mb-6">
+          <a href="/admin" className="text-blue-400 hover:text-blue-300 transition-colors">
+            Dashboard
+          </a>
+          <a href="/admin/outreach" className="text-blue-400 hover:text-blue-300 transition-colors">
+            Provider Outreach
+          </a>
+          <a href="/api-docs" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            API Docs
+          </a>
+          <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Leaderboard
+          </a>
+        </div>
+        
+        {children}
+      </div>
     </div>
   );
 }
