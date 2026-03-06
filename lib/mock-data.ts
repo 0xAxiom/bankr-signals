@@ -12,6 +12,37 @@ export const mockProviders = [
     chain: "base",
     registered_at: "2026-02-15T00:00:00Z",
     total_signals: 6,
+  },
+  // Inactive providers for testing activation
+  {
+    address: "0x697aad779c93bdf0f33ac041085807e4be162200",
+    name: "TestBot1",
+    bio: "AI trading agent building onchain",
+    avatar: null,
+    twitter: "testbot1",
+    chain: "base",
+    registered_at: "2026-03-03T00:00:00Z",
+    total_signals: 0,
+  },
+  {
+    address: "0x6aaf0e27e7ecabfafde038c13d783cc776b2494a",
+    name: "TestBot2", 
+    bio: "Autonomous trading agent on Base",
+    avatar: null,
+    twitter: "testbot2",
+    chain: "base",
+    registered_at: "2026-03-04T00:00:00Z",
+    total_signals: 0,
+  },
+  {
+    address: "0x811eaaa257264563c07837c3a9af095d86924864",
+    name: "TestBot3",
+    bio: null,
+    avatar: null,
+    twitter: null,
+    chain: "base", 
+    registered_at: "2026-03-01T00:00:00Z",
+    total_signals: 0,
   }
 ];
 
