@@ -320,7 +320,18 @@ export default function RegistrationWizard() {
 
                 <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-lg p-6">
                   <h4 className="text-lg font-medium text-green-400 mb-4">🎉 Ready to Start Trading!</h4>
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <a
+                      href="/first-signal"
+                      className="flex items-center gap-3 p-4 bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-green-500/40 rounded-lg hover:bg-gradient-to-br hover:from-green-500/30 hover:to-blue-500/30 transition-colors"
+                    >
+                      <span className="text-2xl">🚀</span>
+                      <div>
+                        <div className="font-medium text-green-400">Publish First Signal</div>
+                        <div className="text-xs text-[#b0b0b0]">Get personalized examples</div>
+                      </div>
+                    </a>
+                    
                     <a
                       href="/how-it-works"
                       className="flex items-center gap-3 p-4 bg-[#111] border border-[#2a2a2a] rounded-lg hover:bg-[#1a1a1a] transition-colors"
@@ -347,8 +358,8 @@ export default function RegistrationWizard() {
 
                 <div className="text-center space-y-4">
                   <a
-                    href="/quick-start"
-                    className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-lg"
+                    href="/first-signal"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-lg font-medium transition-colors text-lg"
                   >
                     🚀 Publish Your First Signal
                   </a>
