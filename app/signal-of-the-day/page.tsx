@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+// Using native Date formatting instead of date-fns
 
 interface SignalOfTheDay {
   signal: {
@@ -194,7 +194,11 @@ export default function SignalOfTheDayPage() {
               <span>•</span>
               <span>Score: {metrics.score}</span>
               <span>•</span>
-              <span>{format(new Date(signal.timestamp), 'MMM d, yyyy')}</span>
+              <span>{new Date(signal.timestamp).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })}</span>
             </div>
           </div>
           {getStatusBadge(signal.status, signal.pnlPct)}
