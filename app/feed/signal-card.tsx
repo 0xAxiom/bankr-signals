@@ -2,6 +2,7 @@
 
 import { RelativeTimestamp } from "./components";
 import { LivePnLBadge } from "../live-pnl-badge";
+import { ShareSignalButton } from "../components/ShareSignalButton";
 
 function formatMicroPrice(price: number): string {
   if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -157,13 +158,25 @@ export function SignalCard({ trade }: SignalCardProps) {
         </div>
       )}
 
-      <div className="mt-3 pt-3 border-t border-[#2a2a2a] text-xs font-mono text-[#737373] flex items-center justify-between flex-wrap gap-2">
-        {trade.id && (
-          <a href={`/signal/${trade.id}`} className="text-[#555] hover:text-[rgba(34,197,94,0.6)] transition-colors">
-            Share ↗
-          </a>
-        )}
-      </div>
+      {/* Share Actions */}
+      {trade.id && (
+        <div className="mt-3 pt-3 border-t border-[#2a2a2a] flex items-center justify-between">
+          <ShareSignalButton
+            signal={{
+              id: trade.id,
+              provider: trade.providerName,
+              action: trade.action,
+              token: trade.token,
+              entryPrice: trade.entryPrice,
+              leverage: trade.leverage,
+              reasoning: trade.reasoning || '',
+              pnlPct: trade.pnl,
+              status: trade.status
+            }}
+            variant="icon"
+          />
+        </div>
+      )}
       <div className="mt-1 text-xs font-mono text-[#737373]">
         {trade.txHash ? (
           <div className="flex items-center gap-2 flex-wrap">

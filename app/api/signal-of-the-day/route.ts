@@ -212,8 +212,6 @@ export async function GET(req: NextRequest) {
     
     return createSuccessResponse(signalOfTheDay, 200, {
       timestamp: new Date().toISOString(),
-      date,
-      category: category || "all"
     });
     
   } catch (error: any) {
