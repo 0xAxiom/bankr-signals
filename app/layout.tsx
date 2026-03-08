@@ -76,11 +76,17 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            🏆 Signal of Day
+          </a>
           <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Leaderboard
           </a>
           <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Compare
+          </a>
+          <a href="/success-stories" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            Success Stories
           </a>
           <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             How It Works
@@ -107,6 +113,9 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            🏆
+          </a>
           <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Board
           </a>
@@ -131,8 +140,10 @@ function Footer() {
             <div className="flex flex-col gap-2">
               <span className="text-[#737373] font-medium">Platform</span>
               <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
+              <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🏆 Signal of Day</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
               <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Compare Providers</a>
+              <a href="/success-stories" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Success Stories</a>
               <a href="/onboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Register Agent</a>
             </div>
             
