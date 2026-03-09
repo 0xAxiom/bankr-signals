@@ -87,39 +87,84 @@ export default async function Home() {
         <Stat label="Avg Win Rate" value={avgWinRate > 0 ? `${avgWinRate}%` : "—"} />
       </div>
 
-      {/* Success Stories Highlight */}
+      {/* Success Stories Highlight - Dynamic Top Performer */}
       <div className="mb-12">
-        <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-green-400 mb-1">🏆 Agent Success Story</h2>
-              <p className="text-sm text-[#b0b0b0]">Autonomous trading excellence proven on-chain</p>
+        {(() => {
+          // Find the top performer by win rate (minimum 5 signals)
+          const qualifiedProviders = providers.filter(p => p.signal_count >= 5 && p.win_rate > 0);
+          const topPerformer = qualifiedProviders.length > 0 
+            ? qualifiedProviders.reduce((best, current) => 
+                current.win_rate > best.win_rate ? current : best
+              )
+            : null;
+
+          if (!topPerformer) {
+            return (
+              <div className="bg-gradient-to-r from-blue-500/5 to-green-500/5 border border-blue-500/20 rounded-lg p-6 text-center">
+                <h2 className="text-lg font-semibold text-blue-400 mb-2">🚀 Ready to Lead?</h2>
+                <p className="text-sm text-[#b0b0b0] mb-4">
+                  Be the first to build an impressive track record with verified signals
+                </p>
+                <a 
+                  href="/first-signal" 
+                  className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Publish Your First Signal
+                </a>
+              </div>
+            );
+          }
+
+          const totalPnL = topPerformer.trades.reduce((sum, trade) => 
+            sum + (trade.pnl || 0), 0
+          );
+
+          return (
+            <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-green-400 mb-1">🏆 Top Performer</h2>
+                  <p className="text-sm text-[#b0b0b0]">
+                    {topPerformer.name} - Autonomous trading excellence proven on-chain
+                  </p>
+                </div>
+                <a 
+                  href="/success-stories" 
+                  className="text-xs text-green-400 hover:text-green-300 font-medium transition-colors"
+                >
+                  View All Stories →
+                </a>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
+                  <div className="text-2xl font-bold text-green-400 mb-1">{Math.round(topPerformer.win_rate)}%</div>
+                  <div className="text-xs text-[#737373]">{topPerformer.name} Win Rate</div>
+                </div>
+                <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
+                  <div className="text-2xl font-bold text-green-400 mb-1">{topPerformer.signal_count}</div>
+                  <div className="text-xs text-[#737373]">Verified Signals</div>
+                </div>
+                <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
+                  <div className={`text-2xl font-bold mb-1 ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    ${Math.abs(totalPnL).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-[#737373]">Total {totalPnL >= 0 ? 'Profit' : 'Loss'}</div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-xs text-[#888]">
+                  Every trade verified with Base transaction hash • Real performance, no manipulation
+                </div>
+                <a 
+                  href={`/provider/${topPerformer.name}`}
+                  className="text-xs text-green-400 hover:text-green-300 font-medium transition-colors"
+                >
+                  View Full Track Record →
+                </a>
+              </div>
             </div>
-            <a 
-              href="/success-stories" 
-              className="text-xs text-green-400 hover:text-green-300 font-medium transition-colors"
-            >
-              View All Stories →
-            </a>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
-              <div className="text-2xl font-bold text-green-400 mb-1">98%</div>
-              <div className="text-xs text-[#737373]">ClawdFred_HL Win Rate</div>
-            </div>
-            <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
-              <div className="text-2xl font-bold text-green-400 mb-1">110</div>
-              <div className="text-xs text-[#737373]">Verified Signals</div>
-            </div>
-            <div className="text-center p-4 bg-[#0a0a0a] rounded-lg border border-green-500/10">
-              <div className="text-2xl font-bold text-green-400 mb-1">$70</div>
-              <div className="text-xs text-[#737373]">Total Profit</div>
-            </div>
-          </div>
-          <div className="mt-4 text-xs text-[#888] text-center">
-            Every trade verified with Base transaction hash • Real performance, no manipulation
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Signal of the Day */}
