@@ -3,277 +3,316 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
+// Mock function - replace with actual database query
+async function getSignal(id: string) {
+  // This would normally fetch from your database
+  // For now, using URL searchParams data
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const { searchParams } = new URL(request.url);
-
-  // Mock data - in production this would come from your database
-  const signal = {
-    id,
-    provider: 'AxiomBot',
-    providerAvatar: '🤖',
-    action: searchParams.get('action') || 'LONG',
-    token: searchParams.get('token') || 'ETH',
-    entryPrice: parseFloat(searchParams.get('entryPrice') || '2500'),
-    leverage: parseInt(searchParams.get('leverage') || '3'),
-    confidence: parseFloat(searchParams.get('confidence') || '0.85'),
-    reasoning: searchParams.get('reasoning') || 'Strong support at $2450, RSI oversold, volume increasing',
-    pnlPct: searchParams.get('pnlPct') ? parseFloat(searchParams.get('pnlPct')!) : null,
-    status: searchParams.get('status') || 'open',
-    timestamp: searchParams.get('timestamp') || new Date().toISOString(),
-  };
-
-  const isGreen = signal.action === 'LONG' || (signal.pnlPct && signal.pnlPct > 0);
-  const isRed = signal.action === 'SHORT' || (signal.pnlPct && signal.pnlPct < 0);
-  const primaryColor = isGreen ? '#22c55e' : isRed ? '#ef4444' : '#3b82f6';
-  const bgGradient = isGreen 
-    ? 'linear-gradient(135deg, #0a0a0a 0%, #0f2027 50%, #0a4d3a 100%)'
-    : isRed 
-    ? 'linear-gradient(135deg, #0a0a0a 0%, #2c1810 50%, #4d1f1f 100%)'
-    : 'linear-gradient(135deg, #0a0a0a 0%, #1e3a8a 50%, #1e40af 100%)';
-
-  const formatPrice = (price: number) => {
-    return price >= 1000 
-      ? `$${(price / 1000).toFixed(1)}k` 
-      : `$${price.toLocaleString()}`;
-  };
-
-  const formatPnL = (pnl: number) => {
-    const sign = pnl > 0 ? '+' : '';
-    return `${sign}${pnl.toFixed(1)}%`;
-  };
-
-  const timeAgo = (timestamp: string) => {
-    const now = new Date();
-    const signalTime = new Date(timestamp);
-    const diffMs = now.getTime() - signalTime.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  try {
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
     
-    if (diffHours < 1) return 'now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
-  };
+    // Get signal data from URL params (as set in the signal page metadata)
+    const action = searchParams.get('action') || 'LONG';
+    const token = searchParams.get('token') || 'ETH';
+    const entryPrice = searchParams.get('entryPrice') || '0';
+    const leverage = parseInt(searchParams.get('leverage') || '1');
+    const confidence = parseFloat(searchParams.get('confidence') || '0.5');
+    const reasoning = searchParams.get('reasoning') || '';
+    const status = searchParams.get('status') || 'open';
+    const timestamp = searchParams.get('timestamp') || new Date().toISOString();
+    const pnlPct = searchParams.get('pnlPct');
+    
+    // Calculate time ago
+    const timeAgo = (timestamp: string) => {
+      const now = new Date();
+      const signalTime = new Date(timestamp);
+      const diffMs = now.getTime() - signalTime.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours < 1) return 'just now';
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${Math.floor(diffHours / 24)}d ago`;
+    };
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          height: '630px',
-          width: '1200px',
-          display: 'flex',
-          flexDirection: 'column',
-          background: bgGradient,
-          fontFamily: 'Inter, system-ui, sans-serif',
-          position: 'relative',
-          color: '#ffffff',
-        }}
-      >
-        {/* Background Pattern */}
+    const formatPrice = (price: string) => {
+      const num = parseFloat(price);
+      return num >= 1000 
+        ? `$${(num / 1000).toFixed(1)}k` 
+        : `$${num.toLocaleString()}`;
+    };
+
+    // Determine colors based on action and PnL
+    const isLong = action === 'LONG';
+    const hasProfit = pnlPct && parseFloat(pnlPct) > 0;
+    const hasLoss = pnlPct && parseFloat(pnlPct) < 0;
+    
+    let primaryColor = '#22c55e'; // green
+    let backgroundColor = '#0a0a0a';
+    let borderColor = '#22c55e';
+    
+    if (action === 'SHORT' || hasLoss) {
+      primaryColor = '#ef4444'; // red
+      borderColor = '#ef4444';
+    }
+
+    return new ImageResponse(
+      (
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '40px 60px 0',
-            marginBottom: '20px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div
-              style={{
-                fontSize: '32px',
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: '50%',
-                width: '60px',
-                height: '60px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: `2px solid ${primaryColor}`,
-              }}
-            >
-              {signal.providerAvatar}
-            </div>
-            <div>
-              <div style={{ fontSize: '24px', fontWeight: '600', marginBottom: '4px' }}>
-                {signal.provider}
-              </div>
-              <div style={{ fontSize: '16px', opacity: 0.7 }}>
-                Verified Trading Agent
-              </div>
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '20px', fontWeight: '500', marginBottom: '4px' }}>
-              bankrsignals.com
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.7 }}>
-              {timeAgo(signal.timestamp)}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Signal Card */}
-        <div
-          style={{
-            margin: '0 60px',
-            padding: '40px',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: '16px',
-            border: `2px solid ${primaryColor}30`,
-            backdropFilter: 'blur(10px)',
+            height: '100%',
+            width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            gap: '30px',
-            flex: 1,
+            backgroundColor: backgroundColor,
+            color: '#ffffff',
+            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            padding: '60px',
+            position: 'relative',
           }}
         >
-          {/* Signal Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Background pattern */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `radial-gradient(circle at 20% 20%, ${primaryColor}15 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${primaryColor}10 0%, transparent 50%)`,
+            }}
+          />
+          
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '40px',
+              zIndex: 1,
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <div
                 style={{
-                  fontSize: '36px',
-                  fontWeight: '800',
-                  color: primaryColor,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: `${primaryColor}30`,
+                  border: `3px solid ${primaryColor}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '40px',
                 }}
               >
-                {signal.action}
+                🤖
               </div>
-              <div style={{ fontSize: '48px', fontWeight: '700' }}>
-                {signal.token}
+              <div>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  Bankr Signals
+                </div>
+                <div style={{ fontSize: '20px', color: '#888', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>📊</span>
+                  Verified Trading Signal • {timeAgo(timestamp)}
+                </div>
               </div>
-              {signal.leverage > 1 && (
+            </div>
+            
+            <div
+              style={{
+                padding: '15px 25px',
+                backgroundColor: status === 'closed' ? '#22c55e30' : '#f59e0b30',
+                border: `2px solid ${status === 'closed' ? '#22c55e' : '#f59e0b'}`,
+                borderRadius: '12px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: status === 'closed' ? '#22c55e' : '#f59e0b',
+              }}
+            >
+              {status === 'closed' ? '✅ CLOSED' : '🔄 OPEN'}
+            </div>
+          </div>
+
+          {/* Main Signal Display */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '50px',
+              zIndex: 1,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+              <div
+                style={{
+                  fontSize: '72px',
+                  fontWeight: 'bold',
+                  color: primaryColor,
+                  letterSpacing: '2px',
+                }}
+              >
+                {action}
+              </div>
+              <div
+                style={{
+                  fontSize: '84px',
+                  fontWeight: 'bold',
+                  color: '#ffffff',
+                }}
+              >
+                {token}
+              </div>
+              {leverage > 1 && (
                 <div
                   style={{
-                    fontSize: '20px',
-                    background: primaryColor,
+                    padding: '12px 20px',
+                    backgroundColor: primaryColor,
                     color: '#000000',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
+                    borderRadius: '10px',
+                    fontSize: '32px',
+                    fontWeight: 'bold',
                   }}
                 >
-                  {signal.leverage}x
+                  {leverage}x
                 </div>
               )}
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '16px', opacity: 0.7, marginBottom: '4px' }}>
-                Entry Price
-              </div>
-              <div style={{ fontSize: '32px', fontWeight: '700' }}>
-                {formatPrice(signal.entryPrice)}
-              </div>
-            </div>
-          </div>
-
-          {/* PnL Display (if closed) */}
-          {signal.pnlPct !== null && (
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {pnlPct && (
               <div
                 style={{
-                  fontSize: '48px',
-                  fontWeight: '800',
-                  color: signal.pnlPct > 0 ? '#22c55e' : '#ef4444',
-                  background: signal.pnlPct > 0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                  padding: '20px 40px',
-                  borderRadius: '12px',
-                  border: `2px solid ${signal.pnlPct > 0 ? '#22c55e30' : '#ef444430'}`,
+                  textAlign: 'center',
+                  padding: '30px',
+                  backgroundColor: hasProfit ? '#22c55e20' : '#ef444420',
+                  border: `3px solid ${hasProfit ? '#22c55e' : '#ef4444'}`,
+                  borderRadius: '20px',
                 }}
               >
-                {formatPnL(signal.pnlPct)}
-              </div>
-            </div>
-          )}
-
-          {/* Reasoning */}
-          <div>
-            <div style={{ fontSize: '16px', opacity: 0.7, marginBottom: '12px' }}>
-              Trade Thesis:
-            </div>
-            <div
-              style={{
-                fontSize: '20px',
-                lineHeight: '1.4',
-                padding: '20px',
-                background: 'rgba(255,255,255,0.03)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              "{signal.reasoning}"
-            </div>
-          </div>
-
-          {/* Bottom Stats */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '40px' }}>
-              <div>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>Confidence</div>
-                <div style={{ fontSize: '20px', fontWeight: '600' }}>
-                  {(signal.confidence * 100).toFixed(0)}%
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>Status</div>
                 <div
                   style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    color: signal.status === 'closed' ? primaryColor : '#fbbf24',
-                    textTransform: 'uppercase',
+                    fontSize: '64px',
+                    fontWeight: 'bold',
+                    color: hasProfit ? '#22c55e' : '#ef4444',
+                    marginBottom: '10px',
                   }}
                 >
-                  {signal.status}
+                  {parseFloat(pnlPct) > 0 ? '+' : ''}{parseFloat(pnlPct).toFixed(1)}%
+                </div>
+                <div style={{ fontSize: '18px', color: '#888' }}>
+                  PnL
                 </div>
               </div>
-            </div>
+            )}
+          </div>
 
-            <div style={{ fontSize: '14px', opacity: 0.5, fontFamily: 'monospace' }}>
-              Signal #{id.slice(-8)}
+          {/* Signal Details */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '60px',
+              marginBottom: '40px',
+              zIndex: 1,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '18px', color: '#888' }}>Entry Price</div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                {formatPrice(entryPrice)}
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '18px', color: '#888' }}>Confidence</div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                {Math.round(confidence * 100)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Trade Thesis */}
+          <div
+            style={{
+              backgroundColor: '#1a1a1a',
+              border: '2px solid #333',
+              borderRadius: '15px',
+              padding: '30px',
+              marginBottom: '30px',
+              zIndex: 1,
+            }}
+          >
+            <div style={{ fontSize: '20px', color: '#888', marginBottom: '15px' }}>
+              Trade Thesis
+            </div>
+            <div style={{ fontSize: '24px', lineHeight: '1.4', color: '#ffffff' }}>
+              "{reasoning.slice(0, 180)}{reasoning.length > 180 ? '...' : ''}"
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 'auto',
+              zIndex: 1,
+            }}
+          >
+            <div style={{ fontSize: '18px', color: '#888' }}>
+              🔗 Verified with Base blockchain transaction
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: primaryColor }}>
+              bankrsignals.com
             </div>
           </div>
         </div>
-
-        {/* Footer */}
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    );
+  } catch (error) {
+    console.error('Error generating OG image:', error);
+    
+    // Fallback image
+    return new ImageResponse(
+      (
         <div
           style={{
-            padding: '30px 60px 40px',
+            height: '100%',
+            width: '100%',
             display: 'flex',
-            justifyContent: 'center',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: '20px',
+            justifyContent: 'center',
+            backgroundColor: '#0a0a0a',
+            color: '#ffffff',
+            fontFamily: 'system-ui',
           }}
         >
-          <div style={{ fontSize: '14px', opacity: 0.7 }}>
-            🔗 Blockchain-verified trading signals • Follow top performers • Copy winning strategies
+          <div style={{ fontSize: '64px', marginBottom: '30px' }}>📊</div>
+          <div style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>
+            Bankr Signals
+          </div>
+          <div style={{ fontSize: '24px', color: '#888' }}>
+            Verified Trading Signal
           </div>
         </div>
-      </div>
-    ),
-    {
-      width: 1200,
-      height: 630,
-    }
-  );
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    );
+  }
 }
