@@ -45,6 +45,9 @@ export default function AdminLayout({
           <a href="/admin/outreach" className="text-blue-400 hover:text-blue-300 transition-colors">
             Provider Outreach
           </a>
+          <a href="/admin/agent-onboarding" className="text-blue-400 hover:text-blue-300 transition-colors">
+            Agent Onboarding
+          </a>
           <a href="/api-docs" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             API Docs
           </a>
