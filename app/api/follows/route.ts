@@ -3,59 +3,6 @@ import { supabase } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-async function getOrCreateUserPortfolio(userId: string) {
-  const { data: existing, error: fetchError } = await supabase
-    .from("user_portfolios")
-    .select("user_id, followed_providers")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (fetchError && fetchError.code !== "PGRST116") {
-    throw fetchError;
-  }
-
-  if (existing) {
-    return existing;
-  }
-
-  // Create new user portfolio
-  const { data: created, error: createError } = await supabase
-    .from("user_portfolios")
-    .insert([{
-      user_id: userId,
-      followed_providers: []
-    }])
-    .select("user_id, followed_providers")
-    .single();
-
-  if (createError) {
-    throw createError;
-  }
-
-  return created;
-}
-
-async function updateProviderFollowerCount(providerAddress: string) {
-  // Count total followers for this provider across all user portfolios
-  const { data: followers, error } = await supabase
-    .rpc('count_provider_followers', { provider_address: providerAddress });
-
-  if (error) {
-    console.error("Failed to count followers:", error);
-    return;
-  }
-
-  // Update the provider's follower count
-  const { error: updateError } = await supabase
-    .from("signal_providers")
-    .update({ followers: followers || 0 })
-    .eq("address", providerAddress);
-
-  if (updateError) {
-    console.error("Failed to update follower count:", updateError);
-  }
-}
-
 // GET /api/follows?user_id=0x...&provider=0x... - Check if user follows provider
 // GET /api/follows?user_id=0x... - Get all followed providers for user
 export async function GET(req: NextRequest) {
@@ -68,20 +15,48 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const userPortfolio = await getOrCreateUserPortfolio(userId.toLowerCase());
-    const followedProviders = userPortfolio.followed_providers || [];
+    const userIdentifier = userId.toLowerCase();
 
     if (providerAddress) {
       // Check if user follows specific provider
-      const isFollowing = followedProviders.includes(providerAddress.toLowerCase());
+      const { data: follow, error } = await supabase
+        .from("provider_follows")
+        .select("provider_address, created_at")
+        .eq("user_identifier", userIdentifier)
+        .eq("provider_address", providerAddress.toLowerCase())
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      // Get all followed providers for backward compatibility
+      const { data: allFollows, error: allFollowsError } = await supabase
+        .from("provider_follows")
+        .select("provider_address")
+        .eq("user_identifier", userIdentifier);
+
+      if (allFollowsError) throw allFollowsError;
+
+      const followedProviders = allFollows?.map(f => f.provider_address) || [];
+
       return NextResponse.json({ 
         userId, 
-        providerAddress, 
-        isFollowing,
+        providerAddress: providerAddress.toLowerCase(), 
+        isFollowing: !!follow,
         followedProviders 
       });
     } else {
       // Return all followed providers
+      const { data: follows, error } = await supabase
+        .from("provider_follows")
+        .select("provider_address")
+        .eq("user_identifier", userIdentifier);
+
+      if (error) throw error;
+
+      const followedProviders = follows?.map(f => f.provider_address) || [];
+
       return NextResponse.json({ 
         userId, 
         followedProviders 
@@ -120,34 +95,60 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    const userPortfolio = await getOrCreateUserPortfolio(normalizedUserId);
-    const currentFollowed = userPortfolio.followed_providers || [];
+    // Check if already following
+    const { data: existingFollow, error: checkError } = await supabase
+      .from("provider_follows")
+      .select("provider_address")
+      .eq("user_identifier", normalizedUserId)
+      .eq("provider_address", normalizedProvider)
+      .maybeSingle();
 
-    if (currentFollowed.includes(normalizedProvider)) {
+    if (checkError && checkError.code !== "PGRST116") {
+      throw checkError;
+    }
+
+    if (existingFollow) {
+      // Get all followed providers for response
+      const { data: allFollows } = await supabase
+        .from("provider_follows")
+        .select("provider_address")
+        .eq("user_identifier", normalizedUserId);
+
+      const followedProviders = allFollows?.map(f => f.provider_address) || [];
+
       return NextResponse.json({ 
         message: "Already following this provider",
-        isFollowing: true 
+        isFollowing: true,
+        followedProviders 
       });
     }
 
-    const newFollowed = [...currentFollowed, normalizedProvider];
+    // Create follow record
+    const { error: followError } = await supabase
+      .from("provider_follows")
+      .insert({
+        user_identifier: normalizedUserId,
+        provider_address: normalizedProvider,
+        notify_telegram: true,
+        notify_email: false
+      });
 
-    const { error: updateError } = await supabase
-      .from("user_portfolios")
-      .update({ followed_providers: newFollowed })
-      .eq("user_id", normalizedUserId);
-
-    if (updateError) {
-      throw updateError;
+    if (followError) {
+      throw followError;
     }
 
-    // Update provider follower count
-    await updateProviderFollowerCount(normalizedProvider);
+    // Get updated followed providers list
+    const { data: allFollows } = await supabase
+      .from("provider_follows")
+      .select("provider_address")
+      .eq("user_identifier", normalizedUserId);
+
+    const followedProviders = allFollows?.map(f => f.provider_address) || [];
 
     return NextResponse.json({
       message: `Now following ${provider.name}`,
       isFollowing: true,
-      followedProviders: newFollowed
+      followedProviders
     });
 
   } catch (error: any) {
@@ -170,34 +171,48 @@ export async function DELETE(req: NextRequest) {
     const normalizedUserId = userId.toLowerCase();
     const normalizedProvider = providerAddress.toLowerCase();
 
-    const userPortfolio = await getOrCreateUserPortfolio(normalizedUserId);
-    const currentFollowed = userPortfolio.followed_providers || [];
+    // Check if user is following this provider
+    const { data: existingFollow, error: checkError } = await supabase
+      .from("provider_follows")
+      .select("provider_address")
+      .eq("user_identifier", normalizedUserId)
+      .eq("provider_address", normalizedProvider)
+      .maybeSingle();
 
-    if (!currentFollowed.includes(normalizedProvider)) {
+    if (checkError && checkError.code !== "PGRST116") {
+      throw checkError;
+    }
+
+    if (!existingFollow) {
       return NextResponse.json({ 
         message: "Not following this provider",
         isFollowing: false 
       });
     }
 
-    const newFollowed = currentFollowed.filter((addr: string) => addr !== normalizedProvider);
+    // Delete follow record
+    const { error: deleteError } = await supabase
+      .from("provider_follows")
+      .delete()
+      .eq("user_identifier", normalizedUserId)
+      .eq("provider_address", normalizedProvider);
 
-    const { error: updateError } = await supabase
-      .from("user_portfolios")
-      .update({ followed_providers: newFollowed })
-      .eq("user_id", normalizedUserId);
-
-    if (updateError) {
-      throw updateError;
+    if (deleteError) {
+      throw deleteError;
     }
 
-    // Update provider follower count
-    await updateProviderFollowerCount(normalizedProvider);
+    // Get updated followed providers list
+    const { data: allFollows } = await supabase
+      .from("provider_follows")
+      .select("provider_address")
+      .eq("user_identifier", normalizedUserId);
+
+    const followedProviders = allFollows?.map(f => f.provider_address) || [];
 
     return NextResponse.json({
       message: "Unfollowed provider",
       isFollowing: false,
-      followedProviders: newFollowed
+      followedProviders
     });
 
   } catch (error: any) {
