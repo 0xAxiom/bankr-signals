@@ -76,6 +76,9 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/following" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            ❤️ Following
+          </a>
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆 Signal of Day
           </a>

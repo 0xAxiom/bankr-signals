@@ -1,33 +1,24 @@
 import { Metadata } from "next";
+import FollowingFeed from "./FollowingFeed";
 
 export const metadata: Metadata = {
   title: "Following - Bankr Signals",
-  description: "See the latest signals from traders you follow. Personalized feed of verified trading signals.",
+  description: "Your personalized feed of signals from providers you follow",
 };
-
-import FollowingClient from './FollowingClient';
 
 export default function FollowingPage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#e5e5e5] mb-2">Following</h1>
-            <p className="text-sm text-[#737373]">
-              Signals from traders you follow. Follow more providers to personalize your feed.
-            </p>
-          </div>
-          <a 
-            href="/leaderboard"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            Discover Traders
-          </a>
+    <div className="min-h-screen bg-zinc-950 pt-24">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Following</h1>
+          <p className="text-zinc-400">
+            Your personalized feed of signals from providers you follow
+          </p>
         </div>
-      </div>
 
-      <FollowingClient />
-    </main>
+        <FollowingFeed />
+      </div>
+    </div>
   );
 }

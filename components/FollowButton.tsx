@@ -1,222 +1,210 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useProviderFollow } from '@/hooks/useProviderFollow';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Heart, HeartOff } from 'lucide-react';
 
 interface FollowButtonProps {
   providerAddress: string;
   providerName: string;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'primary' | 'outline';
-  showFollowerCount?: boolean;
-  followerCount?: number;
+  userAddress?: string;
   className?: string;
-  onFollowChange?: (isFollowing: boolean) => void;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'outline' | 'ghost';
+  showIcon?: boolean;
+  onFollowChange?: (following: boolean) => void;
 }
 
-export function FollowButton({ 
-  providerAddress, 
+export default function FollowButton({
+  providerAddress,
   providerName,
+  userAddress,
+  className = '',
   size = 'md',
   variant = 'outline',
-  showFollowerCount = false,
-  followerCount = 0,
-  className = '',
+  showIcon = true,
   onFollowChange
 }: FollowButtonProps) {
-  const { isFollowing, isLoading, error, follow, unfollow } = useProviderFollow(providerAddress);
-  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleToggleFollow = async () => {
-    try {
-      setIsActionLoading(true);
-      
-      if (isFollowing) {
-        await unfollow();
-        onFollowChange?.(false);
-      } else {
-        await follow({
-          notify_telegram: true,
-          notify_email: false,
-        });
-        onFollowChange?.(true);
+  // Check initial following status
+  useEffect(() => {
+    if (!userAddress || !providerAddress) return;
+
+    const checkFollowingStatus = async () => {
+      try {
+        const response = await fetch(
+          `/api/follow?userAddress=${userAddress}&providerAddress=${providerAddress}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.following);
+        }
+      } catch (error) {
+        console.error('Error checking following status:', error);
       }
-    } catch (err) {
-      console.error('Follow action error:', err);
+    };
+
+    checkFollowingStatus();
+  }, [userAddress, providerAddress]);
+
+  const handleFollowToggle = async () => {
+    if (!userAddress) {
+      setError('Please connect your wallet to follow providers');
+      return;
+    }
+
+    if (userAddress.toLowerCase() === providerAddress.toLowerCase()) {
+      setError("You can't follow yourself!");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/follow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress,
+          providerAddress,
+          action: isFollowing ? 'unfollow' : 'follow',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsFollowing(data.following);
+        onFollowChange?.(data.following);
+      } else {
+        setError(data.message || 'Failed to update following status');
+      }
+    } catch (error) {
+      console.error('Follow/unfollow error:', error);
+      setError('Network error. Please try again.');
     } finally {
-      setIsActionLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const getSizeClasses = () => {
-    switch (size) {
-      case 'sm':
-        return 'px-2 py-1 text-xs';
-      case 'lg':
-        return 'px-6 py-3 text-base';
-      default:
-        return 'px-4 py-2 text-sm';
-    }
-  };
-
-  const getVariantClasses = () => {
-    if (isFollowing) {
-      return 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20';
-    }
-    
-    if (variant === 'primary') {
-      return 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700';
-    }
-    
-    return 'bg-transparent border-[#3a3a3a] text-[#a3a3a3] hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-400';
-  };
-
-  const getIcon = () => {
-    if (isActionLoading || isLoading) {
-      return (
-        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="32" strokeDashoffset="32">
-            <animate attributeName="stroke-dashoffset" dur="1s" values="32;0;32" repeatCount="indefinite" />
-          </circle>
-        </svg>
-      );
-    }
-    
-    if (isFollowing) {
-      return (
-        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-        </svg>
-      );
-    }
-    
+  if (!userAddress) {
     return (
-      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-      </svg>
+      <Button
+        variant={variant}
+        size={size}
+        className={`${className} opacity-60 cursor-not-allowed`}
+        disabled
+      >
+        {showIcon && <Heart className="h-4 w-4 mr-1" />}
+        Follow
+      </Button>
     );
-  };
+  }
 
-  const getText = () => {
-    if (isFollowing) {
-      return size === 'sm' ? 'Following' : 'Following';
-    }
-    return size === 'sm' ? 'Follow' : 'Follow';
-  };
+  // Don't show follow button for self
+  if (userAddress.toLowerCase() === providerAddress.toLowerCase()) {
+    return null;
+  }
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <button
-        onClick={handleToggleFollow}
-        disabled={isActionLoading || isLoading}
-        className={`
-          inline-flex items-center gap-2 rounded-lg border transition-all duration-200
-          disabled:opacity-50 disabled:cursor-not-allowed
-          ${getSizeClasses()}
-          ${getVariantClasses()}
-        `}
-        title={isFollowing ? `Unfollow ${providerName}` : `Follow ${providerName}`}
+    <div className="space-y-1">
+      <Button
+        variant={isFollowing ? 'default' : variant}
+        size={size}
+        className={className}
+        onClick={handleFollowToggle}
+        disabled={isLoading}
       >
-        {getIcon()}
-        <span className="font-medium">{getText()}</span>
-      </button>
-
-      {showFollowerCount && (
-        <span className="text-xs text-[#737373]">
-          {(followerCount + (isFollowing ? 1 : 0)).toLocaleString()} followers
-        </span>
-      )}
-
+        {showIcon && (
+          isFollowing 
+            ? <HeartOff className="h-4 w-4 mr-1" />
+            : <Heart className="h-4 w-4 mr-1" />
+        )}
+        {isLoading 
+          ? '...' 
+          : isFollowing 
+            ? 'Following'
+            : 'Follow'
+        }
+      </Button>
       {error && (
-        <div className="text-xs text-red-400 ml-2">
-          {error}
-        </div>
+        <p className="text-sm text-red-500 max-w-xs">{error}</p>
       )}
     </div>
   );
 }
 
-// Compact version for cards/lists
-export function FollowIconButton({ 
-  providerAddress, 
-  providerName,
-  className = '' 
-}: {
-  providerAddress: string;
-  providerName: string;
-  className?: string;
-}) {
-  return (
-    <FollowButton
-      providerAddress={providerAddress}
-      providerName={providerName}
-      size="sm"
-      variant="outline"
-      className={className}
-    />
-  );
-}
+// Hook for managing follow state
+export function useFollowStatus(userAddress?: string, providerAddress?: string) {
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-// Enhanced version with preferences modal (for future implementation)
-export function FollowButtonWithPreferences({ 
-  providerAddress, 
-  providerName,
-  className = '' 
-}: {
-  providerAddress: string;
-  providerName: string;
-  className?: string;
-}) {
-  const [showPreferences, setShowPreferences] = useState(false);
-  
-  return (
-    <>
-      <FollowButton
-        providerAddress={providerAddress}
-        providerName={providerName}
-        className={className}
-        onFollowChange={(isFollowing) => {
-          if (isFollowing) {
-            setShowPreferences(true);
-          }
-        }}
-      />
-      
-      {/* Preferences modal would go here */}
-      {showPreferences && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Follow Preferences</h3>
-            <p className="text-sm text-[#737373] mb-4">
-              Customize how you want to be notified about {providerName}'s signals.
-            </p>
-            <div className="space-y-3 mb-6">
-              <label className="flex items-center gap-3">
-                <input type="checkbox" className="rounded border-[#3a3a3a]" defaultChecked />
-                <span className="text-sm">Telegram notifications</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input type="checkbox" className="rounded border-[#3a3a3a]" />
-                <span className="text-sm">Email notifications</span>
-              </label>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowPreferences(false)}
-                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Save Preferences
-              </button>
-              <button
-                onClick={() => setShowPreferences(false)}
-                className="px-4 py-2 border border-[#3a3a3a] text-[#a3a3a3] rounded-lg text-sm hover:border-[#4a4a4a] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+  useEffect(() => {
+    if (!userAddress || !providerAddress) return;
+
+    const checkStatus = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/follow?userAddress=${userAddress}&providerAddress=${providerAddress}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.following);
+        }
+      } catch (error) {
+        console.error('Error checking following status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkStatus();
+  }, [userAddress, providerAddress]);
+
+  const toggleFollow = async () => {
+    if (!userAddress || !providerAddress) return false;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/follow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress,
+          providerAddress,
+          action: isFollowing ? 'unfollow' : 'follow',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsFollowing(data.following);
+        return data.following;
+      }
+      return false;
+    } catch (error) {
+      console.error('Follow/unfollow error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    isFollowing,
+    isLoading,
+    toggleFollow,
+  };
 }

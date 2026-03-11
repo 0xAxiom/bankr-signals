@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 import { Avatar } from "../../avatar";
 import { LivePnLTracker } from "../../live-pnl";
-import { FollowButton } from "../../components/follow-button";
+import FollowButton from "../../../components/FollowButton";
 import { computeBadges, getBadgeColor } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
