@@ -2,6 +2,7 @@ import { getProviderStats } from "@/lib/signals";
 import { LiveTicker, AggregateEquityCurve, SortableProvidersTable } from "./components";
 import SignalOfDay from "./signal-of-day";
 import RecentSignals from "./recent-signals";
+import NewsletterSignup from "./components/newsletter-signup";
 
 export const dynamic = "force-dynamic";
 
@@ -244,6 +245,11 @@ export default async function Home() {
             GitHub &rarr;
           </a>
         </div>
+      </div>
+
+      {/* Newsletter Signup */}
+      <div className="mt-12" id="subscribe">
+        <NewsletterSignup />
       </div>
     </main>
   );
