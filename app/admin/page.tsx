@@ -138,13 +138,27 @@ export default function AdminDashboard() {
               Last updated: {lastRefresh.toLocaleTimeString()}
             </p>
           </div>
-          <button
-            onClick={refreshAll}
-            disabled={loading}
-            className="bg-green-900 hover:bg-green-800 text-green-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/admin/agent-discovery"
+              className="bg-blue-900 hover:bg-blue-800 text-blue-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              🔍 Agent Discovery
+            </a>
+            <a
+              href="/admin/outreach"
+              className="bg-purple-900 hover:bg-purple-800 text-purple-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              📤 Outreach
+            </a>
+            <button
+              onClick={refreshAll}
+              disabled={loading}
+              className="bg-green-900 hover:bg-green-800 text-green-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {/* System Health */}
