@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { ShareCard } from './ShareCard';
 
 interface SignalPageProps {
   params: Promise<{ id: string }>;
@@ -255,41 +256,7 @@ export default async function SignalPage({ params }: SignalPageProps) {
       </div>
 
       {/* Share Card */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>📤</span> Share This Signal
-        </h2>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <a
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-              `${signal.action} ${signal.token} ${signal.leverage > 1 ? `${signal.leverage}x ` : ''}signal from ${signal.provider} 📊\n\n"${signal.reasoning}"\n\nEntry: ${formatPrice(signal.entryPrice)}${signal.pnlPct ? ` • PnL: ${signal.pnlPct > 0 ? '+' : ''}${signal.pnlPct.toFixed(1)}%` : ''}\n\nTrack verified trading signals:`
-            )}&url=${encodeURIComponent(window.location.href)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <span>🐦</span> Share on X
-          </a>
-          
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              // You could show a toast here
-            }}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#2a2a2a] hover:bg-[#333] text-white rounded-lg font-medium transition-colors"
-          >
-            <span>📋</span> Copy Link
-          </button>
-          
-          <a
-            href={`/provider/${signal.providerAddress}`}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <span>👤</span> View Provider
-          </a>
-        </div>
-      </div>
+      <ShareCard signal={signal} />
 
       {/* Related Actions */}
       <div className="text-center">

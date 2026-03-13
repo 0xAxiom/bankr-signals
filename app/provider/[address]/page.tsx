@@ -6,6 +6,7 @@ import { Avatar } from "../../avatar";
 import { LivePnLTracker } from "../../live-pnl";
 import FollowButton from "../../../components/FollowButton";
 import { computeBadges, getBadgeColor } from "@/lib/badges";
+import { ShareProvider } from "./ShareProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -238,6 +239,26 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           </table>
         </div>
       )}
+
+      {/* Share Provider Section */}
+      <div className="mt-8 mb-8">
+        <ShareProvider 
+          provider={p}
+          topSignals={p.trades
+            .filter(t => t.pnl && t.pnl > 0)
+            .sort((a, b) => (b.pnl || 0) - (a.pnl || 0))
+            .slice(0, 5)
+            .map(t => ({
+              id: `${t.timestamp}_${t.token}`,
+              action: t.action,
+              token: t.token,
+              leverage: t.leverage,
+              pnlPct: t.pnl,
+              reasoning: t.reasoning
+            }))
+          }
+        />
+      </div>
 
       <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
         <div className="text-xs text-[#737373] mb-2">API endpoint for this provider:</div>

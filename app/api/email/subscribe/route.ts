@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
-import { createSuccessResponse, createErrorResponse } from '@/lib/api-utils';
+import { createSuccessResponse, createErrorResponse, APIErrorCode } from '@/lib/api-utils';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     // Validate email
     if (!email || !isValidEmail(email)) {
-      return createErrorResponse('INVALID_INPUT', 'Valid email address is required', 400);
+      return createErrorResponse(APIErrorCode.VALIDATION_ERROR, 'Valid email address is required', 400);
     }
 
     // Generate unsubscribe token
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Get client info for tracking
     const userAgent = request.headers.get('user-agent') || '';
     const xForwardedFor = request.headers.get('x-forwarded-for');
-    const ipAddress = xForwardedFor ? xForwardedFor.split(',')[0] : request.ip;
+    const ipAddress = xForwardedFor ? xForwardedFor.split(',')[0] : 'unknown';
 
     // Check if email already exists
     const { data: existing } = await supabase
@@ -86,10 +86,10 @@ export async function POST(request: NextRequest) {
     console.error('Email subscription error:', error);
     
     if (error.code === '23505') { // Unique constraint violation
-      return createErrorResponse('ALREADY_EXISTS', 'This email is already subscribed', 409);
+      return createErrorResponse(APIErrorCode.DUPLICATE_ERROR, 'This email is already subscribed', 409);
     }
 
-    return createErrorResponse('INTERNAL_ERROR', 'Failed to subscribe email', 500);
+    return createErrorResponse(APIErrorCode.INTERNAL_ERROR, 'Failed to subscribe email', 500);
   }
 }
 
@@ -100,7 +100,7 @@ export async function DELETE(request: NextRequest) {
     const email = searchParams.get('email');
 
     if (!token && !email) {
-      return createErrorResponse('INVALID_INPUT', 'Unsubscribe token or email is required', 400);
+      return createErrorResponse(APIErrorCode.VALIDATION_ERROR, 'Unsubscribe token or email is required', 400);
     }
 
     let whereClause = {};
@@ -124,7 +124,7 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       if (error.code === 'PGRST116') { // No rows returned
-        return createErrorResponse('NOT_FOUND', 'Subscription not found', 404);
+        return createErrorResponse(APIErrorCode.NOT_FOUND, 'Subscription not found', 404);
       }
       throw error;
     }
@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Email unsubscribe error:', error);
-    return createErrorResponse('INTERNAL_ERROR', 'Failed to unsubscribe', 500);
+    return createErrorResponse(APIErrorCode.INTERNAL_ERROR, 'Failed to unsubscribe', 500);
   }
 }
 

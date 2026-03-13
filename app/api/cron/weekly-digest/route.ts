@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
-import { createSuccessResponse, createErrorResponse } from '@/lib/api-utils';
+import { createSuccessResponse, createErrorResponse, APIErrorCode } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error: any) {
     console.error('Weekly digest error:', error);
-    return createErrorResponse('INTERNAL_ERROR', 'Failed to generate weekly digest', 500);
+    return createErrorResponse(APIErrorCode.INTERNAL_ERROR, 'Failed to generate weekly digest', 500);
   }
 }
 
