@@ -140,6 +140,12 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <a
+              href="/admin/agent-scout"
+              className="bg-green-900 hover:bg-green-800 text-green-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              🕵️‍♂️ Agent Scout
+            </a>
+            <a
               href="/admin/agent-discovery"
               className="bg-blue-900 hover:bg-blue-800 text-blue-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
