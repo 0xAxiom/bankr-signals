@@ -1,5 +1,5 @@
 import { getProviderStats } from "@/lib/signals";
-import { FilteredFeed } from "./filtered-feed";
+import { PersonalizedFeed } from "./personalized-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,10 @@ export default async function Feed() {
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <h1 className="text-xl font-semibold mb-1">Signal Feed</h1>
       <p className="text-xs text-[#737373] mb-8">
-        Live signals from all providers with real-time price tracking and trade reasoning.
+        Personalized feed showing signals from traders you follow, or browse all signals.
       </p>
 
-      <FilteredFeed trades={trades} />
+      <PersonalizedFeed allTrades={trades} />
     </main>
   );
 }

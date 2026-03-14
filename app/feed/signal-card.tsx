@@ -37,9 +37,11 @@ interface TradeWithProvider {
 
 interface SignalCardProps {
   trade: TradeWithProvider;
+  isFollowed?: boolean;
+  showFollowBadge?: boolean;
 }
 
-export function SignalCard({ trade }: SignalCardProps) {
+export function SignalCard({ trade, isFollowed = false, showFollowBadge = false }: SignalCardProps) {
   const isBuy = trade.action === "BUY" || trade.action === "LONG";
   
   // Issue #14: Use !== undefined instead of falsy check for PnL
@@ -90,13 +92,19 @@ export function SignalCard({ trade }: SignalCardProps) {
       </div>
 
       {/* Provider Info */}
-      <div className="mb-3">
+      <div className="mb-3 flex items-center gap-2 justify-between">
         <a
           href={`/provider/${trade.providerAddress}`}
           className="text-[10px] sm:text-xs text-[#737373] hover:text-[#e5e5e5] font-mono transition-colors"
         >
           {trade.providerName}
         </a>
+        {showFollowBadge && isFollowed && (
+          <div className="flex items-center gap-1 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] text-[rgba(34,197,94,0.8)] px-2 py-0.5 rounded text-xs font-medium">
+            <span className="text-xs">★</span>
+            <span className="text-[10px]">Following</span>
+          </div>
+        )}
       </div>
 
       {/* Issue #16: Only show confidence if real data exists */}
