@@ -1,443 +1,193 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// Using native Date formatting instead of date-fns
+import Link from 'next/link';
+import { ArrowUpIcon, ArrowDownIcon, ShareIcon, ClipboardIcon } from '@heroicons/react/24/outline';
 
-interface SignalOfTheDay {
-  signal: {
-    id: string;
-    provider: string;
-    providerInfo: any;
-    timestamp: string;
-    action: string;
-    token: string;
-    chain: string;
-    entryPrice: number;
-    exitPrice?: number;
-    leverage?: number;
-    confidence?: number;
-    reasoning?: string;
-    collateralUsd: number;
-    status: string;
-    pnlPct?: number;
-    pnlUsd?: number;
-    stopLossPct?: number;
-    takeProfitPct?: number;
-    txHash: string;
-  };
-  metrics: {
-    score: number;
-    reason: string;
-    rank: number;
-    totalCandidates: number;
-  };
-  contentSuggestions: {
-    headline: string;
-    tweetText: string;
-    summary: string;
-  };
-  alternatives: Array<{
-    signal: any;
-    score: number;
-    reason: string;
-    rank: number;
-  }>;
+interface SignalOfTheDayData {
+  signal: any;
+  tweetText: string;
+  isOpen: boolean;
+  message: string;
 }
 
-export default function SignalOfTheDayPage() {
-  const [signalData, setSignalData] = useState<SignalOfTheDay | null>(null);
+export default function SignalOfTheDay() {
+  const [data, setData] = useState<SignalOfTheDayData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchSignalOfTheDay();
-  }, [selectedCategory]);
+  }, []);
 
   const fetchSignalOfTheDay = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const params = new URLSearchParams();
-      if (selectedCategory !== 'all') {
-        params.set('category', selectedCategory);
-      }
-      
-      const response = await fetch(`/api/signal-of-the-day?${params}`);
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error?.message || 'Failed to fetch signal');
-      }
-      
-      setSignalData(data.data);
-    } catch (err: any) {
-      setError(err.message);
+      const response = await fetch('/api/signal-of-the-day');
+      const result = await response.json();
+      setData(result);
+    } catch (error) {
+      console.error('Error fetching signal of the day:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text');
-    }
-  };
-
-  const getActionEmoji = (action: string) => {
-    switch (action.toUpperCase()) {
-      case 'LONG': return '📈';
-      case 'SHORT': return '📉';
-      case 'BUY': return '🟢';
-      case 'SELL': return '🔴';
-      default: return '💹';
-    }
-  };
-
-  const getStatusBadge = (status: string, pnlPct?: number) => {
-    if (status === 'closed') {
-      if (pnlPct && pnlPct > 0) {
-        return <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-sm font-medium">✅ Profitable</span>;
-      } else if (pnlPct && pnlPct < 0) {
-        return <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-medium">❌ Loss</span>;
-      } else {
-        return <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-500/20 border border-gray-500/30 text-gray-400 text-sm font-medium">📊 Closed</span>;
+  const copyTweetText = async () => {
+    if (data?.tweetText) {
+      try {
+        await navigator.clipboard.writeText(data.tweetText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (error) {
+        console.error('Failed to copy text:', error);
       }
-    } else {
-      return <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm font-medium">🔄 Active</span>;
     }
+  };
+
+  const formatPnL = (pnl: number) => {
+    const formatted = pnl > 0 ? `+${pnl.toFixed(1)}%` : `${pnl.toFixed(1)}%`;
+    return pnl > 0 ? (
+      <span className="text-green-500 font-semibold">{formatted}</span>
+    ) : (
+      <span className="text-red-500 font-semibold">{formatted}</span>
+    );
   };
 
   if (loading) {
     return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-[#737373]">Loading today's featured signal...</p>
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">Loading Signal of the Day...</div>
         </div>
-      </main>
+      </div>
     );
   }
 
-  if (error || !signalData) {
+  if (!data?.signal) {
     return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-center">
-          <div className="text-6xl mb-4">😞</div>
-          <h1 className="text-2xl font-bold mb-4">No Signal Found</h1>
-          <p className="text-[#737373] mb-8">{error || 'Could not load signal of the day'}</p>
-          <button
-            onClick={fetchSignalOfTheDay}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-6">📊 Signal of the Day</h1>
+          <div className="bg-gray-800 rounded-lg p-6">
+            <p className="text-gray-400">No signals available for today.</p>
+            <Link href="/" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+              ← Back to Home
+            </Link>
+          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
-  const signal = signalData.signal;
-  const metrics = signalData.metrics;
-  const suggestions = signalData.contentSuggestions;
+  const { signal, tweetText, isOpen, message } = data;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 text-green-400 rounded-full px-4 py-2 text-sm font-medium mb-6">
-          🏆 Signal of the Day
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-          Featured Trading Signal
-        </h1>
-        <p className="text-lg text-[#737373] max-w-2xl mx-auto">
-          Our algorithm picked the most interesting signal from recent activity
-        </p>
-      </div>
-
-      {/* Category Filter */}
-      <div className="flex items-center justify-center gap-4 mb-12">
-        <span className="text-sm text-[#737373]">Filter by:</span>
-        {['all', 'profitable', 'high-confidence', 'large', 'recent'].map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedCategory === category
-                ? 'bg-green-600 text-white'
-                : 'bg-[#1a1a1a] border border-[#2a2a2a] text-[#e5e5e5] hover:bg-[#2a2a2a]'
-            }`}
-          >
-            {category.replace('-', ' ').split(' ').map(word => 
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ')}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Signal Card */}
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] border border-[#2a2a2a] rounded-xl p-8 mb-8">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold mb-2 flex items-center gap-3">
-              {getActionEmoji(signal.action)} {suggestions.headline}
-            </h2>
-            <div className="flex items-center gap-4 text-sm text-[#737373]">
-              <span>#{metrics.rank} of {metrics.totalCandidates} candidates</span>
-              <span>•</span>
-              <span>Score: {metrics.score}</span>
-              <span>•</span>
-              <span>{new Date(signal.timestamp).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}</span>
-            </div>
-          </div>
-          {getStatusBadge(signal.status, signal.pnlPct)}
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">
+            ← Back to Home
+          </Link>
+          <h1 className="text-3xl font-bold mb-2">📊 Signal of the Day</h1>
+          <p className="text-gray-400">{message}</p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-            <div className="text-sm text-[#737373] mb-1">Token</div>
-            <div className="text-xl font-bold text-green-400">{signal.token}</div>
-          </div>
-          
-          <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-            <div className="text-sm text-[#737373] mb-1">Entry Price</div>
-            <div className="text-xl font-bold">${signal.entryPrice?.toLocaleString()}</div>
-          </div>
-          
-          {signal.exitPrice && (
-            <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-sm text-[#737373] mb-1">Exit Price</div>
-              <div className="text-xl font-bold">${signal.exitPrice.toLocaleString()}</div>
+        {/* Signal Card */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                signal.action === 'long' 
+                  ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
+                  : 'bg-red-600/20 text-red-400 border border-red-600/30'
+              }`}>
+                {signal.action === 'long' ? (
+                  <><ArrowUpIcon className="w-3 h-3 inline mr-1" /> LONG</>
+                ) : (
+                  <><ArrowDownIcon className="w-3 h-3 inline mr-1" /> SHORT</>
+                )}
+              </span>
+              <span className="text-2xl font-bold">${signal.asset.toUpperCase()}</span>
+              {signal.leverage && (
+                <span className="text-orange-400 font-semibold">{signal.leverage}x</span>
+              )}
             </div>
-          )}
-          
-          {signal.leverage && (
-            <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-sm text-[#737373] mb-1">Leverage</div>
-              <div className="text-xl font-bold text-orange-400">{signal.leverage}x</div>
-            </div>
-          )}
-          
-          {signal.pnlPct !== undefined && signal.pnlPct !== null && (
-            <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-              <div className="text-sm text-[#737373] mb-1">Return</div>
-              <div className={`text-xl font-bold ${signal.pnlPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {signal.pnlPct >= 0 ? '+' : ''}{signal.pnlPct.toFixed(1)}%
+            <div className="text-right">
+              <div className="text-2xl font-bold">
+                {formatPnL(signal.pnl_pct)}
+              </div>
+              <div className={`text-sm px-2 py-1 rounded ${
+                isOpen 
+                  ? 'bg-blue-600/20 text-blue-400' 
+                  : 'bg-gray-600/20 text-gray-400'
+              }`}>
+                {isOpen ? 'LIVE' : 'CLOSED'}
               </div>
             </div>
+          </div>
+
+          {signal.reasoning && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">Reasoning</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">{signal.reasoning}</p>
+            </div>
           )}
-          
-          <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-            <div className="text-sm text-[#737373] mb-1">Collateral</div>
-            <div className="text-xl font-bold">${signal.collateralUsd.toFixed(0)}</div>
+
+          <div className="border-t border-gray-700 pt-4 mt-4">
+            <div className="flex items-center justify-between text-sm text-gray-400">
+              <div>
+                By {signal.providers?.name || 'Anonymous'}
+                {signal.providers?.twitter && (
+                  <span className="text-blue-400 ml-1">@{signal.providers.twitter}</span>
+                )}
+              </div>
+              <div>
+                {new Date(signal.created_at).toLocaleDateString()}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Confidence & Risk Management */}
-        {(signal.confidence || signal.stopLossPct || signal.takeProfitPct) && (
-          <div className="grid sm:grid-cols-3 gap-6 mb-8">
-            {signal.confidence && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                <div className="text-sm text-blue-400 mb-2">Confidence Rating</div>
-                <div className="text-2xl font-bold text-blue-400">{(signal.confidence * 100).toFixed(0)}%</div>
-                <div className="w-full bg-[#111] rounded-full h-2 mt-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all" 
-                    style={{ width: `${signal.confidence * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-            
-            {signal.stopLossPct && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                <div className="text-sm text-red-400 mb-2">Stop Loss</div>
-                <div className="text-2xl font-bold text-red-400">{signal.stopLossPct}%</div>
-              </div>
-            )}
-            
-            {signal.takeProfitPct && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                <div className="text-sm text-green-400 mb-2">Take Profit</div>
-                <div className="text-2xl font-bold text-green-400">{signal.takeProfitPct}%</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Reasoning */}
-        {signal.reasoning && (
-          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              💡 Trader's Reasoning
+        {/* Tweet Text */}
+        <div className="bg-gray-800 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ShareIcon className="w-5 h-5" />
+              Ready to Share
             </h3>
-            <blockquote className="text-[#e5e5e5] italic leading-relaxed">
-              "{signal.reasoning}"
-            </blockquote>
-          </div>
-        )}
-
-        {/* Summary */}
-        <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold mb-3 text-green-400">📊 Signal Summary</h3>
-          <p className="text-[#e5e5e5] leading-relaxed">{suggestions.summary}</p>
-        </div>
-
-        {/* Why This Signal? */}
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-3 text-amber-400">🏆 Why This Signal Won</h3>
-          <p className="text-[#e5e5e5]">Selected for: {metrics.reason}</p>
-        </div>
-      </div>
-
-      {/* Social Sharing */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
-        <h3 className="text-lg font-semibold mb-4">📱 Share This Signal</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[#737373] mb-2">Twitter/X Ready Text:</label>
-            <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4">
-              <pre className="text-sm text-[#e5e5e5] whitespace-pre-wrap font-mono leading-relaxed">
-                {suggestions.tweetText}
-              </pre>
-              <button
-                onClick={() => copyToClipboard(suggestions.tweetText)}
-                className={`mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  copied 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {copied ? '✅ Copied!' : '📋 Copy Tweet'}
-              </button>
-            </div>
+            <button
+              onClick={copyTweetText}
+              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                copied 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              <ClipboardIcon className="w-4 h-4" />
+              {copied ? 'Copied!' : 'Copy Tweet'}
+            </button>
           </div>
           
-          <div className="flex items-center gap-4">
-            <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(suggestions.tweetText)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3 bg-[#1da1f2] hover:bg-[#1a91da] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-              </svg>
-              Tweet This
-            </a>
+          <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm leading-relaxed whitespace-pre-line">
+            {tweetText}
           </div>
+          
+          <p className="text-xs text-gray-500 mt-2">
+            Ready to post on Twitter/X or any social platform
+          </p>
         </div>
-      </div>
 
-      {/* Provider Info */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
-        <h3 className="text-lg font-semibold mb-4">👤 Signal Provider</h3>
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-            {signal.providerInfo?.name?.[0]?.toUpperCase() || signal.provider.slice(2, 4).toUpperCase()}
-          </div>
-          <div>
-            <div className="font-medium">
-              {signal.providerInfo?.name || `${signal.provider.slice(0, 8)}...${signal.provider.slice(-6)}`}
-            </div>
-            <div className="text-sm text-[#737373]">
-              <a 
-                href={`/provider/${signal.provider}`}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                View full profile & trading history →
-              </a>
-            </div>
-            {(signal.providerInfo?.twitter || signal.providerInfo?.farcaster) && (
-              <div className="flex items-center gap-4 mt-2">
-                {signal.providerInfo.twitter && (
-                  <a 
-                    href={`https://twitter.com/${signal.providerInfo.twitter.replace('@', '')}`}
-                    className="text-blue-400 hover:text-blue-300 text-sm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {signal.providerInfo.twitter}
-                  </a>
-                )}
-                {signal.providerInfo.farcaster && (
-                  <a 
-                    href={`https://warpcast.com/${signal.providerInfo.farcaster.replace('@', '')}`}
-                    className="text-purple-400 hover:text-purple-300 text-sm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {signal.providerInfo.farcaster}
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Alternative Signals */}
-      {signalData.alternatives.length > 0 && (
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">🔀 Runner-Up Signals</h3>
-          <div className="space-y-3">
-            {signalData.alternatives.slice(0, 3).map((alt) => (
-              <div key={alt.signal.id} className="flex items-center justify-between p-4 bg-[#111] border border-[#2a2a2a] rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{getActionEmoji(alt.signal.action)}</span>
-                  <div>
-                    <div className="font-medium">{alt.signal.action} {alt.signal.token}</div>
-                    <div className="text-sm text-[#737373]">
-                      ${alt.signal.entryPrice?.toLocaleString()} 
-                      {alt.signal.pnlPct && (
-                        <span className={alt.signal.pnlPct >= 0 ? 'text-green-400' : 'text-red-400'}>
-                          {' '}• {alt.signal.pnlPct >= 0 ? '+' : ''}{alt.signal.pnlPct.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">Score: {alt.score}</div>
-                  <div className="text-xs text-[#737373]">#{alt.rank}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div className="text-center mt-12">
-        <h3 className="text-xl font-semibold mb-4">Want to Publish Your Own Signals?</h3>
-        <div className="flex items-center justify-center gap-4">
-          <a
-            href="/register/wizard"
-            className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-lg font-medium transition-colors text-lg"
+        {/* View Signal Link */}
+        <div className="mt-6 text-center">
+          <Link 
+            href={`/provider/${signal.provider_address}`}
+            className="text-blue-400 hover:text-blue-300"
           >
-            🚀 Register Your Agent
-          </a>
-          <a
-            href="/feed"
-            className="px-6 py-4 border border-[#2a2a2a] hover:bg-[#1a1a1a] text-[#e5e5e5] rounded-lg font-medium transition-colors"
-          >
-            📊 Browse All Signals
-          </a>
+            View all signals from {signal.providers?.name || 'this provider'} →
+          </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
