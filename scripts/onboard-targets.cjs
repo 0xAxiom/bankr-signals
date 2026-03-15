@@ -44,10 +44,11 @@ const KNOWN_AGENTS = [
     description: "AI reasoning agent, potentially does trading"
   },
   
-  // Farcaster ecosystem
+  // Farcaster ecosystem  
   {
     name: "DegenBot",
     farcaster: "@degenbot",
+    twitter: "@degenboteth",
     address: null,
     specialty: "Meme coin trading", 
     confidence: "medium",
@@ -62,14 +63,97 @@ const KNOWN_AGENTS = [
     description: "Active in Base DeFi discussions"
   },
   
-  // Add more targets as discovered
+  // Recent AI Agents with Trading Activity (March 2026)
   {
-    name: "AutoCopyBot",
-    twitter: "@autocopybot",
+    name: "Aethernet",
+    farcaster: "@aethernet",
+    twitter: "@aethernet0x",
     address: null,
-    specialty: "Copy trading",
+    specialty: "Onchain AI agent",
+    confidence: "high",
+    description: "Active onchain AI agent with significant following, likely has trading capabilities"
+  },
+  {
+    name: "Luna",
+    farcaster: "@luna",
+    twitter: "@luna_virtuals",
+    address: null,
+    specialty: "Virtuals ecosystem trading",
+    confidence: "high", 
+    description: "Popular AI agent in Virtuals ecosystem, active trader"
+  },
+  {
+    name: "aixbt",
+    twitter: "@aixbt_agent",
+    farcaster: "@aixbt",
+    address: null,
+    specialty: "AI trading research",
+    confidence: "high",
+    description: "AI agent focused on trading research and market analysis"
+  },
+  {
+    name: "Terminal of Truths",
+    twitter: "@truth_terminal",
+    address: null,
+    specialty: "Autonomous AI agent", 
+    confidence: "medium",
+    description: "Famous autonomous AI agent, may have trading activity"
+  },
+  {
+    name: "Centience",
+    twitter: "@0xcentience",
+    address: null,
+    specialty: "AI agent experimentation",
+    confidence: "medium",
+    description: "AI agent focused on onchain experiments and trading"
+  },
+  {
+    name: "ClawdFred",
+    twitter: "@ClawdFred_HL",
+    address: null,
+    specialty: "Systematic trading",
+    confidence: "high",
+    description: "High-performance trading agent with proven track record"
+  },
+  {
+    name: "Morpheus", 
+    twitter: "@morpheus_agent",
+    address: null,
+    specialty: "DeFi automation",
+    confidence: "medium",
+    description: "AI agent focused on DeFi protocol automation"
+  },
+  {
+    name: "Coinbase Smart Wallet Agents",
+    twitter: "@coinbasedevs",
+    address: null,
+    specialty: "Base ecosystem",
+    confidence: "medium",
+    description: "Various agents using Coinbase Smart Wallets on Base"
+  },
+  {
+    name: "Unibot",
+    twitter: "@unibotapp",
+    address: null,
+    specialty: "Telegram trading bot",
+    confidence: "high",
+    description: "Popular Telegram trading bot with large user base"
+  },
+  {
+    name: "Trojan Trading Bot",
+    twitter: "@trojan_on_eth",
+    address: null,
+    specialty: "MEV and arbitrage",
+    confidence: "medium",
+    description: "MEV-focused trading bot"
+  },
+  {
+    name: "Photon Bot",
+    twitter: "@photon_sol",
+    address: null,
+    specialty: "Solana trading",
     confidence: "low",
-    description: "Copy trading focused bot"
+    description: "Solana-focused but might expand to Base/ETH"
   }
 ];
 
@@ -236,9 +320,133 @@ function generateOutreachPlan() {
   console.log(`   • Current leaderboard: https://bankrsignals.com/leaderboard`);
 }
 
-// CLI interface
-if (require.main === module) {
-  generateOutreachPlan();
+// Daily automated outreach function
+function generateDailyOutreach(maxTargets = 3) {
+  const targets = prioritizeTargets(KNOWN_AGENTS, EXISTING_PROVIDERS);
+  const today = new Date().toISOString().split('T')[0];
+  
+  console.log(`\\n🤖 DAILY OUTREACH AUTOMATION - ${today}`);
+  console.log("=".repeat(50));
+  
+  if (targets.length === 0) {
+    console.log("🎉 All targets contacted! Time to expand the agent list.");
+    return;
+  }
+  
+  const todaysTargets = targets.slice(0, maxTargets);
+  
+  console.log(`📊 Status: ${targets.length} remaining targets`);
+  console.log(`🎯 Today's targets: ${todaysTargets.length}\\n`);
+  
+  todaysTargets.forEach((agent, index) => {
+    console.log(`${index + 1}. ${agent.name} (${agent.confidence} confidence)`);
+    console.log(`   📝 ${agent.description}`);
+    
+    // Generate tweet/reply suggestions for Twitter agents
+    if (agent.twitter) {
+      console.log(`\\n   📱 Twitter Action:`);
+      console.log(`   🔗 Profile: https://x.com/${agent.twitter.replace('@', '')}`);
+      
+      const msg = generateOutreach(agent, 'twitter');
+      console.log(`   💬 DM/Reply:`);
+      console.log(`      "${msg.replace(/\\n/g, ' ')}"`);
+      
+      // Suggest specific engagement tactics
+      console.log(`   💡 Engagement ideas:`);
+      console.log(`      • Reply to their latest trading tweet with value`);
+      console.log(`      • Quote tweet with bankrsignals mention`);
+      console.log(`      • Send DM if they follow back`);
+    }
+    
+    if (agent.farcaster) {
+      console.log(`\\n   🟪 Farcaster Action:`);
+      console.log(`   🔗 Profile: https://warpcast.com/${agent.farcaster}`);
+      
+      const msg = generateOutreach(agent, 'farcaster');
+      console.log(`   💬 Cast reply:`);
+      console.log(`      "${msg.replace(/\\n/g, ' ')}"`);
+    }
+    
+    console.log("\\n" + "-".repeat(50));
+  });
+  
+  // Generate today's social media plan
+  console.log(`\\n📋 TODAY'S ACTION PLAN:`);
+  console.log(`   1. Check latest tweets from today's ${todaysTargets.length} targets`);
+  console.log(`   2. Engage meaningfully with their content first`);
+  console.log(`   3. Send personalized outreach messages`);
+  console.log(`   4. Track responses in outreach-log.json`);
+  console.log(`   5. Update EXISTING_PROVIDERS when agents register`);
+  
+  console.log(`\\n📈 TRACKING:`);
+  const logEntry = {
+    date: today,
+    targets: todaysTargets.map(t => ({ 
+      name: t.name, 
+      twitter: t.twitter, 
+      farcaster: t.farcaster, 
+      confidence: t.confidence 
+    })),
+    outreach_sent: false,
+    responses: [],
+    registrations: []
+  };
+  console.log(`   Add to outreach-log.json:`);
+  console.log(`   ${JSON.stringify(logEntry, null, 2)}`);
+  
+  // Generate quick stats for tweets
+  const highPriority = todaysTargets.filter(t => t.confidence === 'high');
+  console.log(`\\n📊 Quick Stats for Social:`);
+  console.log(`   • Reaching out to ${todaysTargets.length} agents today`);
+  console.log(`   • ${highPriority.length} high-priority targets`);
+  console.log(`   • Growing to ${EXISTING_PROVIDERS.length + 1}+ active providers`);
+  console.log(`   • Join the verified trader network at bankrsignals.com`);
 }
 
-module.exports = { KNOWN_AGENTS, generateOutreach, prioritizeTargets };
+function generateWeeklyReport() {
+  const targets = prioritizeTargets(KNOWN_AGENTS, EXISTING_PROVIDERS);
+  const highPriority = targets.filter(t => t.confidence === 'high');
+  const mediumPriority = targets.filter(t => t.confidence === 'medium');
+  
+  console.log(`\\n📊 WEEKLY AGENT ONBOARDING REPORT`);
+  console.log("=".repeat(50));
+  console.log(`Current registered providers: ${EXISTING_PROVIDERS.length}`);
+  console.log(`Potential targets remaining: ${targets.length}`);
+  console.log(`  • High priority: ${highPriority.length}`);
+  console.log(`  • Medium priority: ${mediumPriority.length}`);
+  console.log(`  • Low priority: ${targets.length - highPriority.length - mediumPriority.length}`);
+  
+  console.log(`\\nTop 10 targets for this week:`);
+  targets.slice(0, 10).forEach((agent, idx) => {
+    console.log(`${idx + 1}. ${agent.name} (${agent.confidence}) - ${agent.specialty}`);
+  });
+  
+  console.log(`\\nRecommended outreach pace:`);
+  console.log(`• 3 agents per day = 21 agents per week`);
+  console.log(`• Focus on high-priority targets first`);
+  console.log(`• Track response rates to optimize messaging`);
+}
+
+// CLI interface with new options
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  
+  if (args.includes('--daily')) {
+    const maxTargets = parseInt(args.find(arg => arg.startsWith('--max='))?.split('=')[1]) || 3;
+    generateDailyOutreach(maxTargets);
+  } else if (args.includes('--weekly')) {
+    generateWeeklyReport();
+  } else if (args.includes('--help')) {
+    console.log(`\\n🚀 Bankr Signals Agent Onboarding Script`);
+    console.log(`\\nUsage:`);
+    console.log(`  node onboard-targets.cjs                 # Full outreach plan`);
+    console.log(`  node onboard-targets.cjs --daily         # Daily automation (3 targets)`);
+    console.log(`  node onboard-targets.cjs --daily --max=5 # Daily with custom target count`);
+    console.log(`  node onboard-targets.cjs --weekly        # Weekly summary report`);
+    console.log(`  node onboard-targets.cjs --help          # This help text\\n`);
+  } else {
+    generateOutreachPlan();
+  }
+}
+
+module.exports = { KNOWN_AGENTS, generateOutreach, prioritizeTargets, generateDailyOutreach };
