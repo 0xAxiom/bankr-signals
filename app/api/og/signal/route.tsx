@@ -1,270 +1,246 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-
-async function getSignal(id: string) {
-  if (!supabase) return null;
-  
-  const { data: signal, error } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      provider_name:providers(name)
-    `)
-    .eq('id', id)
-    .single();
-
-  if (error || !signal) return null;
-  
-  return {
-    ...signal,
-    provider_name: signal.provider_name?.name || 'Unknown'
-  };
-}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return new Response('Missing signal ID', { status: 400 });
-    }
-
-    const signal = await getSignal(id);
-    if (!signal) {
-      return new Response('Signal not found', { status: 404 });
-    }
-
-    const isLong = signal.action === 'LONG';
-    const isProfitable = signal.pnlPct !== null && signal.pnlPct > 0;
-    const isLoss = signal.pnlPct !== null && signal.pnlPct < 0;
     
-    const actionColor = isLong ? '#22c55e' : '#ef4444';
-    const pnlColor = isProfitable ? '#22c55e' : isLoss ? '#ef4444' : '#737373';
+    // Parse signal data
+    const signalId = searchParams.get('id');
+    const providerName = searchParams.get('provider') || 'Agent';
+    const action = searchParams.get('action') || 'LONG';
+    const token = searchParams.get('token') || 'ETH';
+    const leverage = searchParams.get('leverage') || '1';
+    const entryPrice = searchParams.get('entryPrice') || '0';
+    const currentPrice = searchParams.get('currentPrice');
+    const pnl = searchParams.get('pnl');
+    const pnlPercent = searchParams.get('pnlPercent');
+    const confidence = searchParams.get('confidence');
+    const reasoning = searchParams.get('reasoning') || '';
+    const status = searchParams.get('status') || 'OPEN';
+    const txHash = searchParams.get('txHash');
+
+    // Calculate display values
+    const isProfit = pnl && parseFloat(pnl) > 0;
+    const isPnlAvailable = pnl && pnlPercent;
+    const isVerified = !!txHash;
+    const displayPnl = isPnlAvailable ? `${parseFloat(pnl!) >= 0 ? '+' : ''}${parseFloat(pnl!).toFixed(2)}` : '—';
+    const displayPnlPercent = isPnlAvailable ? `${parseFloat(pnlPercent!) >= 0 ? '+' : ''}${parseFloat(pnlPercent!).toFixed(1)}%` : '';
     
+    // Status colors
+    const getStatusColor = () => {
+      if (status === 'CLOSED' && isProfit) return '#22c55e'; // green
+      if (status === 'CLOSED' && !isProfit) return '#ef4444'; // red
+      return '#3b82f6'; // blue for open
+    };
+
+    const statusColor = getStatusColor();
+
     return new ImageResponse(
       (
         <div
           style={{
-            height: '100%',
+            background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
             width: '100%',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start',
-            justifyContent: 'flex-start',
-            backgroundColor: '#0a0a0a',
-            padding: '60px',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'Inter',
+            color: '#ffffff',
+            position: 'relative',
           }}
         >
           {/* Header */}
-          <div
-            style={{
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '40px 50px',
+            borderBottom: '1px solid #2a2a2a',
+          }}>
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              marginBottom: '40px',
-            }}
-          >
-            <div
-              style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                backgroundColor: isLong ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                border: isLong ? '3px solid rgba(34, 197, 94, 0.4)' : '3px solid rgba(239, 68, 68, 0.4)',
+              gap: '15px',
+            }}>
+              <div style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '25px',
+                backgroundColor: statusColor,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '36px',
-                marginRight: '24px',
-              }}
-            >
-              {isLong ? '📈' : '📉'}
-            </div>
-            <div>
-              <div
-                style={{
-                  color: actionColor,
-                  fontSize: '48px',
-                  fontWeight: 'bold',
-                  lineHeight: '1',
-                }}
-              >
-                {signal.action} ${signal.token}
-                {signal.leverage && (
-                  <span style={{ color: '#737373', fontSize: '36px' }}>
-                    {' '}{signal.leverage}x
-                  </span>
-                )}
+                fontSize: '24px',
+                fontWeight: 'bold',
+              }}>
+                {action === 'LONG' ? '📈' : '📉'}
               </div>
-              <div
-                style={{
-                  color: '#737373',
-                  fontSize: '24px',
-                  marginTop: '8px',
-                }}
-              >
-                Entry: ${signal.entry_price}
-                {signal.exit_price && ` | Exit: $${signal.exit_price}`}
+              <div>
+                <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                  {providerName}
+                </div>
+                <div style={{ fontSize: '18px', color: '#737373' }}>
+                  Bankr Signals
+                </div>
               </div>
             </div>
             
-            {signal.pnlPct !== null && (
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  textAlign: 'right',
-                }}
-              >
-                <div
-                  style={{
-                    color: pnlColor,
-                    fontSize: '72px',
-                    fontWeight: 'bold',
-                    lineHeight: '1',
-                  }}
-                >
-                  {signal.pnlPct > 0 ? '+' : ''}{signal.pnlPct.toFixed(1)}%
-                </div>
-                <div
-                  style={{
-                    color: '#737373',
-                    fontSize: '20px',
-                  }}
-                >
-                  PnL
-                </div>
+            {isVerified && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '20px',
+                padding: '8px 16px',
+                fontSize: '16px',
+                color: '#22c55e',
+              }}>
+                ✅ Verified
               </div>
             )}
           </div>
 
-          {/* Reasoning */}
-          {signal.reasoning && (
-            <div
-              style={{
-                backgroundColor: '#111',
-                border: '1px solid #2a2a2a',
-                borderRadius: '12px',
-                padding: '32px',
-                marginBottom: '32px',
-                width: '100%',
-              }}
-            >
-              <div
-                style={{
-                  color: '#737373',
-                  fontSize: '18px',
-                  marginBottom: '12px',
-                }}
-              >
-                Reasoning
-              </div>
-              <div
-                style={{
-                  color: '#e5e5e5',
-                  fontSize: '24px',
-                  lineHeight: '1.4',
-                }}
-              >
-                "{signal.reasoning}"
-              </div>
-            </div>
-          )}
-
-          {/* Stats Row */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '24px',
-              marginBottom: '32px',
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: '#111',
-                borderRadius: '8px',
-                padding: '20px',
-              }}
-            >
-              <div style={{ color: '#737373', fontSize: '14px', marginBottom: '4px' }}>
-                Provider
-              </div>
-              <div style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
-                {signal.provider_name}
-              </div>
-            </div>
-            
-            {signal.confidence && (
-              <div
-                style={{
-                  backgroundColor: '#111',
-                  borderRadius: '8px',
-                  padding: '20px',
-                }}
-              >
-                <div style={{ color: '#737373', fontSize: '14px', marginBottom: '4px' }}>
-                  Confidence
-                </div>
-                <div style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
-                  {Math.round(signal.confidence * 100)}%
-                </div>
-              </div>
-            )}
-            
-            <div
-              style={{
-                backgroundColor: '#111',
-                borderRadius: '8px',
-                padding: '20px',
-              }}
-            >
-              <div style={{ color: '#737373', fontSize: '14px', marginBottom: '4px' }}>
-                Status
-              </div>
-              <div style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
-                {signal.status === 'open' ? '🔄 Open' : '✅ Closed'}
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              marginTop: 'auto',
+          {/* Signal Details */}
+          <div style={{
+            flex: 1,
+            padding: '50px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}>
+            {/* Main Position */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              borderTop: '1px solid #2a2a2a',
-              paddingTop: '24px',
-            }}
-          >
-            <div
-              style={{
-                color: '#22c55e',
-                fontSize: '32px',
+              gap: '20px',
+              marginBottom: '30px',
+            }}>
+              <div style={{
+                fontSize: '72px',
                 fontWeight: 'bold',
-              }}
-            >
-              bankrsignals.com
+                color: statusColor,
+              }}>
+                {action}
+              </div>
+              <div>
+                <div style={{
+                  fontSize: '64px',
+                  fontWeight: 'bold',
+                  marginBottom: '10px',
+                }}>
+                  ${token}
+                </div>
+                <div style={{
+                  fontSize: '28px',
+                  color: '#737373',
+                }}>
+                  {leverage}x leverage • ${entryPrice}
+                </div>
+              </div>
             </div>
-            <div
-              style={{
+
+            {/* PnL Display */}
+            {isPnlAvailable && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                marginBottom: '30px',
+                padding: '20px',
+                backgroundColor: isProfit ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                border: `1px solid ${isProfit ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                borderRadius: '12px',
+              }}>
+                <div style={{
+                  fontSize: '48px',
+                  fontWeight: 'bold',
+                  color: isProfit ? '#22c55e' : '#ef4444',
+                }}>
+                  ${displayPnl}
+                </div>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: 'bold',
+                  color: isProfit ? '#22c55e' : '#ef4444',
+                }}>
+                  ({displayPnlPercent})
+                </div>
+              </div>
+            )}
+
+            {/* Reasoning */}
+            {reasoning && (
+              <div style={{
+                backgroundColor: '#111111',
+                border: '1px solid #2a2a2a',
+                borderRadius: '12px',
+                padding: '25px',
+                marginBottom: '30px',
+              }}>
+                <div style={{
+                  fontSize: '24px',
+                  lineHeight: '1.4',
+                  color: '#e5e5e5',
+                  fontStyle: 'italic',
+                }}>
+                  "{reasoning.length > 120 ? reasoning.slice(0, 120) + '...' : reasoning}"
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Stats */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div style={{
+                display: 'flex',
+                gap: '40px',
+                fontSize: '20px',
                 color: '#737373',
+              }}>
+                <div>
+                  <span style={{ color: '#e5e5e5' }}>Status:</span> {status}
+                </div>
+                {confidence && (
+                  <div>
+                    <span style={{ color: '#e5e5e5' }}>Confidence:</span> {Math.round(parseFloat(confidence) * 100)}%
+                  </div>
+                )}
+              </div>
+              
+              <div style={{
                 fontSize: '18px',
-              }}
-            >
-              {new Date(signal.created_at).toLocaleDateString()}
+                color: '#737373',
+              }}>
+                bankrsignals.com
+              </div>
             </div>
           </div>
+
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            width: '200px',
+            height: '200px',
+            background: `radial-gradient(circle, ${statusColor}20 0%, transparent 70%)`,
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            width: '300px',
+            height: '300px',
+            background: 'radial-gradient(circle, #1a1a1a 0%, transparent 70%)',
+          }} />
         </div>
       ),
       {
@@ -272,8 +248,10 @@ export async function GET(request: NextRequest) {
         height: 630,
       }
     );
-  } catch (error) {
-    console.error('Error generating OG image:', error);
-    return new Response('Failed to generate image', { status: 500 });
+  } catch (e: any) {
+    console.log(`${e.message}`);
+    return new Response(`Failed to generate the image`, {
+      status: 500,
+    });
   }
 }
