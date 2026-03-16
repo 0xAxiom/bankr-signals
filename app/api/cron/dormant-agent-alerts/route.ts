@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { data: providers, error } = await supabase
       .from('providers')
       .select('*')
-      .is('signals_count', null)
+      .eq('total_signals', 0)
       .gte('registered_at', new Date(Date.now() - max_dormant_days * 24 * 60 * 60 * 1000).toISOString());
 
     if (error) {

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { data: providers, error } = await supabase
       .from('providers')
       .select('*')
-      .is('signals_count', null)
+      .eq('total_signals', 0)
       .gte('registered_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString());
 
     if (error) {
@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
         registered_at: provider.registered_at,
         twitter: provider.twitter,
         farcaster: provider.farcaster,
-        daysSinceRegistration: Math.floor((Date.now() - new Date(provider.registered_at).getTime()) / (1000 * 60 * 60 * 24))
+        daysSinceRegistration: Math.floor((Date.now() - new Date(provider.registered_at).getTime()) / (1000 * 60 * 60 * 24)),
+        total_signals: provider.total_signals
       }));
 
       return NextResponse.json({

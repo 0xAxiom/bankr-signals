@@ -9,6 +9,7 @@ interface DormantAgent {
   twitter?: string;
   farcaster?: string;
   daysSinceRegistration: number;
+  total_signals: number;
 }
 
 interface OutreachMessage {
