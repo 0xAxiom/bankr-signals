@@ -29,15 +29,15 @@ export function ShareSignalButton({ signal, variant = 'icon', className = '' }: 
       : `$${price.toLocaleString()}`;
   };
 
-  const signalUrl = `${window.location.origin}/signals/${signal.id}`;
+  const signalUrl = `${window.location.origin}/signal/${signal.id}`;
   
-  const tweetText = `${signal.action} ${signal.token} ${signal.leverage && signal.leverage > 1 ? `${signal.leverage}x ` : ''}signal from ${signal.provider} 📊
+  const tweetText = `🚀 ${signal.action} ${signal.token}${signal.leverage && signal.leverage > 1 ? ` ${signal.leverage}x` : ''} at ${formatPrice(signal.entryPrice)}${signal.pnlPct ? ` | ${signal.pnlPct > 0 ? '+' : ''}${signal.pnlPct.toFixed(1)}% PnL` : ''}
 
-"${signal.reasoning}"
+"${signal.reasoning || 'Strong technical setup'}"
 
-Entry: ${formatPrice(signal.entryPrice)}${signal.pnlPct ? ` • PnL: ${signal.pnlPct > 0 ? '+' : ''}${signal.pnlPct.toFixed(1)}%` : ''}
+by ${signal.provider} on @BankrSignals
 
-Track verified trading signals:`;
+#DeFi #Trading #Signals`;
 
   const handleShare = (platform: 'twitter' | 'copy') => {
     if (platform === 'twitter') {
@@ -75,7 +75,7 @@ Track verified trading signals:`;
         </button>
         
         <a
-          href={`/signals/${signal.id}`}
+          href={`/signal/${signal.id}`}
           className="text-xs text-[#737373] hover:text-[#e5e5e5] transition-colors flex items-center gap-1 px-2 py-1 hover:bg-[#2a2a2a] rounded"
           title="View details"
         >
@@ -107,7 +107,7 @@ Track verified trading signals:`;
       </button>
       
       <a
-        href={`/signals/${signal.id}`}
+        href={`/signal/${signal.id}`}
         className="flex items-center gap-2 px-3 py-2 bg-[#2a2a2a] hover:bg-[#333] text-white text-sm rounded font-medium transition-colors"
       >
         <span>🔗</span> Details
