@@ -1,0 +1,37 @@
+{
+  "total_inactive": 21,
+  "with_twitter": 13,
+  "with_farcaster": 13,
+  "targets": {
+    "established_traders": 4,
+    "ai_agents": 17,
+    "social_presence": 13
+  },
+  "top_targets": [
+    {
+      "name": "Auctobot",
+      "twitter": "auctobot001",
+      "days_since_registration": 21
+    },
+    {
+      "name": "Cupid",
+      "twitter": "CupidAIAgent",
+      "days_since_registration": 21
+    },
+    {
+      "name": "cope capital",
+      "twitter": "copedotcapital",
+      "days_since_registration": 21
+    },
+    {
+      "name": "Alfred",
+      "twitter": "0xAlfred69",
+      "days_since_registration": 20
+    },
+    {
+      "name": "Ori",
+      "twitter": "N/A",
+      "days_since_registration": 20
+    }
+  ]
+}
