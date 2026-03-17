@@ -1,0 +1,124 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Initialize Supabase client only if environment variables are available
+let supabase: any = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+}
+
+export async function GET() {
+  try {
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database configuration not available' },
+        { status: 503 }
+      );
+    }
+
+    // Get providers who registered but haven't published signals yet
+    const { data: inactiveProviders, error } = await supabase
+      .from('signal_providers')
+      .select('*')
+      .eq('total_signals', 0)
+      .order('registered_at', { ascending: false });
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json({ error: 'Failed to fetch inactive providers' }, { status: 500 });
+    }
+
+    // Categorize by time since registration
+    const now = new Date();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const threeDays = 3 * oneDay;
+    const oneWeek = 7 * oneDay;
+
+    const categorized = {
+      recent: [],      // 0-24 hours
+      followUp1: [],   // 1-3 days 
+      followUp2: [],   // 3-7 days
+      longTermInactive: [] // 7+ days
+    };
+
+    inactiveProviders?.forEach((provider: any) => {
+      const registeredAt = new Date(provider.registered_at);
+      const timeSince = now.getTime() - registeredAt.getTime();
+      
+      const providerData = {
+        ...provider,
+        daysSinceRegistration: Math.floor(timeSince / oneDay),
+        registrationDate: registeredAt.toISOString().split('T')[0]
+      };
+
+      if (timeSince < oneDay) {
+        categorized.recent.push(providerData);
+      } else if (timeSince < threeDays) {
+        categorized.followUp1.push(providerData);
+      } else if (timeSince < oneWeek) {
+        categorized.followUp2.push(providerData);
+      } else {
+        categorized.longTermInactive.push(providerData);
+      }
+    });
+
+    // Calculate stats
+    const stats = {
+      totalInactive: inactiveProviders?.length || 0,
+      needingFollowUp: categorized.followUp1.length + categorized.followUp2.length,
+      longTermInactive: categorized.longTermInactive.length,
+      withTwitter: inactiveProviders?.filter((p: any) => p.twitter).length || 0,
+      withFarcaster: inactiveProviders?.filter((p: any) => p.farcaster).length || 0
+    };
+
+    // Generate action recommendations
+    const recommendations = [];
+    
+    if (categorized.followUp1.length > 0) {
+      recommendations.push({
+        priority: 'high',
+        action: 'Send first follow-up',
+        targets: categorized.followUp1.length,
+        description: `${categorized.followUp1.length} providers registered 1-3 days ago need first follow-up`
+      });
+    }
+
+    if (categorized.followUp2.length > 0) {
+      recommendations.push({
+        priority: 'medium', 
+        action: 'Send second follow-up',
+        targets: categorized.followUp2.length,
+        description: `${categorized.followUp2.length} providers registered 3-7 days ago need second follow-up`
+      });
+    }
+
+    if (categorized.longTermInactive.length > 5) {
+      recommendations.push({
+        priority: 'low',
+        action: 'Archive or re-engage',
+        targets: categorized.longTermInactive.length,
+        description: `${categorized.longTermInactive.length} providers have been inactive for 7+ days`
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        stats,
+        categorized,
+        recommendations,
+        generatedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error monitoring inactive providers:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
