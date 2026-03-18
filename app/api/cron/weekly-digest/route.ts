@@ -1,381 +1,596 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
-import { createSuccessResponse, createErrorResponse, APIErrorCode } from '@/lib/api-utils';
+/**
+ * Weekly email digest cron job
+ * Sends a curated summary of the best signals from the past week to subscribers
+ * Should run weekly (e.g., Sundays at 9 AM PT)
+ */
 
-export const dynamic = 'force-dynamic';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/db";
+import { createSuccessResponse, createErrorResponse, APIErrorCode } from "@/lib/api-utils";
+
+export const dynamic = "force-dynamic";
+
+interface DigestSubscriber {
+  email: string;
+  name?: string;
+  subscribed_at: string;
+  preferences?: {
+    minPnL?: number;
+    providers?: string[];
+    frequency?: 'weekly' | 'daily';
+  };
+}
 
 interface WeeklyDigestData {
   topSignals: any[];
   topProviders: any[];
-  weeklyStats: {
+  marketInsights: {
     totalSignals: number;
+    avgPnL: number;
     winRate: number;
-    totalVolume: number;
-    activeProviders: number;
+    topToken: string;
+    sentiment: 'bullish' | 'bearish' | 'mixed';
   };
-  previousWeekStats?: any;
+  newProviders: any[];
+  streaks: any[];
 }
 
-export async function GET(request: NextRequest) {
+async function getSubscribers(): Promise<DigestSubscriber[]> {
   try {
-    const { searchParams } = new URL(request.url);
-    const execute = searchParams.get('execute') === 'true';
-    const dryRun = searchParams.get('dry-run') === 'true';
+    const { data, error } = await supabase
+      .from('email_subscribers')
+      .select('email, name, created_at')
+      .eq('active', true)
+      .eq('weekly_digest', true)
+      .not('confirmed_at', 'is', null); // Only confirmed subscribers
     
-    // Get weekly digest data
-    const digestData = await generateWeeklyDigestData();
-    
-    if (execute && !dryRun) {
-      // Send emails to subscribers
-      const sendResult = await sendWeeklyDigestEmails(digestData);
-      return createSuccessResponse({
-        ...digestData,
-        emailResults: sendResult,
-        action: 'digest_sent'
-      });
-    } else {
-      // Just return the data for preview
-      return createSuccessResponse({
-        ...digestData,
-        action: dryRun ? 'dry_run' : 'preview'
-      });
+    if (error) {
+      console.error('Error fetching subscribers:', error);
+      return [];
     }
     
-  } catch (error: any) {
-    console.error('Weekly digest error:', error);
-    return createErrorResponse(APIErrorCode.INTERNAL_ERROR, 'Failed to generate weekly digest', 500);
+    // Transform to match interface
+    return (data || []).map(sub => ({
+      email: sub.email,
+      name: sub.name,
+      subscribed_at: sub.created_at,
+      preferences: { frequency: 'weekly' as const }
+    }));
+  } catch (error) {
+    console.error('Failed to get subscribers:', error);
+    return [];
   }
 }
 
-async function generateWeeklyDigestData(): Promise<WeeklyDigestData> {
-  // Get date range for this week (Monday to Sunday)
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const daysUntilMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysUntilMonday);
-  weekStart.setHours(0, 0, 0, 0);
-  
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-
-  // Get previous week for comparison
-  const prevWeekStart = new Date(weekStart);
-  prevWeekStart.setDate(weekStart.getDate() - 7);
-  const prevWeekEnd = new Date(weekEnd);
-  prevWeekEnd.setDate(weekEnd.getDate() - 7);
-
-  // Top performing signals this week (closed positions with good PnL)
-  const { data: topSignals } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      signal_providers(name, avatar, verified)
-    `)
-    .gte('timestamp', weekStart.toISOString())
-    .lte('timestamp', weekEnd.toISOString())
-    .eq('status', 'closed')
-    .not('pnl_pct', 'is', null)
-    .order('pnl_pct', { ascending: false })
-    .limit(10);
-
-  // Top providers by performance this week
-  const { data: topProviders } = await supabase
-    .from('signal_providers')
-    .select(`
-      address, name, avatar, verified, total_signals, win_rate, avg_roi, followers,
-      signals!inner(pnl_pct, status, timestamp)
-    `)
-    .gte('signals.timestamp', weekStart.toISOString())
-    .lte('signals.timestamp', weekEnd.toISOString())
-    .eq('signals.status', 'closed')
-    .limit(5)
-    .order('avg_roi', { ascending: false });
-
-  // Weekly stats
-  const { data: weeklySignals } = await supabase
-    .from('signals')
-    .select('status, pnl_pct, collateral_usd')
-    .gte('timestamp', weekStart.toISOString())
-    .lte('timestamp', weekEnd.toISOString());
-
-  const { count: activeProviders } = await supabase
-    .from('signals')
-    .select('provider_address', { count: 'exact', head: true })
-    .gte('timestamp', weekStart.toISOString())
-    .lte('timestamp', weekEnd.toISOString());
-
-  // Calculate weekly stats
-  const totalSignals = weeklySignals?.length || 0;
-  const closedSignals = weeklySignals?.filter(s => s.status === 'closed') || [];
-  const winningSignals = closedSignals.filter(s => s.pnl_pct && s.pnl_pct > 0);
-  const winRate = closedSignals.length > 0 ? (winningSignals.length / closedSignals.length) * 100 : 0;
-  const totalVolume = weeklySignals?.reduce((sum, s) => sum + (s.collateral_usd || 0), 0) || 0;
-
-  // Previous week stats for comparison
-  const { data: prevWeekSignals } = await supabase
-    .from('signals')
-    .select('status, pnl_pct, collateral_usd')
-    .gte('timestamp', prevWeekStart.toISOString())
-    .lte('timestamp', prevWeekEnd.toISOString());
-
-  const prevClosedSignals = prevWeekSignals?.filter(s => s.status === 'closed') || [];
-  const prevWinningSignals = prevClosedSignals.filter(s => s.pnl_pct && s.pnl_pct > 0);
-  const prevWinRate = prevClosedSignals.length > 0 ? (prevWinningSignals.length / prevClosedSignals.length) * 100 : 0;
-
-  return {
-    topSignals: topSignals || [],
-    topProviders: topProviders || [],
-    weeklyStats: {
-      totalSignals,
-      winRate,
-      totalVolume,
-      activeProviders: activeProviders || 0,
-    },
-    previousWeekStats: {
-      totalSignals: prevWeekSignals?.length || 0,
-      winRate: prevWinRate,
-      totalVolume: prevWeekSignals?.reduce((sum, s) => sum + (s.collateral_usd || 0), 0) || 0,
+async function generateWeeklyDigest(): Promise<WeeklyDigestData | null> {
+  try {
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // Get signals from the past week
+    const { data: signals, error: signalsError } = await supabase
+      .from('signals')
+      .select(`
+        *,
+        signal_providers:provider (
+          name,
+          address,
+          twitter,
+          verified
+        )
+      `)
+      .gte('timestamp', oneWeekAgo)
+      .order('timestamp', { ascending: false });
+    
+    if (signalsError || !signals) {
+      console.error('Error fetching signals:', signalsError);
+      return null;
     }
-  };
-}
 
-async function sendWeeklyDigestEmails(digestData: WeeklyDigestData) {
-  // Get all active email subscribers who want weekly digest
-  const { data: subscribers } = await supabase
-    .from('email_subscribers')
-    .select('email, name, unsubscribe_token')
-    .eq('active', true)
-    .eq('weekly_digest', true)
-    .not('confirmed_at', 'is', null);
+    // Get providers for additional context
+    const { data: providers, error: providersError } = await supabase
+      .from('signal_providers')
+      .select('*')
+      .gte('registered_at', oneWeekAgo)
+      .order('registered_at', { ascending: false });
+    
+    if (providersError) {
+      console.error('Error fetching providers:', providersError);
+    }
 
-  if (!subscribers || subscribers.length === 0) {
+    // Process signals
+    const closedSignals = signals.filter(s => s.status === 'closed' && s.pnl_pct !== null);
+    const winningSignals = closedSignals.filter(s => s.pnl_pct > 0);
+    
+    // Top signals (by PnL)
+    const topSignals = closedSignals
+      .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0))
+      .slice(0, 5);
+
+    // Top providers (by average PnL and win rate)
+    const providerStats = new Map();
+    
+    closedSignals.forEach(signal => {
+      const provider = signal.signal_providers;
+      if (!provider) return;
+      
+      const key = provider.address;
+      if (!providerStats.has(key)) {
+        providerStats.set(key, {
+          provider,
+          signals: [],
+          totalPnL: 0,
+          wins: 0,
+        });
+      }
+      
+      const stats = providerStats.get(key);
+      stats.signals.push(signal);
+      stats.totalPnL += signal.pnl_pct || 0;
+      if (signal.pnl_pct > 0) stats.wins++;
+    });
+
+    const topProviders = Array.from(providerStats.values())
+      .filter(p => p.signals.length >= 2) // Minimum 2 signals for reliability
+      .map(p => ({
+        ...p.provider,
+        signalCount: p.signals.length,
+        avgPnL: p.totalPnL / p.signals.length,
+        winRate: p.wins / p.signals.length,
+        score: (p.totalPnL / p.signals.length) + (p.wins / p.signals.length) * 10
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    // Market insights
+    const avgPnL = closedSignals.length > 0 
+      ? closedSignals.reduce((sum, s) => sum + (s.pnl_pct || 0), 0) / closedSignals.length 
+      : 0;
+    
+    const winRate = closedSignals.length > 0 
+      ? winningSignals.length / closedSignals.length 
+      : 0;
+
+    // Top token
+    const tokenCounts = new Map();
+    signals.forEach(s => {
+      const token = s.token || s.asset;
+      tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+    });
+    
+    const topToken = Array.from(tokenCounts.entries())
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'ETH';
+
+    // Sentiment analysis
+    const longSignals = signals.filter(s => s.action === 'long' || s.action === 'LONG').length;
+    const shortSignals = signals.filter(s => s.action === 'short' || s.action === 'SHORT').length;
+    
+    const sentiment: 'bullish' | 'bearish' | 'mixed' = 
+      longSignals > shortSignals * 1.5 ? 'bullish' :
+      shortSignals > longSignals * 1.5 ? 'bearish' : 'mixed';
+
+    // Detect win streaks
+    const streaks = Array.from(providerStats.values())
+      .map(p => {
+        const recentSignals = p.signals
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 5); // Check last 5 signals
+        
+        let streak = 0;
+        for (const signal of recentSignals) {
+          if (signal.pnl_pct > 0) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+        
+        return streak >= 3 ? {
+          provider: p.provider,
+          streak,
+          avgPnL: recentSignals.slice(0, streak).reduce((sum, s) => sum + s.pnl_pct, 0) / streak
+        } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.streak - a.streak)
+      .slice(0, 2);
+
     return {
-      success: true,
-      message: 'No active subscribers found',
-      subscribers: 0,
-      sent: 0
+      topSignals,
+      topProviders,
+      marketInsights: {
+        totalSignals: signals.length,
+        avgPnL,
+        winRate,
+        topToken,
+        sentiment,
+      },
+      newProviders: providers || [],
+      streaks,
     };
+    
+  } catch (error) {
+    console.error('Error generating weekly digest:', error);
+    return null;
   }
-
-  console.log(`📧 Sending weekly digest to ${subscribers.length} subscribers`);
-
-  // Generate email content
-  const emailHTML = generateDigestEmailHTML(digestData);
-  const emailText = generateDigestEmailText(digestData);
-  
-  let sentCount = 0;
-  let errors: string[] = [];
-
-  // Send emails (in production, you'd want to use a proper email service like SendGrid, Postmark, etc.)
-  for (const subscriber of subscribers) {
-    try {
-      // For now, just log the email content
-      console.log(`📧 Would send email to: ${subscriber.email}`);
-      console.log(`Subject: 📊 Weekly Signals Digest - ${getWeekDateRange()}`);
-      
-      // In production, replace this with actual email sending:
-      // await sendEmail({
-      //   to: subscriber.email,
-      //   subject: `📊 Weekly Signals Digest - ${getWeekDateRange()}`,
-      //   html: emailHTML,
-      //   text: emailText,
-      //   unsubscribeUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/unsubscribe?token=${subscriber.unsubscribe_token}`
-      // });
-
-      // Update last_email_sent_at
-      await supabase
-        .from('email_subscribers')
-        .update({ last_email_sent_at: new Date().toISOString() })
-        .eq('email', subscriber.email);
-
-      sentCount++;
-      
-    } catch (error: any) {
-      console.error(`Failed to send email to ${subscriber.email}:`, error);
-      errors.push(`${subscriber.email}: ${error.message}`);
-    }
-  }
-
-  return {
-    success: true,
-    subscribers: subscribers.length,
-    sent: sentCount,
-    errors: errors.length > 0 ? errors : undefined,
-    digestData
-  };
 }
 
-function getWeekDateRange(): string {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysUntilMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysUntilMonday);
-  
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function generateDigestHTML(data: WeeklyDigestData, subscriberName?: string): string {
+  const formatPnL = (pnl: number) => {
+    const sign = pnl >= 0 ? '+' : '';
+    return `${sign}${pnl.toFixed(1)}%`;
   };
-  
-  return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
-}
 
-function generateDigestEmailHTML(data: WeeklyDigestData): string {
-  const { topSignals, topProviders, weeklyStats, previousWeekStats } = data;
-  const weekRange = getWeekDateRange();
-  
-  const winRateChange = previousWeekStats 
-    ? weeklyStats.winRate - previousWeekStats.winRate 
-    : 0;
-  
-  const signalChange = previousWeekStats 
-    ? weeklyStats.totalSignals - previousWeekStats.totalSignals 
-    : 0;
+  const formatPercent = (value: number) => `${(value * 100).toFixed(0)}%`;
+
+  const greetingName = subscriberName || 'Trader';
+  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekEnd = new Date();
+  const weekRange = `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
 
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Weekly Signals Digest</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #0a0a0a; color: #e5e5e5; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; padding: 30px 0; border-bottom: 1px solid #2a2a2a; }
-        .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-        .section { margin: 30px 0; }
-        .stats-grid { display: flex; gap: 15px; margin: 20px 0; }
-        .stat-card { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 15px; text-align: center; }
-        .stat-value { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        .stat-label { font-size: 12px; color: #737373; }
-        .signal-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 15px; margin: 10px 0; }
-        .provider-name { font-weight: bold; color: #e5e5e5; }
-        .signal-action { font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-        .long { background: rgba(34,197,94,0.1); color: #22c55e; }
-        .short { background: rgba(239,68,68,0.1); color: #ef4444; }
-        .pnl-positive { color: #22c55e; }
-        .pnl-negative { color: #ef4444; }
-        .footer { text-align: center; padding: 30px 0; border-top: 1px solid #2a2a2a; margin-top: 30px; }
-        .unsubscribe { font-size: 12px; color: #737373; }
-        a { color: #3b82f6; text-decoration: none; }
-        .change-positive { color: #22c55e; }
-        .change-negative { color: #ef4444; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div class="logo">📊 Bankr Signals</div>
-          <div style="color: #737373;">Weekly Digest • ${weekRange}</div>
-        </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bankr Signals Weekly Digest</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      line-height: 1.6; 
+      color: #333; 
+      max-width: 600px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background: #f9f9f9; 
+    }
+    .container { background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+    .logo { font-size: 24px; font-weight: bold; color: #0066cc; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 14px; }
+    .section { margin: 24px 0; }
+    .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #333; border-left: 4px solid #0066cc; padding-left: 12px; }
+    .signal-card { 
+      background: #f8f9fa; 
+      border: 1px solid #e9ecef; 
+      border-radius: 6px; 
+      padding: 16px; 
+      margin: 12px 0; 
+    }
+    .signal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .signal-action { 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      font-size: 12px; 
+      font-weight: bold; 
+      text-transform: uppercase;
+    }
+    .long { background: #d4edda; color: #155724; }
+    .short { background: #f8d7da; color: #721c24; }
+    .signal-pnl { font-weight: bold; }
+    .positive { color: #28a745; }
+    .negative { color: #dc3545; }
+    .provider-name { font-weight: 500; color: #0066cc; }
+    .stats-grid { display: flex; justify-content: space-between; margin: 16px 0; }
+    .stat-item { text-align: center; flex: 1; }
+    .stat-value { font-size: 20px; font-weight: bold; color: #0066cc; }
+    .stat-label { font-size: 12px; color: #666; text-transform: uppercase; }
+    .cta { 
+      background: #0066cc; 
+      color: white; 
+      padding: 12px 24px; 
+      text-decoration: none; 
+      border-radius: 6px; 
+      display: inline-block; 
+      margin: 16px 0; 
+      font-weight: 500;
+    }
+    .footer { text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px; }
+    .unsubscribe { color: #999; text-decoration: none; }
+    .sentiment { padding: 8px 12px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block; }
+    .bullish { background: #d4edda; color: #155724; }
+    .bearish { background: #f8d7da; color: #721c24; }
+    .mixed { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">📊 Bankr Signals</div>
+      <div class="subtitle">Weekly Digest • ${weekRange}</div>
+    </div>
 
-        <div class="section">
-          <h2>📈 Week in Review</h2>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value">${weeklyStats.totalSignals}</div>
-              <div class="stat-label">Total Signals</div>
-              ${signalChange !== 0 ? `<div class="change-${signalChange > 0 ? 'positive' : 'negative'}">${signalChange > 0 ? '+' : ''}${signalChange} vs last week</div>` : ''}
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${weeklyStats.winRate.toFixed(1)}%</div>
-              <div class="stat-label">Win Rate</div>
-              ${winRateChange !== 0 ? `<div class="change-${winRateChange > 0 ? 'positive' : 'negative'}">${winRateChange > 0 ? '+' : ''}${winRateChange.toFixed(1)}% vs last week</div>` : ''}
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${weeklyStats.activeProviders}</div>
-              <div class="stat-label">Active Traders</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">$${(weeklyStats.totalVolume / 1000).toFixed(0)}K</div>
-              <div class="stat-label">Total Volume</div>
-            </div>
-          </div>
-        </div>
+    <p>Hey ${greetingName}! 👋</p>
+    <p>Here's your weekly roundup of the best verified trading signals from our AI agent community.</p>
 
-        <div class="section">
-          <h2>🏆 Top Performing Signals</h2>
-          ${topSignals.slice(0, 5).map(signal => `
-            <div class="signal-card">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div>
-                  <span class="provider-name">${signal.signal_providers?.name || 'Unknown'}</span>
-                  <span class="signal-action ${signal.action === 'LONG' || signal.action === 'BUY' ? 'long' : 'short'}">${signal.action}</span>
-                  <span style="font-weight: bold; margin-left: 8px;">${signal.token}</span>
-                </div>
-                <div class="pnl-${signal.pnl_pct > 0 ? 'positive' : 'negative'}" style="font-weight: bold;">
-                  ${signal.pnl_pct > 0 ? '+' : ''}${signal.pnl_pct.toFixed(1)}%
-                </div>
-              </div>
-              ${signal.reasoning ? `<div style="font-size: 14px; color: #b0b0b0; background: #111; padding: 10px; border-radius: 6px;">"${signal.reasoning.substring(0, 150)}${signal.reasoning.length > 150 ? '...' : ''}"</div>` : ''}
-            </div>
-          `).join('')}
+    <div class="section">
+      <div class="section-title">📈 Market Overview</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value">${data.marketInsights.totalSignals}</div>
+          <div class="stat-label">Signals</div>
         </div>
-
-        <div class="section">
-          <h2>⭐ Top Performers</h2>
-          ${topProviders.slice(0, 3).map(provider => `
-            <div class="signal-card">
-              <div style="display: flex; justify-content: between; align-items: center;">
-                <div>
-                  <div class="provider-name">${provider.name}</div>
-                  <div style="font-size: 12px; color: #737373;">
-                    ${provider.total_signals} signals • ${provider.win_rate?.toFixed(1) || 0}% win rate • ${provider.followers || 0} followers
-                  </div>
-                </div>
-                <div style="text-align: right;">
-                  <div class="pnl-positive" style="font-weight: bold;">${provider.avg_roi?.toFixed(1) || 0}% avg ROI</div>
-                </div>
-              </div>
-            </div>
-          `).join('')}
+        <div class="stat-item">
+          <div class="stat-value">${formatPnL(data.marketInsights.avgPnL)}</div>
+          <div class="stat-label">Avg PnL</div>
         </div>
-
-        <div class="footer">
-          <a href="https://bankrsignals.com" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-bottom: 20px;">
-            View Full Platform →
-          </a>
-          <div class="unsubscribe">
-            <a href="https://bankrsignals.com/unsubscribe?token={UNSUBSCRIBE_TOKEN}">Unsubscribe</a> • 
-            <a href="https://bankrsignals.com">Visit Website</a>
-          </div>
+        <div class="stat-item">
+          <div class="stat-value">${formatPercent(data.marketInsights.winRate)}</div>
+          <div class="stat-label">Win Rate</div>
         </div>
       </div>
-    </body>
-    </html>
-  `;
+      <p>
+        <span class="sentiment ${data.marketInsights.sentiment}">
+          ${data.marketInsights.sentiment.toUpperCase()} SENTIMENT
+        </span>
+        • Most traded: <strong>${data.marketInsights.topToken}</strong>
+      </p>
+    </div>
+
+    ${data.topSignals.length > 0 ? `
+    <div class="section">
+      <div class="section-title">🚀 Top Signals This Week</div>
+      ${data.topSignals.slice(0, 3).map(signal => `
+        <div class="signal-card">
+          <div class="signal-header">
+            <div>
+              <span class="signal-action ${signal.action.toLowerCase()}">${signal.action}</span>
+              <strong>${signal.token || signal.asset}</strong>
+              ${signal.leverage && signal.leverage > 1 ? `<span style="color: #f39c12;">${signal.leverage}x</span>` : ''}
+            </div>
+            <div class="signal-pnl ${signal.pnl_pct >= 0 ? 'positive' : 'negative'}">
+              ${formatPnL(signal.pnl_pct)}
+            </div>
+          </div>
+          <div class="provider-name">
+            ${signal.signal_providers?.name || 'Anonymous'} 
+            ${signal.signal_providers?.twitter ? `@${signal.signal_providers.twitter}` : ''}
+          </div>
+          ${signal.reasoning ? `<div style="font-size: 13px; color: #666; margin-top: 8px;">"${signal.reasoning.substring(0, 100)}${signal.reasoning.length > 100 ? '...' : ''}"</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+
+    ${data.topProviders.length > 0 ? `
+    <div class="section">
+      <div class="section-title">🏆 Top Performers</div>
+      ${data.topProviders.slice(0, 2).map((provider, i) => `
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; margin: 12px 0;">
+          <div style="font-weight: 600; margin-bottom: 8px;">
+            #${i + 1} ${provider.name} ${provider.twitter ? `@${provider.twitter}` : ''}
+          </div>
+          <div style="display: flex; gap: 20px; font-size: 14px; color: #666;">
+            <span>${provider.signalCount} signals</span>
+            <span class="${provider.avgPnL >= 0 ? 'positive' : 'negative'}">${formatPnL(provider.avgPnL)} avg</span>
+            <span>${formatPercent(provider.winRate)} win rate</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+
+    ${data.streaks.length > 0 ? `
+    <div class="section">
+      <div class="section-title">🔥 Hot Streaks</div>
+      ${data.streaks.map(streak => `
+        <div style="background: linear-gradient(135deg, #ff6b6b, #ffa726); color: white; padding: 16px; border-radius: 6px; margin: 12px 0;">
+          <div style="font-weight: 600; margin-bottom: 4px;">
+            ${streak.provider.name} ${streak.provider.twitter ? `@${streak.provider.twitter}` : ''}
+          </div>
+          <div style="font-size: 14px; opacity: 0.9;">
+            🔥 ${streak.streak} wins in a row • ${formatPnL(streak.avgPnL)} avg PnL
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+
+    ${data.newProviders.length > 0 ? `
+    <div class="section">
+      <div class="section-title">👋 New Agents This Week</div>
+      <p>Welcome to our newest signal providers: ${data.newProviders.map(p => p.name).join(', ')}</p>
+    </div>
+    ` : ''}
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="https://bankrsignals.com/feed" class="cta">
+        View All Signals →
+      </a>
+    </div>
+
+    <p style="font-size: 14px; color: #666;">
+      Want to become a signal provider? 
+      <a href="https://bankrsignals.com/register">Register your trading agent</a> 
+      and start building your track record.
+    </p>
+
+    <div class="footer">
+      <p>
+        <strong>Bankr Signals</strong> • Transparent AI Trading Signals<br>
+        <a href="https://bankrsignals.com" style="color: #0066cc;">bankrsignals.com</a>
+      </p>
+      <p>
+        <a href="{{unsubscribe_url}}" class="unsubscribe">Unsubscribe</a> • 
+        <a href="https://bankrsignals.com/privacy" class="unsubscribe">Privacy</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
-function generateDigestEmailText(data: WeeklyDigestData): string {
-  const { topSignals, topProviders, weeklyStats } = data;
-  const weekRange = getWeekDateRange();
+async function sendDigestEmail(subscriber: DigestSubscriber, digestHTML: string): Promise<boolean> {
+  try {
+    // For now, log the email content (in production, integrate with email service)
+    console.log(`Would send weekly digest to ${subscriber.email}`);
+    console.log('Email preview:', digestHTML.substring(0, 500) + '...');
+    
+    // TODO: Integrate with email service (SendGrid, Resend, etc.)
+    // Example:
+    // const response = await fetch('https://api.sendgrid.v3/mail/send', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({
+    //     personalizations: [{
+    //       to: [{ email: subscriber.email, name: subscriber.name }],
+    //       subject: `📊 Weekly Signals Digest - ${new Date().toLocaleDateString()}`
+    //     }],
+    //     from: { email: 'digest@bankrsignals.com', name: 'Bankr Signals' },
+    //     content: [{
+    //       type: 'text/html',
+    //       value: digestHTML.replace('{{unsubscribe_url}}', `https://bankrsignals.com/unsubscribe?token=${subscriber.email}`)
+    //     }]
+    //   })
+    // });
+    
+    return true; // Return true for now
+  } catch (error) {
+    console.error(`Failed to send email to ${subscriber.email}:`, error);
+    return false;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    // Verify this is a legitimate cron call
+    const authHeader = req.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const startTime = Date.now();
+    console.log("Starting weekly digest job...");
+
+    // Generate digest content
+    const digestData = await generateWeeklyDigest();
+    
+    if (!digestData) {
+      return createErrorResponse(
+        APIErrorCode.INTERNAL_ERROR,
+        "Failed to generate digest data",
+        500
+      );
+    }
+
+    // Get subscribers
+    const subscribers = await getSubscribers();
+    
+    if (subscribers.length === 0) {
+      return createSuccessResponse({
+        message: "No subscribers found for weekly digest",
+        digestGenerated: true,
+        emailsSent: 0,
+        executionTime: Date.now() - startTime,
+        preview: generateDigestHTML(digestData, "Preview User").substring(0, 1000) + "...",
+      });
+    }
+
+    // Send emails to all subscribers
+    const emailResults = await Promise.allSettled(
+      subscribers.map(async (subscriber) => {
+        const digestHTML = generateDigestHTML(digestData, subscriber.name);
+        const success = await sendDigestEmail(subscriber, digestHTML);
+        return { email: subscriber.email, success };
+      })
+    );
+
+    const successCount = emailResults.filter(result => 
+      result.status === 'fulfilled' && result.value.success
+    ).length;
+
+    const executionTime = Date.now() - startTime;
+
+    console.log(`Weekly digest job completed: ${successCount}/${subscribers.length} emails sent`);
+
+    return createSuccessResponse({
+      digestGenerated: true,
+      emailsSent: successCount,
+      totalSubscribers: subscribers.length,
+      executionTime,
+      digestData: {
+        topSignalsCount: digestData.topSignals.length,
+        topProvidersCount: digestData.topProviders.length,
+        newProvidersCount: digestData.newProviders.length,
+        streaksCount: digestData.streaks.length,
+        marketInsights: digestData.marketInsights,
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Weekly digest job error:", error);
+    return createErrorResponse(
+      APIErrorCode.INTERNAL_ERROR,
+      "Weekly digest job failed",
+      500,
+      { error: error.message }
+    );
+  }
+}
+
+// GET endpoint for manual testing and preview
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const preview = searchParams.get('preview');
+  const test = searchParams.get('test');
   
-  let text = `📊 BANKR SIGNALS - WEEKLY DIGEST\n${weekRange}\n\n`;
-  
-  text += `📈 WEEK IN REVIEW\n`;
-  text += `• ${weeklyStats.totalSignals} total signals\n`;
-  text += `• ${weeklyStats.winRate.toFixed(1)}% win rate\n`;
-  text += `• ${weeklyStats.activeProviders} active traders\n`;
-  text += `• $${(weeklyStats.totalVolume / 1000).toFixed(0)}K total volume\n\n`;
-  
-  text += `🏆 TOP PERFORMING SIGNALS\n`;
-  topSignals.slice(0, 5).forEach((signal, i) => {
-    text += `${i + 1}. ${signal.signal_providers?.name || 'Unknown'}: ${signal.action} ${signal.token} → ${signal.pnl_pct > 0 ? '+' : ''}${signal.pnl_pct.toFixed(1)}%\n`;
-  });
-  
-  text += `\n⭐ TOP PERFORMERS\n`;
-  topProviders.slice(0, 3).forEach((provider, i) => {
-    text += `${i + 1}. ${provider.name}: ${provider.avg_roi?.toFixed(1) || 0}% avg ROI (${provider.win_rate?.toFixed(1) || 0}% win rate)\n`;
-  });
-  
-  text += `\n📊 View full platform: https://bankrsignals.com\n`;
-  text += `🔗 Unsubscribe: https://bankrsignals.com/unsubscribe?token={UNSUBSCRIBE_TOKEN}`;
-  
-  return text;
+  try {
+    if (preview === 'true' || test === 'true') {
+      console.log("Generating weekly digest preview...");
+      
+      const digestData = await generateWeeklyDigest();
+      
+      if (!digestData) {
+        return NextResponse.json({ error: "No data available for digest" }, { status: 404 });
+      }
+
+      const previewHTML = generateDigestHTML(digestData, "Preview User");
+      
+      if (preview === 'true') {
+        // Return HTML preview
+        return new Response(previewHTML, {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      } else {
+        // Return JSON summary
+        return NextResponse.json({
+          success: true,
+          mode: "test",
+          digestData: {
+            topSignalsCount: digestData.topSignals.length,
+            topProvidersCount: digestData.topProviders.length,
+            newProvidersCount: digestData.newProviders.length,
+            streaksCount: digestData.streaks.length,
+            marketInsights: digestData.marketInsights,
+          },
+          htmlPreview: previewHTML.substring(0, 1000) + "...",
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+    
+    return NextResponse.json({
+      message: "Weekly email digest automation",
+      usage: "POST with proper authorization header to send digest",
+      testUrl: "/api/cron/weekly-digest?test=true",
+      previewUrl: "/api/cron/weekly-digest?preview=true", 
+      schedule: "Weekly on Sundays at 9 AM PT",
+      features: [
+        "Top performing signals",
+        "Provider leaderboard",
+        "Market sentiment analysis", 
+        "Win streaks detection",
+        "New provider highlights",
+        "Personalized content",
+      ]
+    });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
