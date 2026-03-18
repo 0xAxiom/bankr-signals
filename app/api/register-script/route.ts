@@ -3,172 +3,245 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   
-  const name = searchParams.get('name') || 'MyTradingBot';
-  const address = searchParams.get('address') || '0x...';
+  // Extract parameters
+  const name = searchParams.get('name') || '';
+  const address = searchParams.get('address') || '';
   const bio = searchParams.get('bio') || '';
   const twitter = searchParams.get('twitter') || '';
   const farcaster = searchParams.get('farcaster') || '';
   const website = searchParams.get('website') || '';
 
   // Validate required fields
-  if (!name || name === 'MyTradingBot') {
+  if (!name || !address) {
     return NextResponse.json(
-      { error: 'Agent name is required' },
+      { error: 'Missing required fields: name and address' },
       { status: 400 }
     );
   }
 
-  if (!address || address === '0x...' || !address.startsWith('0x')) {
+  // Validate address format
+  if (!address.startsWith('0x') || address.length !== 42) {
     return NextResponse.json(
-      { error: 'Valid wallet address is required' },
+      { error: 'Invalid address format' },
       { status: 400 }
     );
   }
 
-  // Generate the shell script
+  // Generate the registration script
+  const script = generateRegistrationScript({
+    name,
+    address,
+    bio,
+    twitter,
+    farcaster,
+    website
+  });
+
+  return new NextResponse(script, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Content-Disposition': 'attachment; filename="register.sh"'
+    }
+  });
+}
+
+interface RegistrationParams {
+  name: string;
+  address: string;
+  bio?: string;
+  twitter?: string;
+  farcaster?: string;
+  website?: string;
+}
+
+function generateRegistrationScript(params: RegistrationParams): string {
+  const { name, address, bio, twitter, farcaster, website } = params;
+  
+  // Build the JSON payload
+  const payload = {
+    address,
+    name,
+    ...(bio && { bio }),
+    ...(twitter && { twitter }),
+    ...(farcaster && { farcaster }),
+    ...(website && { website })
+  };
+
   const script = `#!/bin/bash
 
 # Bankr Signals Registration Script
-# Auto-generated for: ${name}
-# Wallet: ${address}
+# Generated for: ${name} (${address})
+# Created: $(date)
 
 set -e  # Exit on any error
 
-echo "🚀 Registering ${name} on Bankr Signals..."
+echo "🤖 Bankr Signals Agent Registration"
+echo "=================================="
+echo "Agent: ${name}"
+echo "Address: ${address}"
+echo ""
 
 # Check dependencies
+echo "📋 Checking dependencies..."
+
 if ! command -v curl &> /dev/null; then
-    echo "❌ curl is required but not installed"
+    echo "❌ curl not found. Please install curl first."
     exit 1
 fi
 
 if ! command -v jq &> /dev/null; then
-    echo "❌ jq is required but not installed"
-    echo "Install: apt install jq  or  brew install jq"
+    echo "❌ jq not found. Please install jq first:"
+    echo "   Ubuntu/Debian: sudo apt install jq"
+    echo "   macOS: brew install jq" 
+    echo "   Or download from: https://stedolan.github.io/jq/"
     exit 1
 fi
 
 if ! command -v cast &> /dev/null; then
-    echo "❌ cast (Foundry) is required but not installed"
-    echo "Install: curl -L https://foundry.paradigm.xyz | bash"
+    echo "❌ cast (Foundry) not found. Please install Foundry first:"
+    echo "   curl -L https://foundry.paradigm.xyz | bash"
+    echo "   foundryup"
     exit 1
 fi
 
-# Check for private key
-if [ -z "$PRIVATE_KEY" ]; then
-    echo "❌ PRIVATE_KEY environment variable not set"
-    echo "Run: export PRIVATE_KEY=0x..."
+echo "✅ All dependencies found"
+echo ""
+
+# Check private key
+if [[ -z "\$PRIVATE_KEY" ]]; then
+    echo "❌ PRIVATE_KEY environment variable not set."
+    echo "Set it with: export PRIVATE_KEY=0x..."
     exit 1
 fi
 
 # Validate private key format
-if [[ ! $PRIVATE_KEY =~ ^0x[0-9a-fA-F]{64}$ ]]; then
-    echo "❌ Invalid private key format"
-    echo "Expected: 0x followed by 64 hex characters"
+if [[ ! "\$PRIVATE_KEY" =~ ^0x[a-fA-F0-9]{64}$ ]]; then
+    echo "❌ Invalid private key format. Must be 0x followed by 64 hex characters."
     exit 1
 fi
 
-# Generate wallet address from private key to verify match
-DERIVED_ADDRESS=$(cast wallet address $PRIVATE_KEY)
-EXPECTED_ADDRESS="${address}"
+echo "✅ Private key found"
 
-if [[ "\${DERIVED_ADDRESS,,}" != "\${EXPECTED_ADDRESS,,}" ]]; then
-    echo "❌ Private key doesn't match expected address"
-    echo "Expected: $EXPECTED_ADDRESS"
-    echo "Derived:  $DERIVED_ADDRESS"
+# Derive address from private key and verify it matches
+echo "🔐 Verifying wallet address..."
+DERIVED_ADDRESS=$(cast wallet address "\$PRIVATE_KEY" 2>/dev/null || echo "")
+
+if [[ -z "\$DERIVED_ADDRESS" ]]; then
+    echo "❌ Failed to derive address from private key. Check your key format."
     exit 1
 fi
 
-echo "✅ Private key matches wallet address"
+if [[ "\${DERIVED_ADDRESS,,}" != "${address.toLowerCase()}" ]]; then
+    echo "❌ Address mismatch!"
+    echo "   Expected: ${address}"
+    echo "   Derived:  \$DERIVED_ADDRESS"
+    echo "   Your private key doesn't match the specified address."
+    exit 1
+fi
 
-# Create registration message
+echo "✅ Address verified: ${address}"
+echo ""
+
+# Generate registration message and signature
+echo "📝 Generating registration signature..."
 TIMESTAMP=$(date +%s)
-MESSAGE="bankr-signals:register:${address}:$TIMESTAMP"
+MESSAGE="bankr-signals:register:${address}:\$TIMESTAMP"
 
-echo "📝 Signing registration message..."
-SIGNATURE=$(cast wallet sign --private-key $PRIVATE_KEY "$MESSAGE")
+echo "Message: \$MESSAGE"
 
-echo "🔗 Submitting registration to Bankr Signals..."
+# Sign the message
+SIGNATURE=$(cast wallet sign "\$MESSAGE" --private-key "\$PRIVATE_KEY" 2>/dev/null || echo "")
 
-# Build registration payload
+if [[ -z "\$SIGNATURE" ]]; then
+    echo "❌ Failed to sign message. Check your private key."
+    exit 1
+fi
+
+echo "✅ Message signed"
+echo ""
+
+# Submit registration
+echo "📡 Submitting registration to Bankr Signals..."
+
 REGISTRATION_DATA=$(jq -n \\
   --arg address "${address}" \\
   --arg name "${name}" \\
-  --arg bio "${bio}" \\
-  --arg twitter "${twitter}" \\
-  --arg farcaster "${farcaster}" \\
-  --arg website "${website}" \\
-  --arg message "$MESSAGE" \\
-  --arg signature "$SIGNATURE" \\
-  '{
-    address: $address,
-    name: $name,
-    message: $message,
-    signature: $signature
-  } + (if $bio != "" then {bio: $bio} else {} end)
-    + (if $twitter != "" then {twitter: $twitter} else {} end)
-    + (if $farcaster != "" then {farcaster: $farcaster} else {} end)
-    + (if $website != "" then {website: $website} else {} end)'
-)
+  --arg message "\$MESSAGE" \\
+  --arg signature "\$SIGNATURE" \\
+${bio ? `  --arg bio "${bio.replace(/"/g, '\\"')}" \\\\\n` : ''}${twitter ? `  --arg twitter "${twitter}" \\\\\n` : ''}${farcaster ? `  --arg farcaster "${farcaster}" \\\\\n` : ''}${website ? `  --arg website "${website}" \\\\\n` : ''}  '{
+    address: \$address,
+    name: \$name,
+    message: \$message,
+    signature: \$signature${bio ? ',\n    bio: \$bio' : ''}${twitter ? ',\n    twitter: \$twitter' : ''}${farcaster ? ',\n    farcaster: \$farcaster' : ''}${website ? ',\n    website: \$website' : ''}
+  }')
 
-# Submit registration
-RESPONSE=$(curl -s -X POST https://bankrsignals.com/api/providers/register \\
+RESPONSE=$(curl -s -X POST "https://bankrsignals.com/api/providers/register" \\
   -H "Content-Type: application/json" \\
-  -d "$REGISTRATION_DATA")
+  -d "\$REGISTRATION_DATA")
 
 # Check if registration was successful
-if echo "$RESPONSE" | jq -e '.error' > /dev/null; then
-    echo "❌ Registration failed:"
-    echo "$RESPONSE" | jq -r '.error'
+if echo "\$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
+    echo "✅ Registration successful!"
+    echo ""
+    
+    # Extract provider ID from response
+    PROVIDER_ID=$(echo "\$RESPONSE" | jq -r '.id')
+    echo "🎉 Agent Profile Created"
+    echo "======================"
+    echo "Provider ID: \$PROVIDER_ID"
+    echo "Profile URL: https://bankrsignals.com/provider/${address}"
+    echo "Dashboard: https://bankrsignals.com/feed"
+    echo ""
+    
+    # Download integration files
+    echo "📁 Downloading integration files..."
+    
+    echo "Downloading SKILL.md..."
+    curl -s "https://bankrsignals.com/skill.md" -o SKILL.md
+    
+    echo "Downloading HEARTBEAT.md..."
+    curl -s "https://bankrsignals.com/heartbeat.md" -o HEARTBEAT.md
+    
+    echo "✅ Files downloaded:"
+    echo "   - SKILL.md (API integration guide)"
+    echo "   - HEARTBEAT.md (maintenance checklist)"
+    echo ""
+    
+    echo "🚀 Ready to publish signals!"
+    echo "=========================="
+    echo "Example first signal:"
+    echo ""
+    echo 'curl -X POST "https://bankrsignals.com/api/signals" \\\\'
+    echo '  -H "Content-Type: application/json" \\\\'
+    echo '  -d '"'"'{
+      "provider": "${address}",
+      "action": "LONG",
+      "token": "ETH", 
+      "entryPrice": 2500,
+      "leverage": 3,
+      "confidence": 0.85,
+      "reasoning": "Strong support level, RSI oversold"
+    }'"'"''
+    echo ""
+    echo "Read SKILL.md for complete API documentation."
+    
+else
+    echo "❌ Registration failed!"
+    echo "Response: \$RESPONSE"
+    
+    # Try to extract error message
+    ERROR_MSG=$(echo "\$RESPONSE" | jq -r '.error // .message // "Unknown error"' 2>/dev/null || echo "Unknown error")
+    echo "Error: \$ERROR_MSG"
+    
+    if echo "\$ERROR_MSG" | grep -q "already exists"; then
+        echo ""
+        echo "💡 This name or address is already registered."
+        echo "   Try a different name or check: https://bankrsignals.com/provider/${address}"
+    fi
+    
     exit 1
 fi
-
-echo "✅ Registration successful!"
-echo ""
-echo "🎉 Agent '${name}' is now registered on Bankr Signals"
-echo ""
-echo "📊 Provider page: https://bankrsignals.com/provider/${address}"
-echo "📡 Live feed:     https://bankrsignals.com/"
-echo "📖 API docs:      https://bankrsignals.com/skill"
-echo ""
-
-# Download skill file
-echo "📥 Downloading SKILL.md..."
-curl -s https://bankrsignals.com/skill.md > SKILL.md
-echo "✅ SKILL.md saved to current directory"
-echo ""
-
-# Download heartbeat file  
-echo "📥 Downloading HEARTBEAT.md..."
-curl -s https://bankrsignals.com/heartbeat.md > HEARTBEAT.md
-echo "✅ HEARTBEAT.md saved to current directory"
-echo ""
-
-echo "🚀 Next steps:"
-echo "1. Add SKILL.md to your agent's skills directory"
-echo "2. Include HEARTBEAT.md in your periodic checks"
-echo "3. Start publishing signals with:"
-echo ""
-echo "   curl -X POST https://bankrsignals.com/api/signals \\\\"
-echo "     -H \"Content-Type: application/json\" \\\\"
-echo "     -d '{"
-echo "       \"provider\": \"${address}\","
-echo "       \"action\": \"LONG\","
-echo "       \"token\": \"ETH\","
-echo "       \"entryPrice\": 2500,"
-echo "       \"leverage\": 3,"
-echo "       \"reasoning\": \"Your trade thesis here\""
-echo "     }'"
-echo ""
-echo "🏆 Happy trading! Your signals are now being tracked on-chain."
 `;
 
-  // Return the script with proper content-type
-  return new NextResponse(script, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/plain',
-      'Content-Disposition': 'attachment; filename="register.sh"',
-    },
-  });
+  return script;
 }
