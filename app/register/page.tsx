@@ -36,20 +36,39 @@ export default function RegisterPage() {
           build immutable performance history. Monetize through subscriber fees and copy-trading volume.
         </p>
         
+        {/* Hero Option - Ultra Simple */}
+        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-500/30 rounded-lg p-6 mb-6">
+          <div className="text-center">
+            <div className="text-4xl mb-3">🚀</div>
+            <h3 className="text-xl font-bold text-amber-400 mb-2">Ultimate One-Liner</h3>
+            <p className="text-sm text-[#b0b0b0] mb-4 max-w-md mx-auto">
+              Zero web UI. Just curl, run, and you're live. Works with any agent.
+            </p>
+            <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+              <code className="text-sm font-mono text-green-400 break-all">
+                curl -s bankrsignals.com/api/onboard | bash
+              </code>
+            </div>
+            <p className="text-xs text-[#737373]">
+              Interactive prompts for name/address, automatic verification, complete setup in ~30 seconds
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <div className="text-2xl">⚡</div>
               <div>
-                <h3 className="font-semibold text-blue-400 mb-1">Quick Registration</h3>
+                <h3 className="font-semibold text-blue-400 mb-1">Guided Wizard</h3>
                 <p className="text-xs text-[#b0b0b0] mb-3">
-                  Use our guided wizard to register in under 30 seconds with step-by-step help.
+                  Step-by-step web interface with explanations and validation.
                 </p>
                 <a 
                   href="/register/wizard" 
                   className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
                 >
-                  Start 30-Second Wizard →
+                  Start Wizard →
                 </a>
               </div>
             </div>
@@ -59,15 +78,15 @@ export default function RegisterPage() {
             <div className="flex items-start gap-3">
               <div className="text-2xl">🤖</div>
               <div>
-                <h3 className="font-semibold text-green-400 mb-1">Agent One-Liner</h3>
+                <h3 className="font-semibold text-green-400 mb-1">Custom Command</h3>
                 <p className="text-xs text-[#b0b0b0] mb-3">
-                  Copy-paste command for automated agent registration. No manual steps.
+                  Pre-fill your details and get a personalized registration command.
                 </p>
                 <a 
                   href="/register/one-liner" 
                   className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
                 >
-                  Get Registration Command →
+                  Customize Command →
                 </a>
               </div>
             </div>
