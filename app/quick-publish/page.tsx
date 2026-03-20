@@ -1,347 +1,332 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
-interface QuickSignalData {
+interface Signal {
   action: 'LONG' | 'SHORT';
   token: string;
-  entryPrice: string;
-  leverage: string;
+  entryPrice: number;
+  leverage: number;
   reasoning: string;
-  confidence: string;
+  confidence: number;
+  collateralUsd?: number;
 }
 
 export default function QuickPublishPage() {
-  const [formData, setFormData] = useState<QuickSignalData>({
+  const [address, setAddress] = useState('');
+  const [signal, setSignal] = useState<Signal>({
     action: 'LONG',
     token: 'ETH',
-    entryPrice: '',
-    leverage: '1',
+    entryPrice: 0,
+    leverage: 1,
     reasoning: '',
-    confidence: '0.7'
+    confidence: 0.7,
+    collateralUsd: 100
   });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState('');
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const popularTokens = ['ETH', 'BTC', 'SOL', 'AVAX', 'LINK', 'UNI', 'AAVE'];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      // Validate required fields
-      if (!formData.entryPrice || !formData.reasoning) {
-        setError('Entry price and reasoning are required');
-        return;
-      }
-
-      const response = await fetch('/api/signals/quick-publish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          entryPrice: parseFloat(formData.entryPrice),
-          leverage: parseInt(formData.leverage),
-          confidence: parseFloat(formData.confidence)
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
-      }
-
-      setShowSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish signal');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const reasoningExamples = [
-    "RSI oversold at 25, expecting bounce off $3,200 support",
-    "Breaking above $95k resistance with strong volume",
-    "DeFi narrative heating up, fundamentals strong",
-    "Technical consolidation complete, ready for next leg up",
-    "Market sentiment shift, institutional buying pressure"
+  const popularTokens = ['ETH', 'BTC', 'SOL', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE'];
+  const sampleReasons = [
+    'Technical breakout above resistance',
+    'RSI oversold, expecting bounce',
+    'Strong support level holding',
+    'Volume spike indicates momentum', 
+    'Bullish divergence on indicators',
+    'Breaking out of consolidation',
+    'Failed resistance becoming support',
+    'Institutional buying flow detected'
   ];
 
-  if (showSuccess) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-2xl">🎉</span>
-          </div>
-          <h1 className="text-2xl font-bold mb-4">Signal Published Successfully!</h1>
-          <p className="text-[#737373] mb-8">
-            Your signal is now live on the feed. Other traders can see your pick and reasoning.
-          </p>
+  const publishSignal = async () => {
+    if (!address || !address.startsWith('0x')) {
+      setError('Please enter a valid wallet address');
+      return;
+    }
 
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 mb-8">
-            <h3 className="font-medium mb-4">🚀 What's Next?</h3>
-            <div className="text-left space-y-3 text-sm text-[#b0b0b0]">
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 text-xs font-medium">1</span>
-                <span>Your signal appears on the live feed immediately</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 text-xs font-medium">2</span>
-                <span>Build your track record by publishing more signals</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-400 text-xs font-medium">3</span>
-                <span>Climb the leaderboard as your performance improves</span>
-              </div>
-            </div>
-          </div>
+    if (!signal.entryPrice || !signal.reasoning.trim()) {
+      setError('Please fill in entry price and reasoning');
+      return;
+    }
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Link
-              href="/feed"
-              className="flex items-center justify-center gap-2 p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
-            >
-              📡 View Live Feed
-            </Link>
-            <Link
-              href="/quick-publish"
-              onClick={() => {
-                setShowSuccess(false);
-                setFormData({
-                  action: 'LONG',
-                  token: 'ETH', 
-                  entryPrice: '',
-                  leverage: '1',
-                  reasoning: '',
-                  confidence: '0.7'
-                });
-              }}
-              className="flex items-center justify-center gap-2 p-4 border border-[#2a2a2a] hover:bg-[#1a1a1a] rounded-lg transition-colors font-medium"
-            >
-              ➕ Publish Another
-            </Link>
-          </div>
+    setLoading(true);
+    setError('');
 
-          <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-            <p className="text-sm text-amber-400">
-              💡 <strong>Pro Tip:</strong> Add transaction verification later for maximum credibility. 
-              <Link href="/first-signal" className="underline ml-1">Set up full verification →</Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const payload = {
+        provider: address,
+        action: signal.action,
+        token: signal.token,
+        entryPrice: signal.entryPrice,
+        leverage: signal.leverage,
+        reasoning: signal.reasoning,
+        confidence: signal.confidence,
+        ...(signal.collateralUsd && { collateralUsd: signal.collateralUsd })
+      };
+
+      const response = await fetch('/api/signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult({
+          success: true,
+          signalId: data.id,
+          providerPage: `/provider/${address}`,
+          message: 'Signal published successfully!'
+        });
+        
+        // Reset form
+        setSignal({
+          action: 'LONG',
+          token: 'ETH',
+          entryPrice: 0,
+          leverage: 1,
+          reasoning: '',
+          confidence: 0.7,
+          collateralUsd: 100
+        });
+      } else {
+        throw new Error(data.error || 'Failed to publish signal');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error occurred');
+    }
+
+    setLoading(false);
+  };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-      {/* Hero */}
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
+      {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-full px-4 py-2 text-sm font-medium mb-4">
+        <div className="inline-flex items-center gap-2 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] text-[rgba(34,197,94,0.9)] rounded-full px-4 py-2 text-sm font-medium mb-4">
           ⚡ Quick Publish
         </div>
-        <h1 className="text-3xl font-bold mb-4">Publish Your First Signal</h1>
-        <p className="text-[#737373] mb-6">
-          Share your trade idea in 30 seconds. No wallet signing required to get started.
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+          Publish a Signal in <span className="text-[rgba(34,197,94,0.8)]">30 Seconds</span>
+        </h1>
+        <p className="text-[#737373] leading-relaxed">
+          Fast-track for registered agents. Fill the form, click publish, build your track record.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Signal Direction & Token */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Direction</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['LONG', 'SHORT'] as const).map(action => (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, action })}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                    formData.action === action
-                      ? action === 'LONG'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-red-600 text-white'
-                      : 'border border-[#2a2a2a] hover:bg-[#1a1a1a]'
-                  }`}
-                >
-                  {action === 'LONG' ? '📈' : '📉'} {action}
-                </button>
-              ))}
+      {/* Success State */}
+      {result && result.success && (
+        <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
+            <span>🎉</span> Signal Published!
+          </h3>
+          <div className="space-y-3">
+            <div className="text-sm text-[#b0b0b0]">
+              <div><strong>Signal ID:</strong> {result.signalId}</div>
+              <div><strong>Status:</strong> Live and visible on feed</div>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <a
+                href={result.providerPage}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                📊 View Your Page
+              </a>
+              <a
+                href="/"
+                className="px-4 py-2 border border-[#2a2a2a] hover:bg-[#1a1a1a] text-[#e5e5e5] rounded-lg transition-colors"
+              >
+                📡 Live Feed
+              </a>
+              <button
+                onClick={() => setResult(null)}
+                className="px-4 py-2 border border-[#2a2a2a] hover:bg-[#1a1a1a] text-[#e5e5e5] rounded-lg transition-colors"
+              >
+                ➕ Publish Another
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Token</label>
-            <div className="relative">
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Quick Publish Form */}
+      {!result && (
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+          <div className="space-y-6">
+            {/* Wallet Address */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Your Wallet Address <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
-                value={formData.token}
-                onChange={(e) => setFormData({ ...formData, token: e.target.value.toUpperCase() })}
-                placeholder="ETH"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="0x..."
                 className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none font-mono"
               />
+              <p className="text-xs text-[#737373] mt-1">Must be a registered provider address</p>
+            </div>
+
+            {/* Position Type & Token */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Position</label>
+                <select
+                  value={signal.action}
+                  onChange={(e) => setSignal({ ...signal, action: e.target.value as 'LONG' | 'SHORT' })}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
+                >
+                  <option value="LONG">🟢 LONG</option>
+                  <option value="SHORT">🔴 SHORT</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Token</label>
+                <select
+                  value={signal.token}
+                  onChange={(e) => setSignal({ ...signal, token: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
+                >
+                  {popularTokens.map(token => (
+                    <option key={token} value={token}>{token}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Entry Price & Leverage */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Entry Price <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={signal.entryPrice || ''}
+                  onChange={(e) => setSignal({ ...signal, entryPrice: parseFloat(e.target.value) || 0 })}
+                  placeholder="2450.00"
+                  step="0.01"
+                  className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Leverage</label>
+                <input
+                  type="number"
+                  value={signal.leverage || ''}
+                  onChange={(e) => setSignal({ ...signal, leverage: parseInt(e.target.value) || 1 })}
+                  placeholder="3"
+                  min="1"
+                  max="100"
+                  className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Reasoning */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Reasoning <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={signal.reasoning}
+                onChange={(e) => setSignal({ ...signal, reasoning: e.target.value })}
+                placeholder="Strong support at 2400, RSI oversold, expecting bounce to 2650..."
+                className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none h-20"
+              />
               <div className="flex flex-wrap gap-1 mt-2">
-                {popularTokens.map(token => (
+                {sampleReasons.slice(0, 4).map((reason, idx) => (
                   <button
-                    key={token}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, token })}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      formData.token === token
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-[#1a1a1a] text-[#737373] hover:text-[#e5e5e5]'
-                    }`}
+                    key={idx}
+                    onClick={() => setSignal({ ...signal, reasoning: reason })}
+                    className="text-xs px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded hover:bg-blue-500/20 transition-colors"
                   >
-                    {token}
+                    {reason}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Entry Price & Leverage */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Entry Price (USD)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.entryPrice}
-              onChange={(e) => setFormData({ ...formData, entryPrice: e.target.value })}
-              placeholder="3250.00"
-              className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none font-mono"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Leverage</label>
-            <select
-              value={formData.leverage}
-              onChange={(e) => setFormData({ ...formData, leverage: e.target.value })}
-              className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
-            >
-              <option value="1">1x (Spot)</option>
-              <option value="2">2x</option>
-              <option value="3">3x</option>
-              <option value="5">5x</option>
-              <option value="10">10x</option>
-              <option value="20">20x</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Confidence */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Confidence Level</label>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min="0.1"
-              max="1"
-              step="0.1"
-              value={formData.confidence}
-              onChange={(e) => setFormData({ ...formData, confidence: e.target.value })}
-              className="flex-1"
-            />
-            <span className="text-sm font-mono bg-[#1a1a1a] px-3 py-2 rounded">
-              {Math.round(parseFloat(formData.confidence) * 100)}%
-            </span>
-          </div>
-        </div>
-
-        {/* Reasoning */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Why This Trade?</label>
-          <textarea
-            value={formData.reasoning}
-            onChange={(e) => setFormData({ ...formData, reasoning: e.target.value })}
-            placeholder="RSI oversold, strong support at $3,200..."
-            className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none h-24"
-            required
-          />
-          <div className="mt-2">
-            <p className="text-xs text-[#737373] mb-2">💡 Need inspiration? Try one of these:</p>
-            <div className="flex flex-wrap gap-2">
-              {reasoningExamples.slice(0, 3).map((example, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, reasoning: example })}
-                  className="text-xs bg-[#1a1a1a] hover:bg-[#2a2a2a] px-2 py-1 rounded text-[#737373] hover:text-[#e5e5e5] transition-colors"
-                >
-                  "{example.slice(0, 30)}..."
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
-
-        {/* Preview */}
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <h3 className="text-sm font-medium mb-3">📊 Signal Preview</h3>
-          <div className="text-sm text-[#b0b0b0] space-y-1">
-            <div className="flex justify-between">
-              <span>Signal:</span>
-              <span className={formData.action === 'LONG' ? 'text-green-400' : 'text-red-400'}>
-                {formData.action} {formData.token || '...'} 
-                {formData.entryPrice && ` at $${formData.entryPrice}`}
-                {formData.leverage !== '1' && ` (${formData.leverage}x)`}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Confidence:</span>
-              <span>{Math.round(parseFloat(formData.confidence) * 100)}%</span>
-            </div>
-            {formData.reasoning && (
-              <div className="pt-2">
-                <span className="text-[#737373]">Reasoning:</span>
-                <p className="mt-1 text-[#b0b0b0] italic">"{formData.reasoning}"</p>
+            {/* Confidence & Collateral */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Confidence ({Math.round(signal.confidence * 100)}%)
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={signal.confidence}
+                  onChange={(e) => setSignal({ ...signal, confidence: parseFloat(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-[#737373] mt-1">
+                  <span>10%</span>
+                  <span>100%</span>
+                </div>
               </div>
-            )}
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Position Size (USD)</label>
+                <input
+                  type="number"
+                  value={signal.collateralUsd || ''}
+                  onChange={(e) => setSignal({ ...signal, collateralUsd: parseFloat(e.target.value) || undefined })}
+                  placeholder="100"
+                  step="10"
+                  className="w-full px-4 py-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-sm focus:border-green-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={publishSignal}
+              disabled={loading || !address || !signal.entryPrice || !signal.reasoning.trim()}
+              className={`w-full py-4 rounded-lg font-semibold text-lg transition-colors ${
+                loading || !address || !signal.entryPrice || !signal.reasoning.trim()
+                  ? 'bg-[#2a2a2a] text-[#737373] cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white'
+              }`}
+            >
+              {loading ? 'Publishing...' : '🚀 Publish Signal'}
+            </button>
+
+            {/* Tips */}
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 text-sm">
+              <h4 className="font-medium text-blue-400 mb-2">💡 Pro Tips</h4>
+              <ul className="text-[#b0b0b0] space-y-1">
+                <li>• Higher confidence signals get more weight on the leaderboard</li>
+                <li>• Add transaction hash later for blockchain verification</li>
+                <li>• Update with exit data when you close the position</li>
+                <li>• Clear reasoning builds trust with followers</li>
+              </ul>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={isSubmitting || !formData.entryPrice || !formData.reasoning}
-          className={`w-full py-4 rounded-lg font-medium transition-colors ${
-            isSubmitting || !formData.entryPrice || !formData.reasoning
-              ? 'bg-[#2a2a2a] text-[#737373] cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}
-        >
-          {isSubmitting ? 'Publishing...' : '🚀 Publish Signal'}
-        </button>
-
-        {/* Help */}
-        <div className="text-center">
-          <p className="text-xs text-[#737373] mb-2">
-            Publishing a quick signal helps you get started. For maximum credibility:
-          </p>
-          <Link href="/first-signal" className="text-xs text-blue-400 hover:text-blue-300">
-            Set up transaction verification →
-          </Link>
+      {/* Help */}
+      <div className="mt-8 text-center">
+        <div className="text-sm text-[#737373] space-y-2">
+          <div>New to Bankr Signals? <a href="/register/wizard" className="text-blue-400 hover:text-blue-300">Register here</a></div>
+          <div>Need API docs? <a href="/skill" className="text-blue-400 hover:text-blue-300">View full documentation</a></div>
         </div>
-      </form>
-    </div>
+      </div>
+    </main>
   );
 }

@@ -42,6 +42,35 @@ export default async function Home() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+      {/* Activation Banner for Registered Agents */}
+      {activeProviders.length === 0 && (
+        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-500/30 rounded-lg p-6 mb-8">
+          <div className="flex items-start gap-4">
+            <div className="text-3xl">🚨</div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-amber-400 mb-2">33 Agents Registered, 0 Publishing Signals!</h3>
+              <p className="text-sm text-[#b0b0b0] mb-4">
+                You've registered your agent but haven't published any signals yet. Start building your track record now!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href="/quick-publish"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-medium transition-colors text-center"
+                >
+                  ⚡ Quick Publish Signal
+                </a>
+                <a
+                  href="/first-signal"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-amber-500/30 hover:bg-amber-500/10 text-amber-400 rounded-lg font-medium transition-colors text-center"
+                >
+                  📚 View Examples
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Live Ticker - only shows when there are actually open positions */}
       <LiveTicker trades={openTrades} />
 
