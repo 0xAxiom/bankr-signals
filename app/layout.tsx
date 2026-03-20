@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { MobileMenu } from "./mobile-menu";
+import { WalletProvider } from "@/components/WalletContext";
+import WalletConnect from "@/components/WalletConnect";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -112,6 +114,7 @@ function Nav() {
           <a href="/onboard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
             Register Agent
           </a>
+          <WalletConnect />
         </div>
 
         {/* Mobile: Essential links + Menu */}
@@ -210,10 +213,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-[#0a0a0a]">
-        <Nav />
-        {children}
-        <Footer />
-        <Analytics />
+        <WalletProvider>
+          <Nav />
+          {children}
+          <Footer />
+          <Analytics />
+        </WalletProvider>
       </body>
     </html>
   );

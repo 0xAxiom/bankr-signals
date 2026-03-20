@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 import { Avatar } from "../../avatar";
 import { LivePnLTracker } from "../../live-pnl";
-import FollowButton from "../../../components/FollowButton";
+import ProviderPageClient from "./ProviderPageClient";
 import { computeBadges, getBadgeColor } from "@/lib/badges";
 import { ShareProvider } from "./ShareProvider";
 
@@ -44,10 +44,9 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-xl font-semibold">{p.name}</h1>
-              <FollowButton 
+              <ProviderPageClient 
                 providerAddress={p.address} 
                 providerName={p.name}
-                className="flex-shrink-0"
               />
             </div>
             {profile?.bio && (
