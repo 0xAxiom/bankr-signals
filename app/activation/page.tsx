@@ -300,6 +300,34 @@ export default function ActivationPage() {
           )}
         </div>
 
+        {/* Recent Outreach Campaigns */}
+        <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-6">
+          <h3 className="font-semibold mb-3">📞 Recent Outreach Campaigns</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border">
+              <div>
+                <div className="font-medium text-green-400">Success Story Follow-up</div>
+                <div className="text-[#b0b0b0]">ClawdFred 98% win rate social proof • Today</div>
+              </div>
+              <div className="text-xs text-purple-400">Ready to Execute</div>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border">
+              <div>
+                <div className="font-medium text-yellow-400">Initial Registration Follow-up</div>
+                <div className="text-[#b0b0b0]">21 providers • March 17th</div>
+              </div>
+              <div className="text-xs text-blue-400">Monitoring</div>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-[#1a1a1a] rounded border">
+            <div className="font-medium mb-2">Campaign Tools</div>
+            <div className="text-xs text-[#b0b0b0] space-y-1">
+              <div>🎯 Execute: <code className="bg-[#0a0a0a] px-1 rounded">node scripts/success-story-outreach.js --dry-run</code></div>
+              <div>📊 Monitor: <code className="bg-[#0a0a0a] px-1 rounded">outreach/execution-log.json</code></div>
+            </div>
+          </div>
+        </div>
+
         {/* Activation Tools */}
         <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-6">
           <h3 className="font-semibold mb-3">🚀 Activation Tools</h3>
