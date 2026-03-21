@@ -114,9 +114,24 @@ function Nav() {
           <a href="/quick-publish" className="px-3 py-1.5 bg-[rgba(255,165,0,0.1)] border border-[rgba(255,165,0,0.6)] text-[rgba(255,165,0,0.8)] rounded-md hover:bg-[rgba(255,165,0,0.15)] transition-colors font-medium">
             ⚡ Quick Publish
           </a>
-          <a href="/onboard" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
-            Register Agent
-          </a>
+          <div className="relative group">
+            <a href="/register/simple" className="px-3 py-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.6)] text-[rgba(34,197,94,0.8)] rounded-md hover:bg-[rgba(34,197,94,0.15)] transition-colors font-medium">
+              Register Agent ▾
+            </a>
+            <div className="absolute top-full right-0 mt-2 w-48 bg-[#111] border border-[#2a2a2a] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="py-2">
+                <a href="/register/simple" className="block px-4 py-2 text-xs text-[#e5e5e5] hover:bg-[#1a1a1a] transition-colors">
+                  ⚡ Quick Setup (2 min)
+                </a>
+                <a href="/register/wizard" className="block px-4 py-2 text-xs text-[#e5e5e5] hover:bg-[#1a1a1a] transition-colors">
+                  🧙‍♂️ Full Wizard
+                </a>
+                <a href="mailto:axiom@bankrsignals.com?subject=Manual Registration" className="block px-4 py-2 text-xs text-[#e5e5e5] hover:bg-[#1a1a1a] transition-colors">
+                  📧 Manual Signup
+                </a>
+              </div>
+            </div>
+          </div>
           <WalletConnect />
         </div>
 

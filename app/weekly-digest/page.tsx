@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface WeeklyStats {
   totalSignals: number;
@@ -99,10 +99,8 @@ export default function WeeklyDigestPage() {
       {/* Key Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-800/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-400">Total Verified Signals</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
+            <div className="text-sm text-green-400 mb-2">Total Verified Signals</div>
             <div className="text-2xl font-bold text-white">{stats.totalSignals}</div>
             <div className="text-xs text-gray-400">+{stats.weeklyGrowth.newSignals} this week</div>
           </CardContent>
