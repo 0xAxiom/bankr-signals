@@ -84,6 +84,9 @@ function Nav() {
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆 Signal of Day
           </a>
+          <a href="/weekly-digest" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            📊 Weekly Digest
+          </a>
           <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Leaderboard
           </a>
