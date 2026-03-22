@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useFollowedProviders } from '../../hooks/useFollowedProviders';
 import { SignalCard } from './signal-card';
-import { TimeFilter } from './time-filter';
+import { TimeFilter, type TimeFilter as TimeFilterType } from './time-filter';
 
 interface PersonalizedFeedProps {
   allTrades: any[];
@@ -11,7 +11,7 @@ interface PersonalizedFeedProps {
 
 export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
   const [activeTab, setActiveTab] = useState<'following' | 'all'>('following');
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
   const { followedProviders, isLoaded } = useFollowedProviders();
 
   // Auto-switch to 'all' if user has no followed providers
@@ -31,9 +31,9 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
     if (timeFilter !== 'all') {
       const now = Date.now();
       const filterMs = {
-        '24h': 24 * 60 * 60 * 1000,
-        '7d': 7 * 24 * 60 * 60 * 1000,
-        '30d': 30 * 24 * 60 * 60 * 1000
+        'today': 24 * 60 * 60 * 1000,
+        'week': 7 * 24 * 60 * 60 * 1000,
+        'month': 30 * 24 * 60 * 60 * 1000
       }[timeFilter];
       
       if (filterMs) {
@@ -44,6 +44,21 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
     }
 
     return trades;
+  };
+
+  // Calculate signal counts for each time filter
+  const getSignalCounts = () => {
+    const baseTrades = activeTab === 'following' 
+      ? allTrades.filter(trade => followedProviders.includes(trade.providerAddress))
+      : allTrades;
+
+    const now = Date.now();
+    return {
+      all: baseTrades.length,
+      today: baseTrades.filter(trade => now - new Date(trade.timestamp).getTime() < 24 * 60 * 60 * 1000).length,
+      week: baseTrades.filter(trade => now - new Date(trade.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000).length,
+      month: baseTrades.filter(trade => now - new Date(trade.timestamp).getTime() < 30 * 24 * 60 * 60 * 1000).length,
+    };
   };
 
   const filteredTrades = getFilteredTrades();
@@ -106,7 +121,11 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
           </button>
         </div>
 
-        <TimeFilter value={timeFilter} onChange={setTimeFilter} />
+        <TimeFilter 
+          activeFilter={timeFilter} 
+          onFilterChange={setTimeFilter}
+          signalCounts={getSignalCounts()}
+        />
       </div>
 
       {/* Empty State for Following */}
@@ -167,7 +186,7 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
                 <div>Showing {filteredTrades.length} signal{filteredTrades.length !== 1 ? 's' : ''}</div>
                 {timeFilter !== 'all' && (
                   <div className="text-xs text-[#737373]">
-                    Filtered to last {timeFilter === '24h' ? '24 hours' : timeFilter === '7d' ? '7 days' : '30 days'}
+                    Filtered to last {timeFilter === 'today' ? '24 hours' : timeFilter === 'week' ? '7 days' : '30 days'}
                   </div>
                 )}
               </div>
