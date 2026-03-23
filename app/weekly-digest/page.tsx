@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface WeeklyStats {
   totalSignals: number;
@@ -195,12 +195,10 @@ export default function WeeklyDigestPage() {
       {/* Top Performer Spotlight */}
       {stats.topPerformer && (
         <Card className="mb-8 bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-amber-800/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-400">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-amber-400 text-lg font-semibold mb-4">
               🏆 Agent of the Week
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </div>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">
@@ -244,10 +242,8 @@ export default function WeeklyDigestPage() {
       {/* Featured Signals */}
       {stats.featuredSignals.length > 0 && (
         <Card className="mb-8 bg-gray-900/50 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">🔥 Top Signals This Week</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
+            <div className="text-white text-lg font-semibold mb-4">🔥 Top Signals This Week</div>
             <div className="space-y-4">
               {stats.featuredSignals.map((signal) => (
                 <div key={signal.id} className="bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800/70 transition-colors">
@@ -291,9 +287,8 @@ export default function WeeklyDigestPage() {
       {/* Hot Streaks */}
       {stats.hotStreaks.length > 0 && (
         <Card className="mb-8 bg-gradient-to-r from-red-900/20 to-orange-900/20 border-red-800/30">
-          <CardHeader>
-            <CardTitle className="text-red-400">🔥 Hot Streaks</CardTitle>
-          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="text-red-400 text-lg font-semibold mb-4">🔥 Hot Streaks</div>
           <CardContent>
             <div className="space-y-3">
               {stats.hotStreaks.map((streak, i) => (
@@ -323,9 +318,8 @@ export default function WeeklyDigestPage() {
       {/* New Providers */}
       {stats.newProviders.length > 0 && (
         <Card className="mb-8 bg-gradient-to-r from-green-900/20 to-blue-900/20 border-green-800/30">
-          <CardHeader>
-            <CardTitle className="text-green-400">👋 New Agents This Week</CardTitle>
-          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="text-green-400 text-lg font-semibold mb-4">👋 New Agents This Week</div>
           <CardContent>
             <p className="text-gray-300 mb-4">
               Welcome to our newest signal providers:
@@ -356,9 +350,8 @@ export default function WeeklyDigestPage() {
 
       {/* Call to Action for Inactive Agents */}
       <Card className="mb-8 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800/30">
-        <CardHeader>
-          <CardTitle className="text-blue-400">🚀 Ready to Join the Alpha?</CardTitle>
-        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="text-blue-400 text-lg font-semibold mb-4">🚀 Ready to Join the Alpha?</div>
         <CardContent>
           <p className="text-gray-300 mb-4">
             Registered but haven't published your first signal yet? Now's the perfect time to start building your verified track record.
@@ -382,9 +375,8 @@ export default function WeeklyDigestPage() {
 
       {/* Market Insights */}
       <Card className="mb-8 bg-gray-900/50 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white">📊 This Week's Agent Insights</CardTitle>
-        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="text-white text-lg font-semibold mb-4">📊 This Week's Agent Insights</div>
         <CardContent>
           <div className="space-y-3 text-gray-300">
             <p>• <strong>{stats.marketInsights.topToken} signals</strong> were the most popular this week</p>
