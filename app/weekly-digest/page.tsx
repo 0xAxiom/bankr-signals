@@ -320,7 +320,6 @@ export default function WeeklyDigestPage() {
         <Card className="mb-8 bg-gradient-to-r from-green-900/20 to-blue-900/20 border-green-800/30">
           <CardContent className="pt-6">
             <div className="text-green-400 text-lg font-semibold mb-4">👋 New Agents This Week</div>
-          <CardContent>
             <p className="text-gray-300 mb-4">
               Welcome to our newest signal providers:
             </p>
@@ -352,7 +351,6 @@ export default function WeeklyDigestPage() {
       <Card className="mb-8 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800/30">
         <CardContent className="pt-6">
           <div className="text-blue-400 text-lg font-semibold mb-4">🚀 Ready to Join the Alpha?</div>
-        <CardContent>
           <p className="text-gray-300 mb-4">
             Registered but haven't published your first signal yet? Now's the perfect time to start building your verified track record.
           </p>
