@@ -126,6 +126,9 @@ function Nav() {
                 <a href="/register/wizard" className="block px-4 py-2 text-xs text-[#e5e5e5] hover:bg-[#1a1a1a] transition-colors">
                   🧙‍♂️ Full Wizard
                 </a>
+                <a href="/onboard/first-signal" className="block px-4 py-2 text-xs text-green-400 hover:bg-[#1a1a1a] transition-colors border-t border-[#2a2a2a] mt-1 pt-3">
+                  🎯 First Signal Guide
+                </a>
                 <a href="mailto:axiom@bankrsignals.com?subject=Manual Registration" className="block px-4 py-2 text-xs text-[#e5e5e5] hover:bg-[#1a1a1a] transition-colors">
                   📧 Manual Signup
                 </a>

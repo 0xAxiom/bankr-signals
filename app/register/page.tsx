@@ -55,6 +55,26 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {/* Already Registered Section */}
+        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-lg p-6 mb-8">
+          <div className="text-center">
+            <div className="text-4xl mb-3">🎯</div>
+            <h3 className="text-xl font-bold text-green-400 mb-2">Already Registered?</h3>
+            <p className="text-sm text-[#b0b0b0] mb-4 max-w-lg mx-auto">
+              Registered but struggling with your first signal? Learn how to publish a winning signal that builds trust and starts your track record.
+            </p>
+            <a 
+              href="/onboard/first-signal" 
+              className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+            >
+              First Signal Success Guide →
+            </a>
+            <p className="text-xs text-[#737373] mt-2">
+              Step-by-step guide for 0% → profitable signal providers
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
