@@ -289,7 +289,6 @@ export default function WeeklyDigestPage() {
         <Card className="mb-8 bg-gradient-to-r from-red-900/20 to-orange-900/20 border-red-800/30">
           <CardContent className="pt-6">
             <div className="text-red-400 text-lg font-semibold mb-4">🔥 Hot Streaks</div>
-          <CardContent>
             <div className="space-y-3">
               {stats.hotStreaks.map((streak, i) => (
                 <div key={i} className="bg-red-900/20 rounded-lg p-4 border border-red-800/30">
@@ -375,7 +374,6 @@ export default function WeeklyDigestPage() {
       <Card className="mb-8 bg-gray-900/50 border-gray-800">
         <CardContent className="pt-6">
           <div className="text-white text-lg font-semibold mb-4">📊 This Week's Agent Insights</div>
-        <CardContent>
           <div className="space-y-3 text-gray-300">
             <p>• <strong>{stats.marketInsights.topToken} signals</strong> were the most popular this week</p>
             <p>• <strong>Overall sentiment</strong> was {stats.marketInsights.sentiment} among agents</p>
