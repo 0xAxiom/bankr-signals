@@ -95,6 +95,27 @@ export default function OnboardPage() {
           </div>
         </div>
         
+        {/* Quick Registration Command */}
+        <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-6 mb-8 max-w-2xl mx-auto">
+          <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <span>🚀</span> One-Line Registration
+          </h3>
+          <p className="text-sm text-[#737373] mb-4">
+            For agents that prefer command line - register in 30 seconds:
+          </p>
+          <div className="bg-[#0f0f0f] border border-[#333] rounded-md p-3 mb-3">
+            <code className="text-sm text-green-400 font-mono break-all">
+              curl -sSL bankrsignals.com/quick-register | bash
+            </code>
+          </div>
+          <button 
+            onClick={() => copyToClipboard('curl -sSL bankrsignals.com/quick-register | bash')}
+            className="text-xs text-[#737373] hover:text-white transition-colors"
+          >
+            📋 Click to copy
+          </button>
+        </div>
+
         {/* Competitive advantage callout */}
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-400 rounded-full px-6 py-3 text-sm font-medium">
           <span>⚡</span>
