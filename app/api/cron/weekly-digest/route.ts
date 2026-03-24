@@ -14,6 +14,7 @@ interface DigestSubscriber {
   email: string;
   name?: string;
   subscribed_at: string;
+  unsubscribe_token: string;
   preferences?: {
     minPnL?: number;
     providers?: string[];
@@ -39,7 +40,7 @@ async function getSubscribers(): Promise<DigestSubscriber[]> {
   try {
     const { data, error } = await supabase
       .from('email_subscribers')
-      .select('email, name, created_at')
+      .select('email, name, created_at, unsubscribe_token')
       .eq('active', true)
       .eq('weekly_digest', true)
       .not('confirmed_at', 'is', null); // Only confirmed subscribers
@@ -54,6 +55,7 @@ async function getSubscribers(): Promise<DigestSubscriber[]> {
       email: sub.email,
       name: sub.name,
       subscribed_at: sub.created_at,
+      unsubscribe_token: sub.unsubscribe_token,
       preferences: { frequency: 'weekly' as const }
     }));
   } catch (error) {
@@ -420,34 +422,63 @@ function generateDigestHTML(data: WeeklyDigestData, subscriberName?: string): st
 </html>`;
 }
 
-async function sendDigestEmail(subscriber: DigestSubscriber, digestHTML: string): Promise<boolean> {
+async function sendDigestEmail(subscriber: DigestSubscriber, digestHTML: string, digestData?: WeeklyDigestData): Promise<boolean> {
   try {
-    // For now, log the email content (in production, integrate with email service)
-    console.log(`Would send weekly digest to ${subscriber.email}`);
-    console.log('Email preview:', digestHTML.substring(0, 500) + '...');
-    
-    // TODO: Integrate with email service (SendGrid, Resend, etc.)
-    // Example:
-    // const response = await fetch('https://api.sendgrid.v3/mail/send', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify({
-    //     personalizations: [{
-    //       to: [{ email: subscriber.email, name: subscriber.name }],
-    //       subject: `📊 Weekly Signals Digest - ${new Date().toLocaleDateString()}`
-    //     }],
-    //     from: { email: 'digest@bankrsignals.com', name: 'Bankr Signals' },
-    //     content: [{
-    //       type: 'text/html',
-    //       value: digestHTML.replace('{{unsubscribe_url}}', `https://bankrsignals.com/unsubscribe?token=${subscriber.email}`)
-    //     }]
-    //   })
-    // });
-    
-    return true; // Return true for now
+    // Check if Resend is configured
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      console.log(`Would send weekly digest to ${subscriber.email} (Resend API key not configured)`);
+      return true; // Return success for testing purposes
+    }
+
+    // Import Resend dynamically
+    const { Resend } = await import('resend');
+    const resend = new Resend(resendApiKey);
+
+    // Generate unsubscribe URL using secure token
+    const unsubscribeUrl = `https://bankrsignals.com/unsubscribe?token=${subscriber.unsubscribe_token}`;
+    const finalHTML = digestHTML.replace('{{unsubscribe_url}}', unsubscribeUrl);
+
+    // Generate engaging subject line with stats
+    const generateSubject = () => {
+      if (!digestData) return `📊 Weekly Signals Digest - ${new Date().toLocaleDateString()}`;
+      
+      const { marketInsights } = digestData;
+      const winRatePercent = Math.round(marketInsights.winRate * 100);
+      const avgPnLFormatted = marketInsights.avgPnL >= 0 ? `+${marketInsights.avgPnL.toFixed(1)}` : marketInsights.avgPnL.toFixed(1);
+      
+      // Different subject lines based on performance
+      if (marketInsights.avgPnL > 5) {
+        return `🚀 Weekly Alpha: ${avgPnLFormatted}% avg PnL this week!`;
+      } else if (winRatePercent >= 70) {
+        return `🎯 Weekly Digest: ${winRatePercent}% win rate this week`;
+      } else if (marketInsights.totalSignals > 20) {
+        return `📊 Weekly Digest: ${marketInsights.totalSignals} signals tracked`;
+      } else {
+        return `📈 Your Weekly Trading Signals Digest`;
+      }
+    };
+
+    // Send email via Resend
+    const result = await resend.emails.send({
+      from: 'Bankr Signals <digest@updates.bankrsignals.com>',
+      to: [subscriber.email],
+      subject: generateSubject(),
+      html: finalHTML,
+      replyTo: 'hello@bankrsignals.com',
+      headers: {
+        'X-Entity-Ref-ID': `weekly-digest-${Date.now()}`,
+      },
+    });
+
+    if (result.error) {
+      console.error(`Resend error for ${subscriber.email}:`, result.error);
+      return false;
+    }
+
+    console.log(`✅ Weekly digest sent to ${subscriber.email} (ID: ${result.data?.id})`);
+    return true;
+
   } catch (error) {
     console.error(`Failed to send email to ${subscriber.email}:`, error);
     return false;
@@ -495,7 +526,7 @@ export async function POST(req: NextRequest) {
     const emailResults = await Promise.allSettled(
       subscribers.map(async (subscriber) => {
         const digestHTML = generateDigestHTML(digestData, subscriber.name);
-        const success = await sendDigestEmail(subscriber, digestHTML);
+        const success = await sendDigestEmail(subscriber, digestHTML, digestData);
         return { email: subscriber.email, success };
       })
     );
