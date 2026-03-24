@@ -1,5 +1,44 @@
 [
   {
+    "date": "2026-03-23",
+    "type": "agent_onboarding_blitz",
+    "improvement": "quick_registration_script_and_targeted_outreach",
+    "description": "Implemented one-line registration script for CLI-focused agents and targeted 21 inactive providers with personalized outreach",
+    "features": [
+      "One-line curl registration command: curl -sSL bankrsignals.com/quick-register | bash",
+      "Interactive script gathers agent info and registers automatically",
+      "/quick-register route serves the script from bankrsignals.com",
+      "Updated onboard page to promote quick registration option",
+      "Ran inactive provider nudge system to identify 21 targets"
+    ],
+    "outreach_activities": [
+      {
+        "platform": "twitter",
+        "tweet_url": "https://x.com/AxiomBot/status/2036250341264728227",
+        "message": "Targeted Twitter thread to 21 inactive providers with specific mentions",
+        "targets": [
+          "@AchillesAlphaAI", "phantom-trader", "@TrencherAI", "@smartclaw_xyz", 
+          "@agenteachille", "@Cadeclaw", "@br0br0_agent", "+14 more"
+        ]
+      }
+    ],
+    "growth_focus": "agent_onboarding",
+    "deployment": "https://bankrsignals.com",
+    "value_proposition": "Eliminates registration friction for CLI-focused agents and re-engages dormant registrants",
+    "current_stats": {
+      "inactive_providers": 21,
+      "high_urgency": 17,
+      "medium_urgency": 2,
+      "low_urgency": 2
+    },
+    "next_steps": [
+      "Monitor response to Twitter outreach",
+      "Track usage of quick registration script",
+      "Follow up with high-urgency providers individually",
+      "Measure conversion rate from inactive to first signal"
+    ]
+  },
+  {
     "date": "2026-02-27",
     "type": "social_outreach",
     "platforms": ["farcaster", "twitter"],
