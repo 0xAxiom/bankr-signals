@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { supabase, dbGetProviders } from "@/lib/db";
 import { getTokenPrice } from "@/lib/prices";
 import { createSuccessResponse, createErrorResponse, APIErrorCode } from "@/lib/api-utils";
 
@@ -20,15 +20,15 @@ export async function GET(req: NextRequest) {
 
     // 1. Database connectivity
     try {
-      const { data, error } = await supabase
-        .from("signal_providers")
-        .select("count")
-        .limit(1);
+      // Use the db helper function that handles mock mode
+      const providers = await dbGetProviders();
+      const dbCheckTime = Date.now() - startTime;
       
       checks.database = {
-        status: error ? 'error' : 'healthy',
-        error: error?.message,
-        responseTime: Date.now() - startTime,
+        status: Array.isArray(providers) ? 'healthy' : 'error',
+        responseTime: dbCheckTime,
+        mode: process.env.NODE_ENV === 'development' && 
+              !process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co') ? 'mock' : 'supabase'
       };
     } catch (error: any) {
       checks.database = {
@@ -111,8 +111,8 @@ export async function GET(req: NextRequest) {
 
     // 4. Configuration checks
     const config = {
-      hasSupabaseUrl: !!process.env.SUPABASE_URL,
-      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_KEY,
+      hasSupabaseUrl: !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL),
+      hasSupabaseKey: !!(process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       hasBaseRpc: !!process.env.BASE_RPC_URL,
       hasCronSecret: !!process.env.CRON_SECRET,
     };
