@@ -1,167 +1,126 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/db';
 
-// Get user's following feed - signals from followed providers
 export async function GET(request: NextRequest) {
   try {
     const userIdentifier = request.headers.get("x-user-identifier") || 
                           request.cookies.get("user_session")?.value ||
                           "anonymous";
 
-    const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get("limit") || "20");
-    const offset = parseInt(url.searchParams.get("offset") || "0");
-    const status = url.searchParams.get("status"); // 'open', 'closed', or null for all
-
-    // Get providers that the user follows
-    const { data: follows, error: followsError } = await supabase
-      .from("provider_follows")
-      .select("provider_address")
-      .eq("user_identifier", userIdentifier);
-
-    if (followsError) throw followsError;
-
-    if (follows.length === 0) {
-      return NextResponse.json({
-        signals: [],
-        providers: [],
-        totalCount: 0,
-        hasMore: false,
-        message: "No followed providers. Start following traders to see their signals here!"
-      });
-    }
-
-    const providerAddresses = follows.map(f => f.provider_address);
-
-    // Build query for signals from followed providers
-    let signalsQuery = supabase
-      .from("signals")
+    // Get all followed providers with their basic stats
+    const { data: follows, error } = await supabase
+      .from('provider_follows')
       .select(`
-        *,
-        provider:signal_providers(name, address, avatar, verified)
+        provider_address,
+        created_at,
+        notify_telegram,
+        notify_email,
+        notes,
+        tags,
+        signal_providers!inner (
+          name,
+          bio,
+          twitter,
+          avatar
+        )
       `)
-      .in("provider_address", providerAddresses)
-      .order("timestamp", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .eq('user_identifier', userIdentifier)
+      .order('created_at', { ascending: false });
 
-    if (status) {
-      signalsQuery = signalsQuery.eq("status", status);
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json({ error: 'Failed to fetch following' }, { status: 500 });
     }
 
-    const { data: signals, error: signalsError } = await signalsQuery;
-    if (signalsError) throw signalsError;
+    // Enhance with signal stats
+    const enhancedFollowing = await Promise.all(
+      (follows || []).map(async (follow) => {
+        try {
+          // Get recent signal count (last 30 days)
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Get provider stats for the followed providers
-    const { data: providers, error: providersError } = await supabase
-      .from("signal_providers")
-      .select("*")
-      .in("address", providerAddresses);
+          const { data: recentSignals, error: signalsError } = await supabase
+            .from('signals')
+            .select('id, pnl_pct, status')
+            .eq('provider', follow.provider_address)
+            .gte('created_at', thirtyDaysAgo.toISOString());
 
-    if (providersError) throw providersError;
+          if (signalsError) {
+            console.error('Signals error:', signalsError);
+          }
 
-    // Get total count for pagination
-    let countQuery = supabase
-      .from("signals")
-      .select("*", { count: "exact", head: true })
-      .in("provider_address", providerAddresses);
+          // Calculate stats from recent signals
+          const closedSignals = recentSignals?.filter(s => s.status === 'closed' && s.pnl_pct !== null) || [];
+          const winCount = closedSignals.filter(s => s.pnl_pct && s.pnl_pct > 0).length;
+          const totalPnl = closedSignals.reduce((sum, s) => sum + (s.pnl_pct || 0), 0);
 
-    if (status) {
-      countQuery = countQuery.eq("status", status);
-    }
-
-    const { count } = await countQuery;
-
-    const hasMore = offset + limit < (count || 0);
+          return {
+            ...follow,
+            provider_name: follow.signal_providers?.name,
+            provider_bio: follow.signal_providers?.bio,
+            recent_signals: recentSignals?.length || 0,
+            win_rate: closedSignals.length > 0 ? Math.round((winCount / closedSignals.length) * 100) : undefined,
+            total_pnl: closedSignals.length > 0 ? totalPnl : undefined
+          };
+        } catch (error) {
+          console.error(`Error enhancing follow data for ${follow.provider_address}:`, error);
+          return {
+            ...follow,
+            provider_name: follow.signal_providers?.name,
+            provider_bio: follow.signal_providers?.bio,
+          };
+        }
+      })
+    );
 
     return NextResponse.json({
-      signals: signals || [],
-      providers: providers || [],
-      totalCount: count || 0,
-      hasMore,
-      following: follows.length
+      success: true,
+      following: enhancedFollowing,
+      count: enhancedFollowing.length
     });
 
   } catch (error) {
-    console.error("Get following feed error:", error);
-    return NextResponse.json(
-      { error: "Failed to get following feed" },
-      { status: 500 }
-    );
+    console.error('Following fetch error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// Get user's followed providers list
-export async function POST(request: NextRequest) {
+// Update following preferences
+export async function PATCH(request: NextRequest) {
   try {
     const userIdentifier = request.headers.get("x-user-identifier") || 
                           request.cookies.get("user_session")?.value ||
                           "anonymous";
 
     const body = await request.json();
-    const { action } = body;
+    const { provider_address, ...updates } = body;
 
-    if (action === "list") {
-      const { data: follows, error } = await supabase
-        .from("provider_follows")
-        .select(`
-          created_at,
-          notify_telegram,
-          notify_email,
-          notes,
-          tags,
-          provider:signal_providers(
-            address,
-            name,
-            bio,
-            avatar,
-            verified,
-            total_signals,
-            win_rate,
-            followers
-          )
-        `)
-        .eq("user_identifier", userIdentifier)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      return NextResponse.json({
-        follows: follows || [],
-        totalFollowing: follows?.length || 0
-      });
+    if (!provider_address) {
+      return NextResponse.json({ error: 'provider_address required' }, { status: 400 });
     }
 
-    if (action === "activity") {
-      // Get recent activity from followed providers
-      const { data: activity, error } = await supabase
-        .from("following_activity")
-        .select(`
-          *,
-          provider:signal_providers(name, avatar),
-          signal:signals(direction, token_symbol, reasoning)
-        `)
-        .eq("user_identifier", userIdentifier)
-        .order("created_at", { ascending: false })
-        .limit(50);
+    const { data, error } = await supabase
+      .from('provider_follows')
+      .update(updates)
+      .eq('user_identifier', userIdentifier)
+      .eq('provider_address', provider_address)
+      .select()
+      .single();
 
-      if (error) throw error;
-
-      return NextResponse.json({
-        activity: activity || [],
-        unreadCount: activity?.filter(a => !a.read_at).length || 0
-      });
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json({ error: 'Failed to update preferences' }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { error: "Invalid action" },
-      { status: 400 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Preferences updated successfully',
+      data
+    });
 
   } catch (error) {
-    console.error("Following action error:", error);
-    return NextResponse.json(
-      { error: "Failed to process following action" },
-      { status: 500 }
-    );
+    console.error('Update preferences error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
