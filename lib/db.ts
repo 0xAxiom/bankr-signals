@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { mockProviders, mockSignals } from "./mock-data";
+import { mockProviders, mockSignals } from "./mock-data.ts";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
