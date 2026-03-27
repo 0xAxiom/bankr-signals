@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ProviderStats, ParsedTrade } from "@/lib/signals";
 import { Avatar } from "./avatar";
+import { FollowButton } from "@/components/follow-button";
 
 interface LiveTickerProps {
   trades: (ParsedTrade & { providerName: string; providerAddress: string })[];
@@ -259,6 +260,7 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
               <SortButton field="signal_count">Signals</SortButton>
             </th>
             <th className="text-right px-4 py-3 font-medium">Subs</th>
+            <th className="text-center px-4 py-3 font-medium">Follow</th>
           </tr>
         </thead>
         <tbody>
@@ -280,6 +282,13 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
               <td className="px-4 py-3 text-right font-mono">{p.win_rate}%</td>
               <td className="px-4 py-3 text-right font-mono text-[#737373]">{p.signal_count}</td>
               <td className="px-4 py-3 text-right font-mono text-[#737373]">{p.subscriber_count}</td>
+              <td className="px-4 py-3 text-center">
+                <FollowButton 
+                  providerAddress={p.address}
+                  providerName={p.name}
+                  variant="compact"
+                />
+              </td>
             </tr>
           ))}
         </tbody>

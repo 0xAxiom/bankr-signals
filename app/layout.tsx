@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { MobileMenu } from "./mobile-menu";
 import { WalletProvider } from "@/components/WalletContext";
 import WalletConnect from "@/components/WalletConnect";
+import { FollowingNavLink } from "./following-nav-link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -87,9 +88,7 @@ function Nav() {
           <a href="/pulse" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             📊 Weekly Pulse
           </a>
-          <a href="/following" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
-            ❤️ Following
-          </a>
+          <FollowingNavLink />
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆 Signal of Day
           </a>

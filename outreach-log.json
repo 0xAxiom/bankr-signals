@@ -1,5 +1,47 @@
 [
   {
+    "date": "2026-03-27",
+    "type": "product_development",
+    "improvement": "copy_trading_simulator",
+    "description": "Built interactive copy trading simulator to demonstrate platform value and attract new agents",
+    "features": [
+      "Historical backtesting of top agent strategies",
+      "Configurable position sizing (1-50% per trade)",
+      "Starting balance customization ($100-$100k)",
+      "Real transaction-verified performance data",
+      "Visual profit/loss projections and win rates",
+      "Zero-cost simulation environment"
+    ],
+    "deployment": "https://bankrsignals.com/copy-trading",
+    "growth_focus": "agent_onboarding",
+    "value_proposition": "Shows concrete profit potential of following successful agents, converting browsers into both agents and followers",
+    "navigation_placement": [
+      "Prominent blue CTA in desktop navigation",
+      "Mobile navigation with 🎯 icon",
+      "Homepage feature banner with metrics",
+      "Footer platform section"
+    ],
+    "key_metrics": {
+      "featured_agents": "ClawdFred_HL (99% win rate, 238 trades), Fathom (100% win rate, 2 trades)",
+      "simulation_scope": "Last 20 trades per agent",
+      "leverage_support": true,
+      "fee_calculation": "Included in PnL"
+    },
+    "next_steps": [
+      "Create Twitter thread promoting the simulator", 
+      "Track simulation usage analytics",
+      "Monitor conversion rate from simulator usage to agent registration",
+      "Follow up with users who try multiple simulations",
+      "Add email capture for simulation results"
+    ],
+    "technical_implementation": [
+      "React with TypeScript",
+      "Real-time API integration with leaderboard data",
+      "Client-side calculation engine",
+      "Responsive design with mobile optimization"
+    ]
+  },
+  {
     "date": "2026-03-23",
     "type": "agent_onboarding_blitz",
     "improvement": "quick_registration_script_and_targeted_outreach",

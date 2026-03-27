@@ -1,240 +1,258 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useFollows } from '@/hooks/useFollows';
+import { FollowButton } from '@/components/follow-button';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useWallet } from '@/components/WalletContext';
-import { Avatar } from '../avatar';
-import FollowButton from '@/components/FollowButton';
+import { Heart, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react';
 
-interface FollowedProvider {
-  provider_address: string;
-  created_at: string;
-  notify_telegram: boolean;
-  notify_email: boolean;
-  notes: string;
-  tags: string[];
-  provider_name?: string;
-  provider_bio?: string;
-  recent_signals?: number;
-  win_rate?: number;
-  total_pnl?: number;
+interface ProviderWithSignals {
+  address: string;
+  name: string;
+  win_rate: number;
+  signal_count: number;
+  total_pnl: number;
+  last_signal_date: string | null;
+  recent_signals: Array<{
+    id: string;
+    symbol: string;
+    action: 'LONG' | 'SHORT';
+    created_at: string;
+    pnl?: number;
+    status: 'open' | 'closed';
+  }>;
 }
 
 export default function FollowingPage() {
-  const { address, connect, isConnected } = useWallet();
-  const [following, setFollowing] = useState<FollowedProvider[]>([]);
+  const { follows, isLoaded } = useFollows();
+  const [providersData, setProvidersData] = useState<ProviderWithSignals[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadFollowing();
-  }, [address]);
-
-  const loadFollowing = async () => {
-    if (!address) {
-      setFollowing([]);
+    if (!isLoaded || follows.length === 0) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    const fetchProviderData = async () => {
+      try {
+        // Fetch data for each followed provider
+        const promises = follows.map(async (follow) => {
+          const response = await fetch(`/api/providers/${follow.address}?include_recent_signals=true`);
+          if (response.ok) {
+            const data = await response.json();
+            return {
+              address: follow.address,
+              name: data.name || follow.name,
+              win_rate: data.win_rate || 0,
+              signal_count: data.signal_count || 0,
+              total_pnl: data.total_pnl || 0,
+              last_signal_date: data.last_signal_date || null,
+              recent_signals: data.recent_signals || [],
+            };
+          }
+          return null;
+        });
 
-    try {
-      const response = await fetch('/api/following');
-      if (!response.ok) {
-        throw new Error('Failed to load following');
+        const results = await Promise.all(promises);
+        setProvidersData(results.filter(Boolean) as ProviderWithSignals[]);
+      } catch (error) {
+        console.error('Failed to fetch provider data:', error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await response.json();
-      setFollowing(data.following || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchProviderData();
+  }, [follows, isLoaded]);
 
-  if (!isConnected) {
+  if (!isLoaded) {
     return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-center">
-          <div className="text-6xl mb-6">👋</div>
-          <h1 className="text-2xl font-bold mb-4">Connect Your Wallet</h1>
-          <p className="text-[#737373] mb-8 max-w-md mx-auto">
-            Connect your wallet to follow your favorite signal providers and get notified of their latest trades.
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <div className="animate-pulse">
+          <div className="h-8 bg-[#2a2a2a] rounded w-48 mb-4"></div>
+          <div className="h-4 bg-[#1a1a1a] rounded w-96 mb-8"></div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-[#1a1a1a] rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (follows.length === 0) {
+    return (
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <div className="text-center max-w-md mx-auto">
+          <Heart className="w-16 h-16 text-[#3a3a3a] mx-auto mb-4" />
+          <h1 className="text-2xl font-semibold mb-4">No Followed Providers</h1>
+          <p className="text-[#737373] mb-6">
+            Start following successful traders to personalize your experience and track their performance.
           </p>
-          <button
-            onClick={connect}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-center text-red-400">
-          Error: {error}
-          <button
-            onClick={loadFollowing}
-            className="ml-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
-          >
-            Retry
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link 
+              href="/leaderboard"
+              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
+            >
+              Browse Top Providers
+            </Link>
+            <Link 
+              href="/feed"
+              className="inline-flex items-center justify-center px-6 py-3 border border-[#2a2a2a] text-[#a3a3a3] rounded-lg hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all"
+            >
+              View Signal Feed
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Following</h1>
-        <p className="text-[#737373]">
-          Signal providers you're following for trade alerts and updates.
-        </p>
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold mb-2">Following ({follows.length})</h1>
+          <p className="text-[#737373] text-sm">
+            Track performance and recent activity from your followed providers
+          </p>
+        </div>
+        <Link 
+          href="/leaderboard"
+          className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+        >
+          Find More Providers <ArrowUpRight className="w-4 h-4" />
+        </Link>
       </div>
 
-      {following.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-5xl mb-4">📡</div>
-          <h2 className="text-xl font-semibold mb-2">No Providers Followed Yet</h2>
-          <p className="text-[#737373] mb-6 max-w-md mx-auto">
-            Start following signal providers to get notified of their latest trades and build your feed.
-          </p>
-          <Link
-            href="/leaderboard"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Browse Providers
-          </Link>
-        </div>
-      ) : (
+      {loading ? (
         <div className="space-y-4">
-          {following.map((follow) => (
-            <div
-              key={follow.provider_address}
-              className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 min-w-0 flex-1">
-                  <Avatar 
-                    address={follow.provider_address}
-                    name={follow.provider_name || 'Unknown Provider'}
-                    size="md"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <Link
-                        href={`/provider/${follow.provider_address}`}
-                        className="font-semibold hover:text-blue-400 transition-colors truncate"
-                      >
-                        {follow.provider_name || 'Unknown Provider'}
-                      </Link>
-                    </div>
-                    
-                    {follow.provider_bio && (
-                      <p className="text-sm text-[#737373] mb-2 line-clamp-2">
-                        {follow.provider_bio}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-[#737373]">
-                      <span>
-                        Following since {new Date(follow.created_at).toLocaleDateString()}
-                      </span>
-                      {follow.recent_signals !== undefined && (
-                        <span>{follow.recent_signals} recent signals</span>
-                      )}
-                      {follow.win_rate !== undefined && (
-                        <span className="font-mono">{follow.win_rate}% win rate</span>
-                      )}
-                      {follow.total_pnl !== undefined && (
-                        <span className={`font-mono ${follow.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {follow.total_pnl >= 0 ? '+' : ''}{follow.total_pnl.toFixed(1)}% PnL
-                        </span>
-                      )}
-                    </div>
-
-                    {follow.tags && follow.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {follow.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 bg-[#2a2a2a] text-xs rounded"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {follow.notes && (
-                      <div className="mt-2 p-2 bg-[#111] border border-[#2a2a2a] rounded text-sm">
-                        <strong className="text-[#e5e5e5]">Notes:</strong> {follow.notes}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 ml-4">
-                  <div className="flex flex-col items-end gap-1 text-xs text-[#737373] mr-3">
-                    {follow.notify_telegram && (
-                      <span className="flex items-center gap-1">
-                        📱 Telegram alerts
-                      </span>
-                    )}
-                    {follow.notify_email && (
-                      <span className="flex items-center gap-1">
-                        ✉️ Email alerts
-                      </span>
-                    )}
-                  </div>
-                  
-                  <FollowButton
-                    providerAddress={follow.provider_address}
-                    providerName={follow.provider_name || 'Unknown Provider'}
-                    userAddress={address}
-                    variant="compact"
-                  />
+          {follows.map((follow) => (
+            <div key={follow.address} className="animate-pulse">
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6">
+                <div className="h-6 bg-[#2a2a2a] rounded w-48 mb-4"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="h-20 bg-[#2a2a2a] rounded"></div>
+                  <div className="h-20 bg-[#2a2a2a] rounded"></div>
+                  <div className="h-20 bg-[#2a2a2a] rounded"></div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      )}
+      ) : (
+        <div className="space-y-4">
+          {providersData.map((provider) => (
+            <div key={provider.address} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-6 hover:border-[#3a3a3a] transition-colors">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Link 
+                    href={`/provider/${provider.name}`}
+                    className="text-lg font-semibold hover:text-blue-400 transition-colors"
+                  >
+                    {provider.name}
+                  </Link>
+                  <span className="text-xs text-[#737373] font-mono">
+                    {provider.address.slice(0, 8)}...
+                  </span>
+                </div>
+                <FollowButton 
+                  providerAddress={provider.address}
+                  providerName={provider.name}
+                  variant="compact"
+                />
+              </div>
 
-      {following.length > 0 && (
-        <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
-          <h3 className="font-semibold mb-2 text-sm">📱 Notification Settings</h3>
-          <p className="text-xs text-[#737373] mb-3">
-            Get instant notifications when your followed providers publish new signals.
-          </p>
-          <div className="flex gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-              <span>Telegram notifications enabled for {following.filter(f => f.notify_telegram).length} providers</span>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-3 bg-[#0a0a0a] rounded border border-[#2a2a2a]">
+                  <div className="text-lg font-bold text-green-400 mb-1">
+                    {Math.round(provider.win_rate)}%
+                  </div>
+                  <div className="text-xs text-[#737373]">Win Rate</div>
+                </div>
+                <div className="text-center p-3 bg-[#0a0a0a] rounded border border-[#2a2a2a]">
+                  <div className="text-lg font-bold text-white mb-1">
+                    {provider.signal_count}
+                  </div>
+                  <div className="text-xs text-[#737373]">Signals</div>
+                </div>
+                <div className="text-center p-3 bg-[#0a0a0a] rounded border border-[#2a2a2a]">
+                  <div className={`text-lg font-bold mb-1 ${provider.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    ${Math.abs(provider.total_pnl).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-[#737373]">
+                    {provider.total_pnl >= 0 ? 'Profit' : 'Loss'}
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-[#0a0a0a] rounded border border-[#2a2a2a]">
+                  <div className="text-lg font-bold text-blue-400 mb-1">
+                    {provider.last_signal_date 
+                      ? Math.round((Date.now() - new Date(provider.last_signal_date).getTime()) / (1000 * 60 * 60 * 24))
+                      : '—'}
+                  </div>
+                  <div className="text-xs text-[#737373]">Days Ago</div>
+                </div>
+              </div>
+
+              {provider.recent_signals.length > 0 ? (
+                <div className="border-t border-[#2a2a2a] pt-4">
+                  <h4 className="text-sm font-medium text-[#737373] mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Recent Signals
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {provider.recent_signals.slice(0, 3).map((signal) => (
+                      <Link 
+                        key={signal.id}
+                        href={`/signals/${signal.id}`}
+                        className="p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded hover:border-[#3a3a3a] transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-sm">{signal.symbol}</span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            signal.action === 'LONG' 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {signal.action}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-[#737373]">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(signal.created_at).toLocaleDateString()}
+                          </span>
+                          {signal.status === 'closed' && signal.pnl !== undefined && (
+                            <span className={signal.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                              ${signal.pnl.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t border-[#2a2a2a] pt-4 text-center text-[#737373] text-sm">
+                  No recent signals from this provider
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-between items-center">
+                <Link 
+                  href={`/provider/${provider.name}`}
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                >
+                  View Full Profile <ArrowUpRight className="w-3 h-3" />
+                </Link>
+                <span className="text-xs text-[#737373]">
+                  Following since {new Date(follows.find(f => f.address === provider.address)?.followedAt || '').toLocaleDateString()}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-              <span>Email notifications enabled for {following.filter(f => f.notify_email).length} providers</span>
-            </div>
-          </div>
+          ))}
         </div>
       )}
     </main>
