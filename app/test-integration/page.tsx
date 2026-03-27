@@ -1,10 +1,3 @@
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Test API Integration - Bankr Signals",
-  description: "Validate your API integration before publishing signals. Test signature generation, connectivity, and provider status to debug issues early.",
-};
-
 'use client';
 
 import { useState } from 'react';
