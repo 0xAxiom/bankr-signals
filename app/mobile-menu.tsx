@@ -34,6 +34,7 @@ export function MobileMenu() {
             </a>
             
             {[
+              { href: "/trends", label: "📈 Market Trends" },
               { href: "/compare", label: "Compare Providers" },
               { href: "/how-it-works", label: "Protocol Design" },
               { href: "/subscribe", label: "API Reference" },

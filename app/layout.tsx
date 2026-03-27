@@ -78,6 +78,9 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            📈 Trends
+          </a>
           <a href="/following" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             ❤️ Following
           </a>
@@ -170,6 +173,7 @@ function Footer() {
             <div className="flex flex-col gap-2">
               <span className="text-[#737373] font-medium">Platform</span>
               <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
+              <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📈 Market Trends</a>
               <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🏆 Signal of Day</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
               <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Compare Providers</a>

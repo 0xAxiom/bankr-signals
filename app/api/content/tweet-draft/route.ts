@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight';
   hashtags: string[];
   url?: string;
 }
@@ -557,12 +557,37 @@ export async function GET(request: Request) {
         if (tokenSpot) drafts.push(tokenSpot);
       }
     }
+
+    if (type === 'auto' || type === 'trends_insight') {
+      // Try to get a trend insight for more engaging content
+      try {
+        const trendsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com'}/api/trends?timeframe=7d`);
+        if (trendsResponse.ok) {
+          const trendsData = await trendsResponse.json();
+          const insights = trendsData.data?.market_insights || [];
+          const topInsight = insights.find((i: any) => i.confidence >= 4);
+          
+          if (topInsight) {
+            const trendTweet = {
+              text: `🔍 Market Intelligence\n\n${topInsight.insight}\n\nSee all AI agent insights: bankrsignals.com/trends`,
+              type: 'trends_insight' as const,
+              hashtags: ['#MarketIntel', '#AI', '#Trading', '#Trends'],
+              url: 'https://bankrsignals.com/trends'
+            };
+            drafts.push(trendTweet);
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch trends for tweet:', error);
+      }
+    }
     
     // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
       // Updated preference order with new content types for better engagement
       const bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
                        drafts.find(d => d.type === 'streak_highlight') ||
+                       drafts.find(d => d.type === 'trends_insight') ||
                        drafts.find(d => d.type === 'provider_highlight') ||
                        drafts.find(d => d.type === 'token_spotlight') ||
                        drafts.find(d => d.type === 'performance_update') ||
