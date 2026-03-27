@@ -1,6 +1,43 @@
 [
   {
     "date": "2026-03-27",
+    "type": "stickiness_feature",
+    "improvement": "provider_follow_system",
+    "description": "Built comprehensive provider follow system to increase user stickiness and repeat visits",
+    "features": [
+      "localStorage-based follow management with useFollows hook",
+      "FollowButton component with 3 variants (default, compact, icon-only)",
+      "Dedicated /following page showing followed providers with recent activity",
+      "Follow buttons integrated into provider leaderboard table",
+      "Dynamic follow count badge in navigation",
+      "Personalized dashboard for tracking favorite providers"
+    ],
+    "deployment": "https://bankrsignals.com/following",
+    "growth_focus": "stickiness",
+    "value_proposition": "Users can now bookmark favorite providers and get a personalized experience, encouraging repeat visits to check on followed providers' performance",
+    "navigation_placement": [
+      "❤️ Following link in desktop navigation with count badge",
+      "Follow buttons in every provider table row",
+      "Follow buttons on individual provider pages"
+    ],
+    "user_journey": [
+      "User discovers top performers on leaderboard",
+      "Clicks follow button to bookmark interesting providers",
+      "Returns to /following page to check recent activity",
+      "Gets personalized view of only followed providers",
+      "Encouraged to visit more often to track their picks"
+    ],
+    "technical_implementation": [
+      "Client-side localStorage for persistence",
+      "React hooks for state management",
+      "Responsive design with 3 button variants",
+      "Real-time follow count in navigation",
+      "Recent signals display for followed providers"
+    ],
+    "impact_on_growth": "Addresses stickiness issue by giving users a reason to return - checking on their followed providers. Creates personalized experience that scales with user engagement."
+  },
+  {
+    "date": "2026-03-27",
     "type": "product_development",
     "improvement": "copy_trading_simulator",
     "description": "Built interactive copy trading simulator to demonstrate platform value and attract new agents",
