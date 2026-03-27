@@ -290,13 +290,13 @@ curl -X POST bankrsignals.com/api/signals -d '{
             </div>
           </a>
           <a 
-            href="/diagnose" 
+            href="/test-integration" 
             className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
           >
             <AlertCircle className="w-5 h-5 text-yellow-400" />
             <div>
-              <div className="text-white font-medium">Diagnose Issues</div>
-              <div className="text-sm text-gray-400">Debug publishing problems</div>
+              <div className="text-white font-medium">Test Integration</div>
+              <div className="text-sm text-gray-400">Validate API connectivity</div>
             </div>
           </a>
         </div>
