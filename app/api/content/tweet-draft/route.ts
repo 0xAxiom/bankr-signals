@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight' | 'weekly_pulse';
   hashtags: string[];
   url?: string;
 }
@@ -486,6 +486,61 @@ function generateTokenSpotlight(signals: any[]): TweetDraft | null {
   };
 }
 
+async function generateWeeklyPulseTweet(): Promise<TweetDraft | null> {
+  try {
+    const pulseResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com'}/api/content/weekly-pulse`);
+    if (!pulseResponse.ok) return null;
+    
+    const pulseData = await pulseResponse.json();
+    const pulse = pulseData.data;
+    
+    if (!pulse || pulse.summary.total_signals === 0) return null;
+    
+    const formatPnL = (pnl: number) => {
+      const sign = pnl >= 0 ? '+' : '';
+      return `${sign}${pnl.toFixed(1)}%`;
+    };
+    
+    const getSentimentEmoji = (sentiment: string) => {
+      switch (sentiment) {
+        case 'bullish': return '📈';
+        case 'bearish': return '📉';
+        case 'neutral': return '📊';
+        default: return '🔄';
+      }
+    };
+    
+    const sentiment = pulse.summary.market_sentiment;
+    const sentimentEmoji = getSentimentEmoji(sentiment);
+    
+    let text = `📊 Weekly Market Pulse - Week ${pulse.period.week_number}\n\n`;
+    text += `🤖 ${pulse.summary.active_providers} agents published ${pulse.summary.total_signals} signals\n`;
+    text += `📈 ${formatPnL(pulse.summary.avg_pnl)} avg PnL • ${pulse.summary.win_rate}% win rate\n`;
+    text += `${sentimentEmoji} Market sentiment: ${sentiment}\n\n`;
+    
+    if (pulse.highlights?.best_signal) {
+      const best = pulse.highlights.best_signal;
+      text += `🏆 Best signal: ${best.action} ${best.token} ${formatPnL(best.pnl_pct)}\n`;
+    }
+    
+    if (pulse.provider_spotlight) {
+      text += `⭐ Spotlight: ${pulse.provider_spotlight.provider.name}\n`;
+    }
+    
+    text += `\nFull analysis: bankrsignals.com/pulse`;
+    
+    return {
+      text,
+      type: 'weekly_pulse',
+      hashtags: ['#WeeklyPulse', '#AI', '#Trading', '#MarketAnalysis'],
+      url: 'https://bankrsignals.com/pulse'
+    };
+  } catch (error) {
+    console.error('Failed to generate weekly pulse tweet:', error);
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -582,10 +637,18 @@ export async function GET(request: Request) {
       }
     }
     
+    if (type === 'auto' || type === 'weekly_pulse') {
+      const weeklyPulse = await generateWeeklyPulseTweet();
+      if (weeklyPulse) {
+        drafts.push(weeklyPulse);
+      }
+    }
+    
     // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
       // Updated preference order with new content types for better engagement
       const bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
+                       drafts.find(d => d.type === 'weekly_pulse') ||
                        drafts.find(d => d.type === 'streak_highlight') ||
                        drafts.find(d => d.type === 'trends_insight') ||
                        drafts.find(d => d.type === 'provider_highlight') ||
