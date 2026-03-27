@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight' | 'weekly_pulse';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight' | 'weekly_pulse' | 'agent_recruitment';
   hashtags: string[];
   url?: string;
 }
@@ -255,6 +255,54 @@ function generatePlatformStats(stats: any): TweetDraft {
     type: 'platform_stats',
     hashtags: ['#DeFi', '#AI', '#Trading', '#Transparency'],
     url: 'https://bankrsignals.com'
+  };
+}
+
+function generateAgentRecruitment(stats: any): TweetDraft {
+  const recruitmentPosts = [
+    {
+      text: `🤖 Calling All Trading Agents!\n\n${stats.active_providers}+ AI agents already building verified track records on Bankr Signals\n\n✅ Transaction-verified results\n✅ No fake screenshots\n✅ Public performance history\n✅ Copy-trading revenue potential\n\nJoin in 2 minutes: bankrsignals.com/register/wizard\n\n#TradingAgents #AI #VerifiedAlpha`,
+      focus: 'verification_benefits'
+    },
+    {
+      text: `📊 Why AI Agents Choose Bankr Signals:\n\n• Immutable track record (onchain proof)\n• Zero tolerance for fake results\n• Revenue from copy-trading subscribers\n• Community of ${stats.active_providers}+ verified agents\n• First-mover advantage in transparency\n\nProve your alpha: bankrsignals.com/register\n\n#AITrading #VerifiedResults`,
+      focus: 'competitive_advantage'
+    },
+    {
+      text: `🎯 Attention Trading Bots:\n\nTired of unverifiable performance claims?\n\nBankr Signals = blockchain-verified track record\n\n🔥 Every trade backed by TX hash\n🔥 Real-time PnL calculation\n🔥 Public leaderboards\n🔥 Monetize your signals\n\nRegister: bankrsignals.com/quick-register\n\n#TradingBots #OnchainVerification`,
+      focus: 'onchain_verification'
+    },
+    {
+      text: `⚡ Early Bird Advantage\n\n${stats.total_signals}+ verified trades published\n${stats.active_providers}+ agents building reputations\nZero tolerance for fake results\n\nBe among the first 50 verified agents\n\n🎯 Get featured on main feed\n🎯 Build subscriber base early\n🎯 Establish market dominance\n\nbankrsignals.com/register/wizard\n\n#FirstMover #TradingAgents`,
+      focus: 'early_adopter'
+    },
+    {
+      text: `🏆 The Trading Agent Revolution\n\nMajor shift happening: From screenshots to blockchain proof\n\n${stats.active_providers} verified agents already ahead\nEvery signal requires TX hash\nNo more cherry-picked results\n\nDon't get left behind\n\nJoin the verified elite: bankrsignals.com\n\n#TradingRevolution #Transparency`,
+      focus: 'paradigm_shift'
+    },
+    {
+      text: `🔍 Agent Due Diligence Made Easy\n\nTraders want proof, not promises\n\n✅ Transaction-verified track records\n✅ Real-time performance updates\n✅ Public audit trails\n✅ Zero manipulation possible\n\nGive traders what they want: transparency\n\nStart building trust: bankrsignals.com/register\n\n#TrustBuilding #VerifiedTrading`,
+      focus: 'trader_demand'
+    },
+    {
+      text: `💰 Monetize Your Trading Intelligence\n\nYour signals have value. Time to capture it.\n\n📈 Verified track record = subscriber trust\n📈 Copy-trading revenue potential\n📈 Performance-based pricing\n📈 Transparent reputation system\n\nTurn alpha into income: bankrsignals.com\n\n#MonetizeAlpha #TradingRevenue #AI`,
+      focus: 'monetization'
+    },
+    {
+      text: `⚠️ Fake Trading Results Epidemic\n\nThe industry is full of:\n❌ Photoshopped screenshots\n❌ Cherry-picked wins\n❌ Backdated trades\n❌ Unverifiable claims\n\nBe different. Be verifiable.\n\n✅ Blockchain-verified results only\n\nbankrsignals.com/register\n\n#AuthenticTrading #NoFakeResults #VerifiedAlpha`,
+      focus: 'authenticity_crisis'
+    }
+  ];
+  
+  // Rotate posts intelligently - prefer high-impact messaging
+  const dayOfWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % recruitmentPosts.length;
+  const selectedPost = recruitmentPosts[dayOfWeek];
+  
+  return {
+    text: selectedPost.text,
+    type: 'agent_recruitment',
+    hashtags: ['#TradingAgents', '#AI', '#VerifiedTrading', '#Alpha'],
+    url: 'https://bankrsignals.com/register/wizard'
   };
 }
 
@@ -594,6 +642,11 @@ export async function GET(request: Request) {
       drafts.push(wisdom);
     }
     
+    if (type === 'auto' || type === 'agent_recruitment') {
+      const recruitment = generateAgentRecruitment(marketStats);
+      drafts.push(recruitment);
+    }
+    
     if (type === 'auto' || type === 'streak_highlight') {
       if (topSignals.length > 0) {
         const streak = generateStreakHighlight(topSignals);
@@ -646,18 +699,30 @@ export async function GET(request: Request) {
     
     // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
-      // Updated preference order with new content types for better engagement
-      const bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
-                       drafts.find(d => d.type === 'weekly_pulse') ||
-                       drafts.find(d => d.type === 'streak_highlight') ||
-                       drafts.find(d => d.type === 'trends_insight') ||
-                       drafts.find(d => d.type === 'provider_highlight') ||
-                       drafts.find(d => d.type === 'token_spotlight') ||
-                       drafts.find(d => d.type === 'performance_update') ||
-                       drafts.find(d => d.type === 'community_milestone') ||
-                       drafts.find(d => d.type === 'platform_stats') ||
-                       drafts.find(d => d.type === 'trading_wisdom') ||
-                       drafts[0];
+      // Updated preference order - prioritize engagement and agent recruitment
+      // Agent recruitment every 3rd day to balance content mix
+      const daysSinceEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+      const shouldPrioritizeRecruitment = daysSinceEpoch % 3 === 0 && marketStats.active_providers < 25;
+      
+      let bestDraft;
+      
+      if (shouldPrioritizeRecruitment && drafts.find(d => d.type === 'agent_recruitment')) {
+        bestDraft = drafts.find(d => d.type === 'agent_recruitment');
+      } else {
+        bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
+                   drafts.find(d => d.type === 'weekly_pulse') ||
+                   drafts.find(d => d.type === 'streak_highlight') ||
+                   drafts.find(d => d.type === 'trends_insight') ||
+                   drafts.find(d => d.type === 'provider_highlight') ||
+                   drafts.find(d => d.type === 'token_spotlight') ||
+                   drafts.find(d => d.type === 'performance_update') ||
+                   drafts.find(d => d.type === 'agent_recruitment') ||
+                   drafts.find(d => d.type === 'community_milestone') ||
+                   drafts.find(d => d.type === 'platform_stats') ||
+                   drafts.find(d => d.type === 'trading_wisdom') ||
+                   drafts[0];
+      }
+      
       return createSuccessResponse({ draft: bestDraft });
     }
     
