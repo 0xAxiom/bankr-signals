@@ -78,6 +78,9 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/copy-trading" className="px-2 py-1 bg-[rgba(59,130,246,0.1)] border border-[rgba(59,130,246,0.6)] text-[rgba(59,130,246,0.8)] rounded-md hover:bg-[rgba(59,130,246,0.15)] transition-colors font-medium">
+            🎯 Copy Trading
+          </a>
           <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             📈 Trends
           </a>
@@ -149,6 +152,9 @@ function Nav() {
           <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Feed
           </a>
+          <a href="/copy-trading" className="text-[rgba(59,130,246,0.8)] hover:text-[rgba(59,130,246,1)] transition-colors">
+            🎯
+          </a>
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆
           </a>
@@ -176,6 +182,7 @@ function Footer() {
             <div className="flex flex-col gap-2">
               <span className="text-[#737373] font-medium">Platform</span>
               <a href="/feed" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Signal Feed</a>
+              <a href="/copy-trading" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🎯 Copy Trading</a>
               <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📈 Market Trends</a>
               <a href="/pulse" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📊 Weekly Pulse</a>
               <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🏆 Signal of Day</a>

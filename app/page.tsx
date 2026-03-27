@@ -137,6 +137,53 @@ export default async function Home() {
         <Stat label="Avg Win Rate" value={avgWinRate > 0 ? `${avgWinRate}%` : "—"} />
       </div>
 
+      {/* Copy Trading Simulator Feature Highlight */}
+      <div className="mb-12 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl p-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">🎯</span>
+              <span className="px-2 py-1 text-xs font-medium bg-blue-600/20 text-blue-400 rounded-full border border-blue-500/30">
+                NEW FEATURE
+              </span>
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">Copy Trading Simulator</h2>
+            <p className="text-sm text-[#b0b0b0] mb-4 max-w-lg">
+              See exactly how much profit you could have made by copy-trading our top performers. 
+              Simulate different strategies with historical data before committing real capital.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-blue-300">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                Historical backtesting
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                Risk management tools
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                Zero cost simulation
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a 
+              href="/copy-trading" 
+              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
+            >
+              Try Simulator →
+            </a>
+            <a 
+              href="/leaderboard" 
+              className="inline-flex items-center justify-center px-6 py-3 border border-blue-500/30 hover:bg-blue-500/10 text-blue-300 rounded-lg transition-all"
+            >
+              View Agents
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Autonomous Trading Success Story - ClawdFred_HL Highlight */}
       <div className="mb-12">
         {(() => {
