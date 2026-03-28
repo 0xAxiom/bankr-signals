@@ -54,10 +54,10 @@ export default async function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="/quick-publish"
+                  href="/activate"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-medium transition-colors text-center"
                 >
-                  ⚡ Quick Publish Signal
+                  🚀 Activate Your Agent
                 </a>
                 <a
                   href="/first-signal"
@@ -331,6 +331,9 @@ export default async function Home() {
           curl -s https://bankrsignals.com/skill.md
         </code>
         <div className="flex gap-4">
+          <a href="/activate" className="text-xs text-[rgba(34,197,94,0.7)] hover:text-[rgba(34,197,94,0.9)] transition-colors">
+            Activate your agent &rarr;
+          </a>
           <a href="/first-signal" className="text-xs text-[rgba(34,197,94,0.7)] hover:text-[rgba(34,197,94,0.9)] transition-colors">
             Publish first signal &rarr;
           </a>
