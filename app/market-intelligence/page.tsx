@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TrendingUp, TrendingDown, Activity, Target, Share, Download } from 'lucide-react'
 
 interface MarketIntelligenceData {
@@ -140,18 +138,17 @@ export default function MarketIntelligencePage() {
           <p className="text-gray-600">{data.summary}</p>
           
           <div className="flex items-center justify-center gap-4">
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 Day</SelectItem>
-                <SelectItem value="3">3 Days</SelectItem>
-                <SelectItem value="7">7 Days</SelectItem>
-                <SelectItem value="14">14 Days</SelectItem>
-                <SelectItem value="30">30 Days</SelectItem>
-              </SelectContent>
-            </Select>
+            <select 
+              value={selectedPeriod} 
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded text-white text-sm w-32"
+            >
+              <option value="1">1 Day</option>
+              <option value="3">3 Days</option>
+              <option value="7">7 Days</option>
+              <option value="14">14 Days</option>
+              <option value="30">30 Days</option>
+            </select>
             
             <Button variant="outline" size="sm" onClick={handleShare}>
               <Share className="w-4 h-4 mr-2" />
@@ -172,69 +169,61 @@ export default function MarketIntelligencePage() {
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total Signals</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <div className="p-4">
+              <div className="text-sm font-medium text-gray-400 mb-2">Total Signals</div>
               <div className="text-2xl font-bold">{data.metrics.totalSignals}</div>
               <p className="text-xs text-gray-600">
                 from {data.metrics.uniqueProviders} providers
               </p>
-            </CardContent>
+            </div>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <div className="p-4">
+              <div className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
                 Market Sentiment
                 {getSentimentIcon(data.metrics.sentiment)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </div>
               <div className="space-y-2">
-                <Badge className={getSentimentColor(data.metrics.sentiment)}>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${getSentimentColor(data.metrics.sentiment)}`}>
                   {data.metrics.sentiment}
-                </Badge>
+                </span>
                 <p className="text-xs text-gray-600">
                   {data.metrics.sentimentRatio}% {data.metrics.sentiment.toLowerCase()}
                 </p>
               </div>
-            </CardContent>
+            </div>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Confidence</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <div className="p-4">
+              <div className="text-sm font-medium text-gray-400 mb-2">Confidence</div>
               <div className="text-2xl font-bold">{data.metrics.avgConfidence}%</div>
               <p className="text-xs text-gray-600">average confidence</p>
-            </CardContent>
+            </div>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <div className="p-4">
+              <div className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
                 <Target className="w-4 h-4" />
                 Win Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </div>
               <div className="text-2xl font-bold">{data.metrics.performance.winRate}%</div>
               <p className="text-xs text-gray-600">
                 {data.metrics.performance.closedPositions} closed positions
               </p>
-            </CardContent>
+            </div>
           </Card>
         </div>
 
         {/* Top Tokens */}
         <Card>
-          <CardHeader>
-            <CardTitle>Most Active Assets</CardTitle>
-            <CardDescription>Trading volume by asset over the selected period</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <div className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Most Active Assets</h3>
+              <p className="text-sm text-gray-400">Trading volume by asset over the selected period</p>
+            </div>
             <div className="space-y-3">
               {data.metrics.topTokens.map((token, index) => (
                 <div key={token.token} className="flex items-center justify-between">
@@ -256,16 +245,16 @@ export default function MarketIntelligencePage() {
                 </div>
               ))}
             </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Key Insights */}
         <Card>
-          <CardHeader>
-            <CardTitle>Market Insights</CardTitle>
-            <CardDescription>Key patterns and observations from recent trading activity</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <div className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Market Insights</h3>
+              <p className="text-sm text-gray-400">Key patterns and observations from recent trading activity</p>
+            </div>
             <div className="space-y-4">
               {data.insights.map((insight, index) => {
                 const cleanInsight = insight.replace(/\*\*(.*?)\*\*/g, '$1')
@@ -285,7 +274,7 @@ export default function MarketIntelligencePage() {
                 )
               })}
             </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Footer */}
