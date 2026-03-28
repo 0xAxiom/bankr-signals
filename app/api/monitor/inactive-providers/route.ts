@@ -26,10 +26,22 @@ export async function GET() {
       .eq('total_signals', 0)
       .order('registered_at', { ascending: false });
 
+    // Get outreach history for these providers
+    const { data: outreachData } = await supabase
+      .from('outreach_attempts')
+      .select('provider_address, attempt_count, last_attempt, channels_used, converted_to_signal')
+      .in('provider_address', inactiveProviders?.map((p: any) => p.address) || []);
+
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to fetch inactive providers' }, { status: 500 });
     }
+
+    // Create outreach lookup map
+    const outreachMap = new Map();
+    outreachData?.forEach((outreach: any) => {
+      outreachMap.set(outreach.provider_address, outreach);
+    });
 
     // Categorize by time since registration
     const now = new Date();
@@ -47,11 +59,18 @@ export async function GET() {
     inactiveProviders?.forEach((provider: any) => {
       const registeredAt = new Date(provider.registered_at);
       const timeSince = now.getTime() - registeredAt.getTime();
+      const outreachStatus = outreachMap.get(provider.address);
       
       const providerData = {
         ...provider,
         daysSinceRegistration: Math.floor(timeSince / oneDay),
-        registrationDate: registeredAt.toISOString().split('T')[0]
+        registrationDate: registeredAt.toISOString().split('T')[0],
+        outreach: outreachStatus ? {
+          attempts: outreachStatus.attempt_count,
+          lastAttempt: outreachStatus.last_attempt,
+          channels: outreachStatus.channels_used,
+          converted: outreachStatus.converted_to_signal
+        } : null
       };
 
       if (timeSince < oneDay) {
@@ -65,42 +84,56 @@ export async function GET() {
       }
     });
 
-    // Calculate stats
+    // Calculate stats including outreach metrics
+    const providersWithOutreach = inactiveProviders?.filter((p: any) => outreachMap.has(p.address)) || [];
     const stats = {
       totalInactive: inactiveProviders?.length || 0,
       needingFollowUp: categorized.followUp1.length + categorized.followUp2.length,
       longTermInactive: categorized.longTermInactive.length,
       withTwitter: inactiveProviders?.filter((p: any) => p.twitter).length || 0,
-      withFarcaster: inactiveProviders?.filter((p: any) => p.farcaster).length || 0
+      withFarcaster: inactiveProviders?.filter((p: any) => p.farcaster).length || 0,
+      outreachSent: providersWithOutreach.length,
+      pendingOutreach: inactiveProviders?.filter((p: any) => 
+        !outreachMap.has(p.address) && 
+        (new Date().getTime() - new Date(p.registered_at).getTime()) > oneDay
+      ).length || 0
     };
 
-    // Generate action recommendations
+    // Generate action recommendations including automation
     const recommendations = [];
     
-    if (categorized.followUp1.length > 0) {
+    const providersNeedingOutreach = categorized.followUp1.concat(categorized.followUp2)
+      .filter((p: any) => !p.outreach || p.outreach.attempts < 2);
+    
+    if (providersNeedingOutreach.length > 0) {
       recommendations.push({
         priority: 'high',
-        action: 'Send first follow-up',
-        targets: categorized.followUp1.length,
-        description: `${categorized.followUp1.length} providers registered 1-3 days ago need first follow-up`
+        action: 'Run automated outreach',
+        targets: providersNeedingOutreach.length,
+        description: `${providersNeedingOutreach.length} providers ready for automated follow-up via Twitter/Farcaster`
       });
     }
 
-    if (categorized.followUp2.length > 0) {
+    const providersNeedingManualFollow = categorized.followUp2
+      .filter((p: any) => p.outreach?.attempts >= 1 && !p.outreach.converted);
+    
+    if (providersNeedingManualFollow.length > 0) {
       recommendations.push({
-        priority: 'medium', 
-        action: 'Send second follow-up',
-        targets: categorized.followUp2.length,
-        description: `${categorized.followUp2.length} providers registered 3-7 days ago need second follow-up`
+        priority: 'medium',
+        action: 'Manual outreach needed',
+        targets: providersNeedingManualFollow.length,
+        description: `${providersNeedingManualFollow.length} providers haven't responded to automated outreach`
       });
     }
 
     if (categorized.longTermInactive.length > 5) {
+      const unconverted = categorized.longTermInactive
+        .filter((p: any) => p.outreach && !p.outreach.converted).length;
       recommendations.push({
         priority: 'low',
-        action: 'Archive or re-engage',
+        action: 'Archive or final attempt',
         targets: categorized.longTermInactive.length,
-        description: `${categorized.longTermInactive.length} providers have been inactive for 7+ days`
+        description: `${categorized.longTermInactive.length} providers inactive 7+ days (${unconverted} had outreach attempts)`
       });
     }
 
