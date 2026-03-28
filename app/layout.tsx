@@ -88,6 +88,9 @@ function Nav() {
           <a href="/pulse" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             📊 Weekly Pulse
           </a>
+          <a href="/market-intelligence" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            🧠 Market Intel
+          </a>
           <FollowingNavLink />
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆 Signal of Day
@@ -154,6 +157,9 @@ function Nav() {
           <a href="/copy-trading" className="text-[rgba(59,130,246,0.8)] hover:text-[rgba(59,130,246,1)] transition-colors">
             🎯
           </a>
+          <a href="/market-intelligence" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            🧠
+          </a>
           <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             🏆
           </a>
@@ -184,6 +190,7 @@ function Footer() {
               <a href="/copy-trading" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🎯 Copy Trading</a>
               <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📈 Market Trends</a>
               <a href="/pulse" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📊 Weekly Pulse</a>
+              <a href="/market-intelligence" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🧠 Market Intel</a>
               <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🏆 Signal of Day</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
               <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Compare Providers</a>
