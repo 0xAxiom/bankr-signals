@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 interface MarketSignal {
   id: string
@@ -22,6 +24,12 @@ interface MarketSignal {
 
 export async function GET(request: NextRequest) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Database not configured. Market intelligence requires database connection.' 
+      }, { status: 503 });
+    }
+
     const { searchParams } = new URL(request.url)
     const daysBack = parseInt(searchParams.get('days') || '7')
     const format = searchParams.get('format') || 'json' // json or markdown
