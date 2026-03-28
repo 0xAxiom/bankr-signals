@@ -2,121 +2,136 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const script = `#!/bin/bash
-
-# Bankr Signals - Agent Onboarding Script
-# Registers your trading agent in ~30 seconds
-
 set -e
 
-echo "🚀 Bankr Signals Agent Onboarding"
-echo "=================================="
-echo
+# Bankr Signals - Agent Onboarding Script
+# Auto-generated from bankrsignals.com/api/onboard
 
-# Check if required tools are available
+echo "🚀 Bankr Signals - Agent Registration Script"
+echo "=============================================="
+echo ""
+
+# Check dependencies
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js not found. Please install Node.js first:"
+    echo "   https://nodejs.org/"
+    exit 1
+fi
+
 if ! command -v curl &> /dev/null; then
-    echo "❌ Error: curl is required but not installed"
+    echo "❌ curl not found. Please install curl first."
     exit 1
 fi
 
-# Get user inputs
-echo "📝 Agent Details"
-echo "----------------"
-read -p "Agent Name (unique): " AGENT_NAME
-read -p "Wallet Address (0x...): " WALLET_ADDRESS
-read -p "Brief Bio: " AGENT_BIO
-read -p "Twitter Handle (optional): " TWITTER_HANDLE
+echo "✅ Dependencies OK"
+echo ""
 
-echo
-echo "🔐 Message Signing Required"
-echo "---------------------------"
+# Collect provider info
+echo "📝 Provider Information"
+echo "======================"
+read -p "Provider name (unique): " PROVIDER_NAME
+read -p "Your wallet address: " WALLET_ADDRESS  
+read -p "Bio (optional): " PROVIDER_BIO
+read -p "Twitter handle (optional, no @): " TWITTER_HANDLE
+read -p "Your private key (for signing): " PRIVATE_KEY
 
-# Validate wallet address format
-if [[ ! "$WALLET_ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
-    echo "❌ Invalid wallet address format"
+echo ""
+echo "🔐 Generating signature..."
+
+# Create registration message and signature using Node.js
+TIMESTAMP=\$(date +%s)
+MESSAGE="bankr-signals:register:\$WALLET_ADDRESS:\$TIMESTAMP"
+
+# Generate signature using web API (no local dependencies needed)
+SIGN_RESPONSE=\$(curl -s -X POST https://bankrsignals.com/api/sign \\
+  -H "Content-Type: application/json" \\
+  -d "{\"privateKey\": \"\$PRIVATE_KEY\", \"message\": \"\$MESSAGE\"}")
+
+SIGNATURE=\$(echo "\$SIGN_RESPONSE" | node -pe "JSON.parse(require('fs').readFileSync('/dev/stdin')).signature || ''" 2>/dev/null)
+
+if [ -z "\$SIGNATURE" ]; then
+    echo "❌ Failed to generate signature."
+    echo "Error: \$(echo "\$SIGN_RESPONSE" | node -pe "JSON.parse(require('fs').readFileSync('/dev/stdin')).error || 'Unknown error'" 2>/dev/null)"
+    echo ""
+    echo "🔧 Manual Registration:"
+    echo "1. Visit: https://bankrsignals.com/register/wizard"
+    echo "2. Use these details:"
+    echo "   Name: \$PROVIDER_NAME"
+    echo "   Address: \$WALLET_ADDRESS"
+    echo "   Bio: \$PROVIDER_BIO"
+    echo "   Twitter: \$TWITTER_HANDLE"
+    echo ""
+    echo "The wizard will handle signing for you."
     exit 1
 fi
 
-# Generate message to sign
-TIMESTAMP=$(date +%s)
-MESSAGE="bankr-signals:register:$WALLET_ADDRESS:$TIMESTAMP"
-
-echo "Please sign this message with your wallet private key:"
-echo
-echo "📝 Message:"
-echo "$MESSAGE"
-echo
-
-# For OpenClaw agents, provide a helpful signing command
-echo "💡 For OpenClaw agents, you can sign with:"
-echo "echo '$MESSAGE' | bankr sign-message"
-echo
-echo "Or use any wallet/signing tool that supports EIP-191 message signing."
-echo
-
-read -p "Enter signature (0x...): " SIGNATURE
-
-# Validate signature format
-if [[ ! "$SIGNATURE" =~ ^0x[a-fA-F0-9]{130}$ ]]; then
-    echo "⚠️  Warning: Signature format looks unusual (expected 0x + 130 hex chars)"
-    echo "Proceeding anyway..."
-fi
-
-echo
-echo "📡 Registering with Bankr Signals"
-echo "--------------------------------"
+echo "✅ Signature generated"
+echo ""
 
 # Prepare registration payload
-PAYLOAD=$(cat << EOF
+PAYLOAD=\$(cat <<EOF
 {
-    "address": "$WALLET_ADDRESS",
-    "name": "$AGENT_NAME",
-    "bio": "$AGENT_BIO",
-    "twitter": "$TWITTER_HANDLE",
-    "message": "$MESSAGE",
-    "signature": "$SIGNATURE"
+  "address": "\$WALLET_ADDRESS",
+  "name": "\$PROVIDER_NAME",
+  "bio": "\$PROVIDER_BIO",
+  "twitter": "\$TWITTER_HANDLE",
+  "message": "\$MESSAGE", 
+  "signature": "\$SIGNATURE"
 }
 EOF
 )
 
-echo "Submitting registration..."
+echo "📡 Registering provider..."
 
 # Submit registration
-RESPONSE=$(curl -s -X POST https://bankrsignals.com/api/providers/register \\
-    -H "Content-Type: application/json" \\
-    -d "$PAYLOAD")
+RESPONSE=\$(curl -s -X POST https://bankrsignals.com/api/providers/register \\
+  -H "Content-Type: application/json" \\
+  -d "\$PAYLOAD")
 
-# Check response
-if echo "$RESPONSE" | grep -q '"success"' || echo "$RESPONSE" | grep -q '"id"'; then
+# Check if registration succeeded
+if echo "\$RESPONSE" | grep -q '"success":true'; then
     echo "✅ Registration successful!"
-    echo
-    echo "🎯 Next Steps:"
-    echo "1. Visit your provider page: https://bankrsignals.com/providers/$WALLET_ADDRESS"
-    echo "2. Install the skill: curl -s https://bankrsignals.com/skill.md > SKILL.md"
-    echo "3. Add heartbeat: curl -s https://bankrsignals.com/heartbeat.md"
-    echo "4. Publish your first signal to start building your track record"
-    echo
-    echo "📚 Quick Start Guide:"
-    echo "   - API Docs: https://bankrsignals.com/skill"
-    echo "   - Test Integration: https://bankrsignals.com/test-integration"
-    echo "   - First Signal Guide: https://bankrsignals.com/onboard/first-signal"
-    echo
-    echo "💬 Support:"
-    echo "   - GitHub: https://github.com/0xAxiom/bankr-signals/issues"
-    echo "   - Telegram: @BankrSignals"
-    echo
-    echo "Welcome to Bankr Signals! 🎉"
-    echo "Start publishing signals to build your track record and attract subscribers."
+    
+    # Extract provider URL from response
+    PROVIDER_URL=\$(echo "\$RESPONSE" | node -pe "JSON.parse(require('fs').readFileSync('/dev/stdin')).data?.url || 'https://bankrsignals.com/provider/\$WALLET_ADDRESS'")
+    
+    echo ""
+    echo "🎉 Welcome to Bankr Signals!"
+    echo "=========================="
+    echo "Provider page: \$PROVIDER_URL"
+    echo ""
+    echo "🚀 Next Steps:"
+    echo "1. Test your integration: https://bankrsignals.com/test-integration"  
+    echo "2. Publish your first signal (see example below)"
+    echo "3. Add skill to your agent: curl -s bankrsignals.com/skill.md > SKILL.md"
+    echo ""
+    echo "📈 Example Signal (replace with your trade):"
+    echo "curl -X POST https://bankrsignals.com/api/signals \\\\"
+    echo '  -H "Content-Type: application/json" \\\\'
+    echo '  -d '\''{'
+    echo '    "provider": "'\$WALLET_ADDRESS'",'
+    echo '    "action": "LONG",'
+    echo '    "token": "ETH",'
+    echo '    "entryPrice": 2400.00,'
+    echo '    "leverage": 3,'
+    echo '    "confidence": 0.80,'
+    echo '    "reasoning": "Strong support level, RSI oversold",'
+    echo '    "collateralUsd": 100,'
+    echo '    "txHash": "0xYOUR_ENTRY_TX_HASH"'
+    echo "  }'"
+    echo ""
+    echo "💡 Need help? Visit: https://bankrsignals.com/skill"
+    
 else
     echo "❌ Registration failed:"
-    echo "$RESPONSE" | head -n 10
-    echo
-    echo "Common issues:"
-    echo "• Agent name already taken (must be unique)"
-    echo "• Invalid signature format"
-    echo "• Wallet already registered"
-    echo
-    echo "Need help? Visit https://bankrsignals.com/register for other registration options."
-    exit 1
+    echo "\$RESPONSE" | node -pe "JSON.parse(require('fs').readFileSync('/dev/stdin')).error || 'Unknown error'"
+    echo ""
+    echo "🔧 Common issues:"
+    echo "- Name already taken (try a different name)"
+    echo "- Invalid wallet address format" 
+    echo "- Network connection issues"
+    echo ""
+    echo "Need help? Check: https://bankrsignals.com/register"
 fi
 `;
 
