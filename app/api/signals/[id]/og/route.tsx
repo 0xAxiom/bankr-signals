@@ -3,316 +3,286 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
-// Mock function - replace with actual database query
 async function getSignal(id: string) {
-  // This would normally fetch from your database
-  // For now, using URL searchParams data
-  return null;
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com';
+    const response = await fetch(`${baseUrl}/api/signals/${id}`, {
+      next: { revalidate: 60 }
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching signal for OG:', error);
+    return null;
+  }
 }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    
-    // Get signal data from URL params (as set in the signal page metadata)
-    const action = searchParams.get('action') || 'LONG';
-    const token = searchParams.get('token') || 'ETH';
-    const entryPrice = searchParams.get('entryPrice') || '0';
-    const leverage = parseInt(searchParams.get('leverage') || '1');
-    const confidence = parseFloat(searchParams.get('confidence') || '0.5');
-    const reasoning = searchParams.get('reasoning') || '';
-    const status = searchParams.get('status') || 'open';
-    const timestamp = searchParams.get('timestamp') || new Date().toISOString();
-    const pnlPct = searchParams.get('pnlPct');
-    
-    // Calculate time ago
-    const timeAgo = (timestamp: string) => {
-      const now = new Date();
-      const signalTime = new Date(timestamp);
-      const diffMs = now.getTime() - signalTime.getTime();
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      
-      if (diffHours < 1) return 'just now';
-      if (diffHours < 24) return `${diffHours}h ago`;
-      return `${Math.floor(diffHours / 24)}d ago`;
-    };
+  const { id } = await params;
+  const signal = await getSignal(id);
+  
+  if (!signal) {
+    return new Response('Signal not found', { status: 404 });
+  }
 
-    const formatPrice = (price: string) => {
-      const num = parseFloat(price);
-      return num >= 1000 
-        ? `$${(num / 1000).toFixed(1)}k` 
-        : `$${num.toLocaleString()}`;
-    };
+  // Determine colors based on action and PnL
+  const isLong = signal.action === 'LONG';
+  const hasProfit = signal.pnl && signal.pnl > 0;
+  const hasLoss = signal.pnl && signal.pnl < 0;
+  
+  const primaryColor = isLong ? '#22c55e' : '#ef4444';
+  const bgGradient = isLong 
+    ? 'linear-gradient(135deg, #0a0a0a 0%, #1a2e05 50%, #0a0a0a 100%)'
+    : 'linear-gradient(135deg, #0a0a0a 0%, #2e0505 50%, #0a0a0a 100%)';
+  
+  const pnlColor = hasProfit ? '#22c55e' : hasLoss ? '#ef4444' : '#737373';
+  const pnlText = signal.pnl 
+    ? `${signal.pnl > 0 ? '+' : ''}${signal.pnl.toFixed(1)}%`
+    : 'Open';
 
-    // Determine colors based on action and PnL
-    const isLong = action === 'LONG';
-    const hasProfit = pnlPct && parseFloat(pnlPct) > 0;
-    const hasLoss = pnlPct && parseFloat(pnlPct) < 0;
-    
-    let primaryColor = '#22c55e'; // green
-    let backgroundColor = '#0a0a0a';
-    let borderColor = '#22c55e';
-    
-    if (action === 'SHORT' || hasLoss) {
-      primaryColor = '#ef4444'; // red
-      borderColor = '#ef4444';
-    }
+  // Truncate reasoning if too long
+  const maxReasoningLength = 120;
+  const reasoning = signal.reasoning?.length > maxReasoningLength
+    ? `${signal.reasoning.substring(0, maxReasoningLength)}...`
+    : signal.reasoning || '';
 
-    return new ImageResponse(
-      (
+  // Format price
+  const formatPrice = (price: number) => {
+    if (price >= 1000000) return `$${(price / 1000000).toFixed(2)}M`;
+    if (price >= 1000) return `$${(price / 1000).toFixed(1)}k`;
+    return `$${price.toLocaleString()}`;
+  };
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          background: bgGradient,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          position: 'relative',
+        }}
+      >
+        {/* Header */}
         <div
           style={{
-            height: '100%',
-            width: '100%',
             display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: backgroundColor,
-            color: '#ffffff',
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            padding: '60px',
-            position: 'relative',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '40px 50px 20px',
+            borderBottom: '1px solid #2a2a2a',
           }}
         >
-          {/* Background pattern */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '30px',
+                background: `${primaryColor}20`,
+                border: `2px solid ${primaryColor}40`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+              }}
+            >
+              🤖
+            </div>
+            <div>
+              <div style={{ color: '#e5e5e5', fontSize: '24px', fontWeight: '600' }}>
+                {signal.providerName}
+              </div>
+              <div style={{ color: '#737373', fontSize: '16px' }}>
+                Trading Agent
+              </div>
+            </div>
+          </div>
+          
           <div
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `radial-gradient(circle at 20% 20%, ${primaryColor}15 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${primaryColor}10 0%, transparent 50%)`,
+              background: signal.status === 'closed' ? '#22c55e20' : '#f59e0b20',
+              border: signal.status === 'closed' ? '1px solid #22c55e40' : '1px solid #f59e0b40',
+              color: signal.status === 'closed' ? '#22c55e' : '#f59e0b',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '18px',
+              fontWeight: '600',
             }}
-          />
-          
-          {/* Header */}
+          >
+            {signal.status === 'closed' ? '✅ Closed' : '🔄 Open'}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            padding: '40px 50px',
+          }}
+        >
+          {/* Left Side - Trade Details */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '40px',
-              zIndex: 1,
+              flexDirection: 'column',
+              flex: 2,
+              gap: '24px',
             }}
           >
+            {/* Action + Token */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <div
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  backgroundColor: `${primaryColor}30`,
-                  border: `3px solid ${primaryColor}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '40px',
-                }}
-              >
-                🤖
-              </div>
-              <div>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  Bankr Signals
-                </div>
-                <div style={{ fontSize: '20px', color: '#888', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>📊</span>
-                  Verified Trading Signal • {timeAgo(timestamp)}
-                </div>
-              </div>
-            </div>
-            
-            <div
-              style={{
-                padding: '15px 25px',
-                backgroundColor: status === 'closed' ? '#22c55e30' : '#f59e0b30',
-                border: `2px solid ${status === 'closed' ? '#22c55e' : '#f59e0b'}`,
-                borderRadius: '12px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: status === 'closed' ? '#22c55e' : '#f59e0b',
-              }}
-            >
-              {status === 'closed' ? '✅ CLOSED' : '🔄 OPEN'}
-            </div>
-          </div>
-
-          {/* Main Signal Display */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '50px',
-              zIndex: 1,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-              <div
-                style={{
-                  fontSize: '72px',
-                  fontWeight: 'bold',
                   color: primaryColor,
+                  fontSize: '48px',
+                  fontWeight: '900',
                   letterSpacing: '2px',
                 }}
               >
-                {action}
+                {signal.action}
               </div>
-              <div
-                style={{
-                  fontSize: '84px',
-                  fontWeight: 'bold',
-                  color: '#ffffff',
-                }}
-              >
-                {token}
+              <div style={{ color: '#e5e5e5', fontSize: '56px', fontWeight: '800' }}>
+                {signal.token}
               </div>
-              {leverage > 1 && (
+              {signal.leverage > 1 && (
                 <div
                   style={{
-                    padding: '12px 20px',
-                    backgroundColor: primaryColor,
-                    color: '#000000',
-                    borderRadius: '10px',
-                    fontSize: '32px',
-                    fontWeight: 'bold',
+                    background: primaryColor,
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '24px',
+                    fontWeight: '700',
                   }}
                 >
-                  {leverage}x
+                  {signal.leverage}x
                 </div>
               )}
             </div>
 
-            {pnlPct && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '30px',
-                  backgroundColor: hasProfit ? '#22c55e20' : '#ef444420',
-                  border: `3px solid ${hasProfit ? '#22c55e' : '#ef4444'}`,
-                  borderRadius: '20px',
-                }}
-              >
+            {/* Trade Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373', fontSize: '18px' }}>Entry Price</span>
+                <span style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
+                  {formatPrice(signal.entryPrice)}
+                </span>
+              </div>
+              {signal.exitPrice && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#737373', fontSize: '18px' }}>Exit Price</span>
+                  <span style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
+                    {formatPrice(signal.exitPrice)}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373', fontSize: '18px' }}>Confidence</span>
+                <span style={{ color: '#e5e5e5', fontSize: '18px', fontWeight: '600' }}>
+                  {((signal.confidence || 0.5) * 100).toFixed(0)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Reasoning */}
+            {reasoning && (
+              <div>
+                <div style={{ color: '#737373', fontSize: '16px', marginBottom: '8px' }}>
+                  Trade Thesis
+                </div>
                 <div
                   style={{
-                    fontSize: '64px',
-                    fontWeight: 'bold',
-                    color: hasProfit ? '#22c55e' : '#ef4444',
-                    marginBottom: '10px',
+                    color: '#e5e5e5',
+                    fontSize: '18px',
+                    lineHeight: 1.4,
+                    background: '#111',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid #2a2a2a',
                   }}
                 >
-                  {parseFloat(pnlPct) > 0 ? '+' : ''}{parseFloat(pnlPct).toFixed(1)}%
-                </div>
-                <div style={{ fontSize: '18px', color: '#888' }}>
-                  PnL
+                  "{reasoning}"
                 </div>
               </div>
             )}
           </div>
 
-          {/* Signal Details */}
+          {/* Right Side - PnL */}
           <div
             style={{
               display: 'flex',
-              gap: '60px',
-              marginBottom: '40px',
-              zIndex: 1,
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '18px', color: '#888' }}>Entry Price</div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                {formatPrice(entryPrice)}
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '18px', color: '#888' }}>Confidence</div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                {Math.round(confidence * 100)}%
-              </div>
-            </div>
-          </div>
-
-          {/* Trade Thesis */}
-          <div
-            style={{
-              backgroundColor: '#1a1a1a',
-              border: '2px solid #333',
-              borderRadius: '15px',
-              padding: '30px',
-              marginBottom: '30px',
-              zIndex: 1,
-            }}
-          >
-            <div style={{ fontSize: '20px', color: '#888', marginBottom: '15px' }}>
-              Trade Thesis
-            </div>
-            <div style={{ fontSize: '24px', lineHeight: '1.4', color: '#ffffff' }}>
-              "{reasoning.slice(0, 180)}{reasoning.length > 180 ? '...' : ''}"
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
+              flex: 1,
               alignItems: 'center',
-              marginTop: 'auto',
-              zIndex: 1,
+              justifyContent: 'center',
             }}
           >
-            <div style={{ fontSize: '18px', color: '#888' }}>
-              🔗 Verified with Base blockchain transaction
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: primaryColor }}>
-              bankrsignals.com
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                background: hasProfit ? '#22c55e10' : hasLoss ? '#ef444410' : '#37373710',
+                border: hasProfit ? '2px solid #22c55e30' : hasLoss ? '2px solid #ef444430' : '2px solid #37373730',
+                borderRadius: '16px',
+                padding: '40px',
+                minWidth: '200px',
+              }}
+            >
+              <div
+                style={{
+                  color: pnlColor,
+                  fontSize: '48px',
+                  fontWeight: '900',
+                  marginBottom: '8px',
+                }}
+              >
+                {pnlText}
+              </div>
+              <div style={{ color: '#737373', fontSize: '18px' }}>
+                {signal.pnl ? 'Total Return' : 'Status'}
+              </div>
             </div>
           </div>
         </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
-  } catch (error) {
-    console.error('Error generating OG image:', error);
-    
-    // Fallback image
-    return new ImageResponse(
-      (
+
+        {/* Footer */}
         <div
           style={{
-            height: '100%',
-            width: '100%',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#0a0a0a',
-            color: '#ffffff',
-            fontFamily: 'system-ui',
+            justifyContent: 'space-between',
+            padding: '20px 50px 40px',
+            borderTop: '1px solid #2a2a2a',
           }}
         >
-          <div style={{ fontSize: '64px', marginBottom: '30px' }}>📊</div>
-          <div style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>
-            Bankr Signals
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '24px' }}>📊</div>
+            <div style={{ color: '#e5e5e5', fontSize: '24px', fontWeight: '600' }}>
+              Bankr Signals
+            </div>
           </div>
-          <div style={{ fontSize: '24px', color: '#888' }}>
-            Verified Trading Signal
+          <div style={{ color: '#737373', fontSize: '16px' }}>
+            bankrsignals.com
           </div>
         </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
-  }
+      </div>
+    ),
+    {
+      width: 1200,
+      height: 630,
+    },
+  );
 }
