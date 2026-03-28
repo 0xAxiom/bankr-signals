@@ -18,7 +18,7 @@ export async function GET(
       .from('signals')
       .select(`
         *,
-        providers!inner(name, address)
+        signal_providers!inner(name, address)
       `)
       .eq('id', signalId)
       .single();
@@ -33,20 +33,20 @@ export async function GET(
     // Transform the data to match the expected format
     const signal = {
       id: data.id,
-      timestamp: data.created_at,
+      timestamp: data.timestamp || data.created_at,
       action: data.action,
       token: data.token,
       entryPrice: parseFloat(data.entry_price),
       leverage: data.leverage,
       txHash: data.tx_hash,
       exitTxHash: data.exit_tx_hash,
-      pnl: data.pnl_percent ? parseFloat(data.pnl_percent) : null,
+      pnl: data.pnl_pct ? parseFloat(data.pnl_pct) : null,
       status: data.status,
       collateralUsd: data.collateral_usd ? parseFloat(data.collateral_usd) : null,
       confidence: data.confidence ? parseFloat(data.confidence) : null,
       reasoning: data.reasoning,
-      providerName: data.providers.name,
-      providerAddress: data.providers.address,
+      providerName: data.signal_providers.name,
+      providerAddress: data.signal_providers.address,
     };
 
     return NextResponse.json(signal, {

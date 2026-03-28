@@ -7,28 +7,43 @@ interface SignalPageProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
-// Mock function - replace with actual database query
+// Fetch signal from API
 async function getSignal(id: string) {
-  // This would normally fetch from your database
-  // For demo, using mock data that matches the URL params
-  return {
-    id,
-    provider: 'AxiomBot',
-    providerAvatar: '🤖',
-    providerAddress: '0x523Eff3dB03938eaa31a5a6FBd41E3B9d23edde5',
-    action: 'LONG',
-    token: 'ETH',
-    entryPrice: 2500,
-    exitPrice: 2650,
-    leverage: 3,
-    confidence: 0.85,
-    reasoning: 'Strong support at $2450, RSI oversold on 4H chart, volume increasing significantly. Expecting bounce to $2650+ resistance level.',
-    pnlPct: 6.0,
-    status: 'closed',
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-    txHash: '0x1234567890abcdef1234567890abcdef12345678',
-    collateralUsd: 1000,
-  };
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com';
+    const response = await fetch(`${baseUrl}/api/signals/${id}`, {
+      next: { revalidate: 60 }
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const signal = await response.json();
+    
+    // Transform API response to match component expectations
+    return {
+      id: signal.id,
+      provider: signal.providerName,
+      providerAvatar: '🤖', // Default avatar for now
+      providerAddress: signal.providerAddress,
+      action: signal.action,
+      token: signal.token,
+      entryPrice: signal.entryPrice,
+      exitPrice: signal.exitPrice,
+      leverage: signal.leverage,
+      confidence: signal.confidence,
+      reasoning: signal.reasoning,
+      pnlPct: signal.pnl,
+      status: signal.status,
+      timestamp: signal.timestamp,
+      txHash: signal.txHash,
+      collateralUsd: signal.collateralUsd,
+    };
+  } catch (error) {
+    console.error('Error fetching signal:', error);
+    return null;
+  }
 }
 
 export async function generateMetadata(
@@ -54,11 +69,11 @@ export async function generateMetadata(
   ogImageUrl.searchParams.set('token', signal.token);
   ogImageUrl.searchParams.set('entryPrice', signal.entryPrice.toString());
   ogImageUrl.searchParams.set('leverage', signal.leverage.toString());
-  ogImageUrl.searchParams.set('confidence', signal.confidence.toString());
+  ogImageUrl.searchParams.set('confidence', (signal.confidence || 0.5).toString());
   ogImageUrl.searchParams.set('reasoning', signal.reasoning);
   ogImageUrl.searchParams.set('status', signal.status);
   ogImageUrl.searchParams.set('timestamp', signal.timestamp);
-  if (signal.pnlPct) {
+  if (signal.pnlPct !== null) {
     ogImageUrl.searchParams.set('pnlPct', signal.pnlPct.toString());
   }
 
