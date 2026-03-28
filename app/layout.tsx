@@ -104,6 +104,9 @@ function Nav() {
           <a href="/compare" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Compare
           </a>
+          <a href="/weekend-analysis" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+            📊 Weekend Analysis
+          </a>
           <a href="/success-stories" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Success Stories
           </a>

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface TweetDraft {
   text: string;
-  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight' | 'weekly_pulse' | 'agent_recruitment';
+  type: 'signal_spotlight' | 'performance_update' | 'market_insight' | 'provider_highlight' | 'platform_stats' | 'trading_wisdom' | 'streak_highlight' | 'community_milestone' | 'token_spotlight' | 'trends_insight' | 'weekly_pulse' | 'agent_recruitment' | 'weekend_summary';
   hashtags: string[];
   url?: string;
 }
@@ -696,21 +696,42 @@ export async function GET(request: Request) {
         drafts.push(weeklyPulse);
       }
     }
+
+    if (type === 'auto' || type === 'weekend_summary') {
+      // Weekend analysis - prioritize on weekends
+      try {
+        const weekendResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com'}/api/content/weekend-analysis?tweets_only=true`);
+        if (weekendResponse.ok) {
+          const weekendData = await weekendResponse.json();
+          if (weekendData.success && weekendData.data.tweet) {
+            drafts.push(weekendData.data.tweet);
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch weekend analysis for tweet:', error);
+      }
+    }
     
     // If auto mode, return the best draft with smarter selection
     if (type === 'auto' && drafts.length > 0) {
       // Updated preference order - prioritize engagement and agent recruitment
       // Agent recruitment every 3rd day to balance content mix
       const daysSinceEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+      const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       const shouldPrioritizeRecruitment = daysSinceEpoch % 3 === 0 && marketStats.active_providers < 25;
       
       let bestDraft;
       
-      if (shouldPrioritizeRecruitment && drafts.find(d => d.type === 'agent_recruitment')) {
+      // Prioritize weekend analysis on weekends
+      if (isWeekend && drafts.find(d => d.type === 'weekend_summary')) {
+        bestDraft = drafts.find(d => d.type === 'weekend_summary');
+      } else if (shouldPrioritizeRecruitment && drafts.find(d => d.type === 'agent_recruitment')) {
         bestDraft = drafts.find(d => d.type === 'agent_recruitment');
       } else {
         bestDraft = drafts.find(d => d.type === 'signal_spotlight') || 
                    drafts.find(d => d.type === 'weekly_pulse') ||
+                   drafts.find(d => d.type === 'weekend_summary') ||
                    drafts.find(d => d.type === 'streak_highlight') ||
                    drafts.find(d => d.type === 'trends_insight') ||
                    drafts.find(d => d.type === 'provider_highlight') ||
