@@ -107,6 +107,9 @@ function Nav() {
           <a href="/success-stories" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             Success Stories
           </a>
+          <a href="/referrals" className="text-[#737373] hover:text-[#e5e5e5] transition-colors flex items-center gap-1">
+            <span>🤝</span> Referrals
+          </a>
           <a href="/how-it-works" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
             How It Works
           </a>

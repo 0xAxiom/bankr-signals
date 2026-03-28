@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       { field: "agent", type: "string", maxLength: 100 },
       { field: "subscriptionFee", type: "number", min: 0, max: 1000 },
       { field: "freeSignalsPerMonth", type: "number", min: 0, max: 100 },
+      { field: "referralCode", type: "string", maxLength: 20 }, // Add referral code support
     ]);
 
     if (validationError) {
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     const { 
       address, name, description, bio, avatar, chain, agent, website, 
       twitter, farcaster, github, message, signature, specialties, 
-      subscriptionFee, freeSignalsPerMonth 
+      subscriptionFee, freeSignalsPerMonth, referralCode
     } = body;
 
     // Enhanced message format validation
@@ -143,6 +144,30 @@ export async function POST(req: NextRequest) {
       address, name, bio, description, avatar: resolvedAvatar,
       chain: chain || "base", agent, website, twitter, farcaster, github,
     });
+
+    // Track referral if provided
+    if (referralCode) {
+      try {
+        const referralResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://bankrsignals.com'}/api/referrals`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'register',
+            referralCode,
+            referredProvider: address
+          })
+        });
+        
+        if (referralResponse.ok) {
+          console.log(`Referral tracked: ${referralCode} -> ${address}`);
+        } else {
+          console.warn(`Failed to track referral: ${referralCode} -> ${address}`);
+        }
+      } catch (error) {
+        console.error('Referral tracking error:', error);
+        // Don't fail registration if referral tracking fails
+      }
+    }
 
     // Calculate initial verification score
     const verification = await calculateProviderVerification(address);
