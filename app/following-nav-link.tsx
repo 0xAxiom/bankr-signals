@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useFollows } from '@/hooks/useFollows';
 
 export function FollowingNavLink() {
@@ -7,14 +8,14 @@ export function FollowingNavLink() {
 
   if (!isLoaded) {
     return (
-      <a href="/following" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
+      <Link href="/following" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">
         ❤️ Following
-      </a>
+      </Link>
     );
   }
 
   return (
-    <a 
+    <Link 
       href="/following" 
       className="text-[#737373] hover:text-[#e5e5e5] transition-colors relative flex items-center gap-1"
     >
@@ -24,6 +25,6 @@ export function FollowingNavLink() {
           {followCount}
         </span>
       )}
-    </a>
+    </Link>
   );
 }

@@ -24,8 +24,17 @@ export default function FollowButton({
   // Check follow status on mount
   useEffect(() => {
     const checkFollowStatus = async () => {
+      if (!userAddress) {
+        setInitialLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(`/api/providers/${providerAddress}/follow`);
+        const response = await fetch(`/api/providers/${providerAddress}/follow`, {
+          headers: {
+            'x-user-address': userAddress,
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           setIsFollowing(data.following);
@@ -38,9 +47,14 @@ export default function FollowButton({
     };
 
     checkFollowStatus();
-  }, [providerAddress]);
+  }, [providerAddress, userAddress]);
 
   const handleFollow = async () => {
+    if (!userAddress) {
+      alert('Please connect your wallet to follow providers');
+      return;
+    }
+
     setLoading(true);
     try {
       const method = isFollowing ? 'DELETE' : 'POST';
@@ -48,8 +62,10 @@ export default function FollowButton({
         method,
         headers: {
           'Content-Type': 'application/json',
+          'x-user-address': userAddress,
         },
         body: method === 'POST' ? JSON.stringify({
+          userAddress,
           notify_telegram: true,
           notify_email: false
         }) : undefined
@@ -70,6 +86,21 @@ export default function FollowButton({
   };
 
   const isDisabled = loading || initialLoading;
+
+  if (!userAddress && !initialLoading) {
+    return (
+      <button
+        disabled
+        className={`
+          px-4 py-2 text-sm font-medium rounded-lg 
+          bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed
+          ${className}
+        `}
+      >
+        Connect Wallet to Follow
+      </button>
+    );
+  }
 
   if (variant === 'compact') {
     return (

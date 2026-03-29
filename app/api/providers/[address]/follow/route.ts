@@ -1,179 +1,251 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/db';
 
-// Get follow status for a provider
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
   try {
     const { address } = await params;
-    const userIdentifier = request.headers.get("x-user-identifier") || 
-                          request.cookies.get("user_session")?.value ||
-                          "anonymous";
-
-    const { data, error } = await supabase
-      .from("provider_follows")
-      .select("created_at, notify_telegram, notify_email, notes, tags")
-      .eq("provider_address", address)
-      .eq("user_identifier", userIdentifier)
-      .single();
-
-    if (error && error.code !== "PGRST116") { // PGRST116 = no rows returned
-      throw error;
+    const userAddress = request.headers.get('x-user-address') || request.nextUrl.searchParams.get('user');
+    
+    if (!userAddress) {
+      return NextResponse.json({ following: false }, { status: 200 });
     }
 
-    return NextResponse.json({
-      success: true,
-      following: !!data,
-      followDetails: data || null
+    // Check if user is following this provider
+    const { data: portfolio } = await supabase
+      .from('user_portfolios')
+      .select('followed_providers')
+      .eq('user_id', userAddress.toLowerCase())
+      .single();
+
+    const isFollowing = portfolio?.followed_providers?.includes(address.toLowerCase()) || false;
+
+    return NextResponse.json({ 
+      following: isFollowing,
+      provider: address.toLowerCase()
     });
 
   } catch (error) {
-    console.error("Get follow status error:", error);
-    return NextResponse.json(
-      { error: "Failed to get follow status" },
-      { status: 500 }
-    );
+    console.error('Follow status check error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to check follow status',
+      following: false 
+    }, { status: 500 });
   }
 }
 
-// Follow a provider
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
   try {
     const { address } = await params;
-    const userIdentifier = request.headers.get("x-user-identifier") || 
-                          request.cookies.get("user_session")?.value ||
-                          "anonymous";
-
     const body = await request.json();
-    const { 
-      notify_telegram = true, 
-      notify_email = false,
-      notes = "",
-      tags = []
-    } = body;
-
-    // Check if provider exists
-    const { data: provider, error: providerError } = await supabase
-      .from("signal_providers")
-      .select("address, name")
-      .eq("address", address)
-      .single();
-
-    if (providerError) {
-      return NextResponse.json(
-        { error: "Provider not found" },
-        { status: 404 }
-      );
+    const userAddress = request.headers.get('x-user-address') || body.userAddress;
+    
+    if (!userAddress) {
+      return NextResponse.json({ 
+        error: 'User address required' 
+      }, { status: 400 });
     }
 
-    // Create or update follow
-    const { data, error } = await supabase
-      .from("provider_follows")
-      .upsert({
-        user_identifier: userIdentifier,
-        provider_address: address,
-        notify_telegram,
-        notify_email,
-        notes,
-        tags
-      })
-      .select()
+    const providerAddress = address.toLowerCase();
+    const userId = userAddress.toLowerCase();
+
+    // First, ensure the provider exists
+    const { data: providerExists } = await supabase
+      .from('signal_providers')
+      .select('address')
+      .eq('address', providerAddress)
       .single();
 
-    if (error) throw error;
+    if (!providerExists) {
+      return NextResponse.json({ 
+        error: 'Provider not found' 
+      }, { status: 404 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: `Now following ${provider.name}`,
-      followDetails: data
+    // Get or create user portfolio
+    const { data: portfolio, error: fetchError } = await supabase
+      .from('user_portfolios')
+      .select('followed_providers')
+      .eq('user_id', userId)
+      .single();
+
+    let currentFollows: string[] = [];
+    
+    if (fetchError && fetchError.code === 'PGRST116') {
+      // User doesn't exist, create them
+      const { data: newPortfolio, error: createError } = await supabase
+        .from('user_portfolios')
+        .insert({
+          user_id: userId,
+          followed_providers: [providerAddress]
+        })
+        .select('followed_providers')
+        .single();
+
+      if (createError) {
+        console.error('Failed to create user portfolio:', createError);
+        return NextResponse.json({ 
+          error: 'Failed to create user profile' 
+        }, { status: 500 });
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        following: true,
+        message: 'Successfully followed provider'
+      });
+
+    } else if (fetchError) {
+      console.error('Database error:', fetchError);
+      return NextResponse.json({ 
+        error: 'Database error' 
+      }, { status: 500 });
+    }
+
+    currentFollows = portfolio?.followed_providers || [];
+
+    // Check if already following
+    if (currentFollows.includes(providerAddress)) {
+      return NextResponse.json({ 
+        error: 'Already following this provider',
+        following: true 
+      }, { status: 400 });
+    }
+
+    // Add provider to follows
+    const updatedFollows = [...currentFollows, providerAddress];
+    
+    const { error: updateError } = await supabase
+      .from('user_portfolios')
+      .update({ 
+        followed_providers: updatedFollows,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Failed to update follows:', updateError);
+      return NextResponse.json({ 
+        error: 'Failed to follow provider' 
+      }, { status: 500 });
+    }
+
+    // Update provider follower count
+    const { error: countError } = await supabase
+      .from('signal_providers')
+      .update({ 
+        followers: supabase.raw('followers + 1'),
+        updated_at: new Date().toISOString()
+      })
+      .eq('address', providerAddress);
+
+    if (countError) {
+      console.error('Failed to update provider follower count:', countError);
+      // Don't fail the request for this
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      following: true,
+      message: 'Successfully followed provider'
     });
 
   } catch (error) {
-    console.error("Follow provider error:", error);
-    return NextResponse.json(
-      { error: "Failed to follow provider" },
-      { status: 500 }
-    );
+    console.error('Follow error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to follow provider' 
+    }, { status: 500 });
   }
 }
 
-// Unfollow a provider
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
   try {
     const { address } = await params;
-    const userIdentifier = request.headers.get("x-user-identifier") || 
-                          request.cookies.get("user_session")?.value ||
-                          "anonymous";
+    const userAddress = request.headers.get('x-user-address') || 
+                       new URL(request.url).searchParams.get('user');
+    
+    if (!userAddress) {
+      return NextResponse.json({ 
+        error: 'User address required' 
+      }, { status: 400 });
+    }
 
-    const { error } = await supabase
-      .from("provider_follows")
-      .delete()
-      .eq("provider_address", address)
-      .eq("user_identifier", userIdentifier);
+    const providerAddress = address.toLowerCase();
+    const userId = userAddress.toLowerCase();
 
-    if (error) throw error;
-
-    return NextResponse.json({
-      success: true,
-      message: "Unfollowed successfully"
-    });
-
-  } catch (error) {
-    console.error("Unfollow provider error:", error);
-    return NextResponse.json(
-      { error: "Failed to unfollow provider" },
-      { status: 500 }
-    );
-  }
-}
-
-// Update follow preferences
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ address: string }> }
-) {
-  try {
-    const { address } = await params;
-    const userIdentifier = request.headers.get("x-user-identifier") || 
-                          request.cookies.get("user_session")?.value ||
-                          "anonymous";
-
-    const body = await request.json();
-    const updates = {
-      ...body,
-      provider_address: address,
-      user_identifier: userIdentifier
-    };
-
-    const { data, error } = await supabase
-      .from("provider_follows")
-      .update(updates)
-      .eq("provider_address", address)
-      .eq("user_identifier", userIdentifier)
-      .select()
+    // Get current follows
+    const { data: portfolio, error: fetchError } = await supabase
+      .from('user_portfolios')
+      .select('followed_providers')
+      .eq('user_id', userId)
       .single();
 
-    if (error) throw error;
+    if (fetchError) {
+      return NextResponse.json({ 
+        error: 'User portfolio not found' 
+      }, { status: 404 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Follow preferences updated",
-      followDetails: data
+    const currentFollows: string[] = portfolio?.followed_providers || [];
+
+    // Check if following
+    if (!currentFollows.includes(providerAddress)) {
+      return NextResponse.json({ 
+        error: 'Not following this provider',
+        following: false 
+      }, { status: 400 });
+    }
+
+    // Remove provider from follows
+    const updatedFollows = currentFollows.filter(addr => addr !== providerAddress);
+    
+    const { error: updateError } = await supabase
+      .from('user_portfolios')
+      .update({ 
+        followed_providers: updatedFollows,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Failed to update follows:', updateError);
+      return NextResponse.json({ 
+        error: 'Failed to unfollow provider' 
+      }, { status: 500 });
+    }
+
+    // Update provider follower count
+    const { error: countError } = await supabase
+      .from('signal_providers')
+      .update({ 
+        followers: supabase.raw('GREATEST(followers - 1, 0)'),
+        updated_at: new Date().toISOString()
+      })
+      .eq('address', providerAddress);
+
+    if (countError) {
+      console.error('Failed to update provider follower count:', countError);
+      // Don't fail the request for this
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      following: false,
+      message: 'Successfully unfollowed provider'
     });
 
   } catch (error) {
-    console.error("Update follow preferences error:", error);
-    return NextResponse.json(
-      { error: "Failed to update follow preferences" },
-      { status: 500 }
-    );
+    console.error('Unfollow error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to unfollow provider' 
+    }, { status: 500 });
   }
 }
