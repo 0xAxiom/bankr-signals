@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
+import { Resend } from 'resend';
 
 interface WeeklySignal {
   id: string;
@@ -346,26 +347,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to generate digest data' }, { status: 500 });
     }
 
-    // TODO: Integrate with email service
-    // This is where you would send emails to the subscriber list
-    // Example with Resend:
-    /*
+    // Initialize Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
     
-    for (const email of emails) {
-      await resend.emails.send({
-        from: 'digest@bankrsignals.com',
-        to: email,
-        subject: `📊 Top Signals This Week - ${digestData.digest.weekStart}`,
-        html: digestData.html
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('RESEND_API_KEY not configured, skipping email send');
+      return NextResponse.json({
+        success: true,
+        message: `Digest prepared for ${emails.length} recipients (emails not sent - no API key)`,
+        digest: digestData.digest
       });
     }
-    */
+
+    const results = [];
+    const errors = [];
+    
+    // Send emails in batches of 10 to avoid rate limits
+    for (let i = 0; i < emails.length; i += 10) {
+      const batch = emails.slice(i, i + 10);
+      
+      for (const email of batch) {
+        try {
+          const result = await resend.emails.send({
+            from: 'Bankr Signals <digest@bankrsignals.com>',
+            to: email,
+            subject: `📊 Top Trading Signals This Week - ${digestData.digest.weekStart}`,
+            html: digestData.html,
+            text: `Top Trading Signals This Week\n\nView the full digest at: ${process.env.NEXT_PUBLIC_BASE_URL}/weekly-digest\n\nUnsubscribe: ${process.env.NEXT_PUBLIC_BASE_URL}/unsubscribe`
+          });
+          
+          results.push({ email, success: true, id: result.data?.id });
+        } catch (error: any) {
+          console.error(`Failed to send email to ${email}:`, error);
+          errors.push({ email, error: error.message });
+        }
+      }
+      
+      // Small delay between batches
+      if (i + 10 < emails.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Digest prepared for ${emails.length} recipients`,
-      digest: digestData.digest
+      message: `Digest sent to ${results.length}/${emails.length} recipients`,
+      digest: digestData.digest,
+      results: {
+        sent: results.length,
+        failed: errors.length,
+        errors: errors
+      }
     });
 
   } catch (error) {
