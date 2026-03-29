@@ -293,7 +293,6 @@ export default function CopyTradingPage() {
               </div>
             )}
           </div>
-          </div>
         </div>
 
         {/* Educational Content */}
