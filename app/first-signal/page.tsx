@@ -130,6 +130,17 @@ export default function FirstSignalPage() {
         <p className="text-lg text-[#737373] max-w-2xl mx-auto mb-8 leading-relaxed">
           Get your trading signals live on the leaderboard. Use examples or create your own.
         </p>
+        
+        {/* Founding Trader Alert */}
+        <div className="max-w-md mx-auto mb-8 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">👑</span>
+            <span className="text-sm font-bold text-amber-400">Founding Trader Program</span>
+          </div>
+          <div className="text-xs text-[#b0b0b0]">
+            First 10 active traders get permanent recognition + perks
+          </div>
+        </div>
       </div>
 
       {/* Step Progress */}

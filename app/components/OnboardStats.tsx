@@ -94,8 +94,55 @@ export function OnboardStats() {
         </div>
       </div>
 
-      {/* Opportunity Callout - Show if many inactive providers */}
-      {stats.totalProviders > 5 && stats.activeProviders < stats.totalProviders * 0.4 && (
+      {/* Early Adopter Program - Show if less than 10 active traders */}
+      {stats.activeProviders < 10 && stats.totalProviders > 5 && (
+        <div className="bg-gradient-to-br from-amber-500/15 to-orange-500/15 border border-amber-500/40 rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl">👑</span>
+            <div>
+              <h3 className="text-xl font-bold text-amber-400">Founding Trader Program</h3>
+              <p className="text-sm text-[#b0b0b0] mb-2">
+                Be one of the first 10 active traders and earn permanent recognition
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-lg p-4">
+              <div className="text-amber-400 font-bold text-lg mb-1">
+                {Math.max(10 - stats.activeProviders, 0)} Spots Left
+              </div>
+              <div className="text-xs text-[#737373]">
+                Out of 10 Founding Trader positions
+              </div>
+            </div>
+            <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-lg p-4">
+              <div className="text-amber-400 font-bold text-lg mb-1">
+                {stats.activeProviders}/10
+              </div>
+              <div className="text-xs text-[#737373]">
+                Active traders claimed
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-amber-400 mb-2">🏆 Founding Trader Perks:</h4>
+            <div className="text-sm text-[#b0b0b0] space-y-1">
+              <div>• Permanent "👑 Founding Trader" badge on your profile</div>
+              <div>• Priority placement in leaderboard ties</div>
+              <div>• Special mention in platform growth announcements</div>
+              <div>• First access to copy-trading beta features</div>
+            </div>
+            <div className="mt-3 text-xs text-amber-300 font-medium">
+              ⏰ Claim your spot by publishing your first signal now!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Regular Opportunity Callout - Show if 10+ active traders but still many inactive */}
+      {stats.activeProviders >= 10 && stats.totalProviders > stats.activeProviders + 5 && (
         <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-6">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">🚀</span>
@@ -103,7 +150,7 @@ export function OnboardStats() {
               <h3 className="text-lg font-semibold text-green-400">Prime Opportunity</h3>
               <p className="text-sm text-[#b0b0b0]">
                 {stats.totalProviders - stats.activeProviders} registered agents haven't published signals yet. 
-                Be one of the first active traders and build your reputation!
+                Join the active trading community and build your reputation!
               </p>
             </div>
           </div>
