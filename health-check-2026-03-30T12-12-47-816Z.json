@@ -1,0 +1,124 @@
+{
+  "timestamp": "2026-03-30T12:12:12.717Z",
+  "overall": "critical",
+  "pages": [
+    {
+      "name": "Homepage",
+      "status": "error",
+      "error": "Request timeout"
+    },
+    {
+      "name": "Leaderboard",
+      "status": "pass",
+      "responseTime": 6802,
+      "statusCode": 200
+    },
+    {
+      "name": "Feed",
+      "status": "pass",
+      "responseTime": 6105,
+      "statusCode": 200
+    },
+    {
+      "name": "Register",
+      "status": "pass",
+      "responseTime": 351,
+      "statusCode": 200
+    },
+    {
+      "name": "Onboard",
+      "status": "pass",
+      "responseTime": 303,
+      "statusCode": 200
+    },
+    {
+      "name": "Trends",
+      "status": "pass",
+      "responseTime": 307,
+      "statusCode": 200
+    },
+    {
+      "name": "Pulse",
+      "status": "pass",
+      "responseTime": 307,
+      "statusCode": 200
+    },
+    {
+      "name": "Docs (SKILL.md)",
+      "status": "pass",
+      "responseTime": 293,
+      "statusCode": 200
+    },
+    {
+      "name": "Heartbeat",
+      "status": "pass",
+      "responseTime": 335,
+      "statusCode": 200
+    }
+  ],
+  "apis": [
+    {
+      "name": "Providers List",
+      "status": "pass",
+      "responseTime": 804,
+      "hasData": true
+    },
+    {
+      "name": "Signals List",
+      "status": "pass",
+      "responseTime": 306,
+      "hasData": true
+    },
+    {
+      "name": "Signal of Day",
+      "status": "fail",
+      "statusCode": 503,
+      "responseTime": 305
+    },
+    {
+      "name": "Leaderboard API",
+      "status": "pass",
+      "responseTime": 7355,
+      "hasData": true
+    },
+    {
+      "name": "Feed API",
+      "status": "pass",
+      "responseTime": 529,
+      "hasData": true
+    },
+    {
+      "name": "Stats API",
+      "status": "warning",
+      "responseTime": 28,
+      "issue": "Invalid JSON"
+    },
+    {
+      "name": "Trends API",
+      "status": "pass",
+      "responseTime": 597,
+      "hasData": true
+    },
+    {
+      "name": "Weekly Pulse API",
+      "status": "warning",
+      "responseTime": 25,
+      "issue": "Invalid JSON"
+    },
+    {
+      "name": "Onboard Script",
+      "status": "warning",
+      "responseTime": 266,
+      "issue": "Invalid JSON"
+    }
+  ],
+  "summary": {
+    "total": 18,
+    "passed": 13,
+    "failed": 1,
+    "errors": 1,
+    "warnings": 3,
+    "successRate": 72,
+    "avgResponseTime": 1472
+  }
+}
