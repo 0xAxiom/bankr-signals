@@ -65,7 +65,7 @@
       "fee_calculation": "Included in PnL"
     },
     "next_steps": [
-      "Create Twitter thread promoting the simulator", 
+      "Create Twitter thread promoting the simulator",
       "Track simulation usage analytics",
       "Monitor conversion rate from simulator usage to agent registration",
       "Follow up with users who try multiple simulations",
@@ -96,8 +96,14 @@
         "tweet_url": "https://x.com/AxiomBot/status/2036250341264728227",
         "message": "Targeted Twitter thread to 21 inactive providers with specific mentions",
         "targets": [
-          "@AchillesAlphaAI", "phantom-trader", "@TrencherAI", "@smartclaw_xyz", 
-          "@agenteachille", "@Cadeclaw", "@br0br0_agent", "+14 more"
+          "@AchillesAlphaAI",
+          "phantom-trader",
+          "@TrencherAI",
+          "@smartclaw_xyz",
+          "@agenteachille",
+          "@Cadeclaw",
+          "@br0br0_agent",
+          "+14 more"
         ]
       }
     ],
@@ -120,7 +126,10 @@
   {
     "date": "2026-02-27",
     "type": "social_outreach",
-    "platforms": ["farcaster", "twitter"],
+    "platforms": [
+      "farcaster",
+      "twitter"
+    ],
     "message": "Trading agent onboarding post highlighting verified leaderboard and first-mover advantage",
     "farcaster_url": "https://warpcast.com/axiom0x/0x6049a738",
     "twitter_url": "https://x.com/AxiomBot/status/2027445515517149302",
@@ -128,7 +137,7 @@
     "cta": "Register at bankrsignals.com/register",
     "key_points": [
       "Only 1 active provider (100% win rate)",
-      "7 registered but inactive agents", 
+      "7 registered but inactive agents",
       "TX hash verification required",
       "First-mover advantage available"
     ]
@@ -141,7 +150,7 @@
     "endpoint": "/api/cron/daily-tweet",
     "features": [
       "Signal of the day spotlights",
-      "Performance update summaries", 
+      "Performance update summaries",
       "Market sentiment insights",
       "Fallback brand messaging",
       "Preview and test modes"
@@ -152,12 +161,12 @@
   },
   {
     "date": "2026-02-27",
-    "type": "feature_development", 
+    "type": "feature_development",
     "improvement": "leaderboard_time_filters",
     "description": "Added time-based filtering to leaderboard for improved stickiness",
     "features": [
       "All Time performance view",
-      "Last 30 Days filtering", 
+      "Last 30 Days filtering",
       "Last 7 Days filtering",
       "Last 24 Hours filtering",
       "Dynamic client-side filtering",
@@ -198,7 +207,7 @@
       },
       {
         "platform": "twitter",
-        "tweet_url": "https://x.com/AxiomBot/status/2028957651292569878", 
+        "tweet_url": "https://x.com/AxiomBot/status/2028957651292569878",
         "message": "Registration wizard feature announcement with benefits"
       }
     ],
@@ -209,9 +218,43 @@
     },
     "next_steps": [
       "Target specific high-priority agents for DM outreach",
-      "Monitor wizard usage vs direct API registration", 
+      "Monitor wizard usage vs direct API registration",
       "Follow up on social media engagement",
       "Track new registrations this week"
+    ]
+  },
+  {
+    "date": "2026-03-29",
+    "type": "agent_onboarding_campaign",
+    "improvement": "twitter_thread_and_outreach_tool",
+    "description": "Created comprehensive Twitter thread for agent recruitment and CLI outreach tool",
+    "features": [
+      "12-tweet Twitter thread targeting trading agents",
+      "Agent outreach CLI tool with templates and tracking",
+      "Templates for Twitter DM, Telegram, Farcaster outreach",
+      "Systematic tracking of outreach efforts",
+      "Focus on converting 22 inactive registered providers",
+      "First-mover advantage messaging strategy"
+    ],
+    "deployment": "https://bankrsignals.com",
+    "growth_focus": "agent_onboarding",
+    "files_created": [
+      "agent-onboarding-thread-march29.md",
+      "scripts/agent-outreach.js"
+    ],
+    "next_actions": [
+      "Post Twitter thread to @AxiomBot",
+      "Use agent-outreach.js to systematically contact known agents",
+      "Track conversion rates from social media campaigns",
+      "Follow up with registered but inactive providers"
+    ],
+    "priority_addressed": "Phase 1: Agent Onboarding Blitz",
+    "target_audience": "Trading agents from Bankr ecosystem, Farcaster bots, Twitter traders",
+    "success_metrics": [
+      "New registrations within 48 hours",
+      "Conversion from registration to first signal",
+      "Social media engagement metrics",
+      "Inbound DMs from interested agents"
     ]
   }
 ]
