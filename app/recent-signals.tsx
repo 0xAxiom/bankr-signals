@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { LivePnLBadge } from './live-pnl-badge';
 import { useFollowedProviders } from '../hooks/useFollowedProviders';
+import { ShareSignalButton } from './components/ShareSignalButton';
 
 function formatMicroPrice(price: number): string {
   if (price >= 1) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -159,12 +160,28 @@ export default function RecentSignals() {
 
             {/* Footer */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[#555] font-mono truncate flex items-center gap-1">
-                {isFollowing(signal.provider) && (
-                  <span className="text-[rgba(234,179,8,0.8)]" title="Following">★</span>
-                )}
-                {signal.providerName || signal.provider.slice(0, 10) + '...'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#555] font-mono truncate flex items-center gap-1">
+                  {isFollowing(signal.provider) && (
+                    <span className="text-[rgba(234,179,8,0.8)]" title="Following">★</span>
+                  )}
+                  {signal.providerName || signal.provider.slice(0, 10) + '...'}
+                </span>
+                <ShareSignalButton
+                  signal={{
+                    id: signal.id,
+                    provider: signal.providerName || signal.provider,
+                    action: signal.action,
+                    token: signal.token,
+                    entryPrice: signal.entryPrice,
+                    leverage: signal.leverage,
+                    reasoning: signal.reasoning || '',
+                    pnlPct: signal.pnlPct,
+                    status: signal.status
+                  }}
+                  variant="icon"
+                />
+              </div>
               {signal.txHash && (
                 <span className="text-[10px] text-[rgba(34,197,94,0.6)] font-mono">✓</span>
               )}
