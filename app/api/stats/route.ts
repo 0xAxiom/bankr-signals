@@ -1,50 +1,34 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { dbGetProviders, dbGetSignals } from '@/lib/db';
 
 export async function GET() {
   try {
-    // Get provider stats
-    const { data: providers, error: providersError } = await supabase
-      .from('providers')
-      .select('*');
+    // Get provider stats using helper functions that handle fallbacks
+    const providers = await dbGetProviders();
+    const signals = await dbGetSignals(1000); // Get more signals for accurate stats
 
-    if (providersError) {
-      console.error('Error fetching providers:', providersError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
-
-    // Get signals stats
-    const { data: signals, error: signalsError } = await supabase
-      .from('signals')
-      .select('*');
-
-    if (signalsError) {
-      console.error('Error fetching signals:', signalsError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
-
-    const activeProviders = providers?.filter(p => {
-      const providerSignals = signals?.filter(s => s.provider_address === p.address) || [];
+    const activeProviders = providers.filter(p => {
+      const providerSignals = signals.filter(s => s.provider === p.address) || [];
       return providerSignals.length > 0;
-    }) || [];
+    });
 
-    const totalSignals = signals?.length || 0;
-    const openSignals = signals?.filter(s => s.status === 'open').length || 0;
-    const closedSignals = signals?.filter(s => s.status === 'closed').length || 0;
+    const totalSignals = signals.length;
+    const openSignals = signals.filter(s => s.status === 'open').length;
+    const closedSignals = signals.filter(s => s.status === 'closed').length;
 
     // Calculate aggregate stats
-    const totalProviders = providers?.length || 0;
-    const totalSubscribers = providers?.reduce((sum, p) => sum + (p.subscriber_count || 0), 0) || 0;
+    const totalProviders = providers.length;
+    const totalSubscribers = providers.reduce((sum, p) => sum + (p.subscriber_count || 0), 0);
 
     // Calculate win rate for providers with closed trades
     const providersWithClosedTrades = activeProviders.filter(p => {
-      const providerSignals = signals?.filter(s => s.provider_address === p.address && s.status === 'closed') || [];
+      const providerSignals = signals.filter(s => s.provider === p.address && s.status === 'closed');
       return providerSignals.length > 0;
     });
 
     const avgWinRate = providersWithClosedTrades.length > 0
       ? providersWithClosedTrades.reduce((sum, p) => {
-          const providerSignals = signals?.filter(s => s.provider_address === p.address && s.status === 'closed') || [];
+          const providerSignals = signals.filter(s => s.provider === p.address && s.status === 'closed');
           const winningTrades = providerSignals.filter(s => (s.pnl_pct || 0) > 0);
           const winRate = providerSignals.length > 0 ? (winningTrades.length / providerSignals.length) * 100 : 0;
           return sum + winRate;
@@ -52,7 +36,7 @@ export async function GET() {
       : 0;
 
     // Calculate total volume
-    const totalVolume = signals?.reduce((sum, s) => sum + (s.collateral_usd || 0), 0) || 0;
+    const totalVolume = signals.reduce((sum, s) => sum + (s.collateral_usd || 0), 0);
 
     const stats = {
       providers: {

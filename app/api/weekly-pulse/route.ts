@@ -1,37 +1,18 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { dbGetSignals, dbGetProviders } from '@/lib/db';
 
 export async function GET() {
   try {
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
-    // Get signals from the last week
-    const { data: weeklySignals, error: signalsError } = await supabase
-      .from('signals')
-      .select(`
-        *,
-        providers (name, twitter, avatar)
-      `)
-      .gte('created_at', oneWeekAgo)
-      .order('created_at', { ascending: false });
+    // Get all signals and filter for the last week
+    const allSignals = await dbGetSignals(1000);
+    const signals = allSignals.filter(s => 
+      new Date(s.timestamp) >= oneWeekAgo
+    );
 
-    if (signalsError) {
-      console.error('Error fetching weekly signals:', signalsError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
-
-    // Get all providers for comparison
-    const { data: allProviders, error: providersError } = await supabase
-      .from('providers')
-      .select('*');
-
-    if (providersError) {
-      console.error('Error fetching providers:', providersError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
-
-    const signals = weeklySignals || [];
-    const providers = allProviders || [];
+    // Get all providers
+    const providers = await dbGetProviders();
 
     // Calculate weekly stats
     const totalSignalsThisWeek = signals.length;
@@ -40,7 +21,7 @@ export async function GET() {
 
     // Active providers this week
     const activeProvidersThisWeek = providers.filter(p => {
-      return signals.some(s => s.provider_address === p.address);
+      return signals.some(s => s.provider === p.address);
     });
 
     // Best performing signal this week
@@ -58,13 +39,14 @@ export async function GET() {
 
     // Most active provider this week
     const providerActivity = activeProvidersThisWeek.map(p => {
-      const providerSignals = signals.filter(s => s.provider_address === p.address);
+      const providerSignals = signals.filter(s => s.provider === p.address);
+      const closedProviderSignals = providerSignals.filter(s => s.status === 'closed');
       return {
         provider: p,
         signalCount: providerSignals.length,
-        winRate: providerSignals.length > 0 
+        winRate: closedProviderSignals.length > 0 
           ? (providerSignals.filter(s => s.status === 'closed' && (s.pnl_pct || 0) > 0).length / 
-             providerSignals.filter(s => s.status === 'closed').length) * 100
+             closedProviderSignals.length) * 100
           : 0
       };
     }).filter(p => p.signalCount > 0);
@@ -77,7 +59,7 @@ export async function GET() {
 
     // Top assets traded this week
     const assetCounts = signals.reduce((acc, signal) => {
-      const asset = signal.token || signal.asset || 'Unknown';
+      const asset = signal.token || 'Unknown';
       acc[asset] = (acc[asset] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -89,7 +71,7 @@ export async function GET() {
 
     const pulse = {
       week: {
-        start: oneWeekAgo,
+        start: oneWeekAgo.toISOString(),
         end: new Date().toISOString()
       },
       summary: {
@@ -102,8 +84,8 @@ export async function GET() {
       highlights: {
         bestSignal: bestSignal ? {
           id: bestSignal.id,
-          provider: bestSignal.providers?.name,
-          asset: bestSignal.token || bestSignal.asset,
+          provider: providers.find(p => p.address === bestSignal.provider)?.name || 'Unknown',
+          asset: bestSignal.token,
           action: bestSignal.action,
           pnl: bestSignal.pnl_pct,
           reasoning: bestSignal.reasoning
