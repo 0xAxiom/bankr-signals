@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { dbGetSignals, dbGetProviders } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -57,66 +57,63 @@ export async function GET() {
 }
 
 async function findBestSignalInWindow(days: number) {
-  const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  
+  // Get all signals using helper function with fallback
+  const allSignals = await dbGetSignals(1000);
+  const allProviders = await dbGetProviders();
+  
+  // Filter signals by date window
+  const recentSignals = allSignals.filter(s => 
+    new Date(s.timestamp || s.created_at) >= cutoffDate
+  );
   
   // First priority: Closed signals with positive PnL
-  const { data: closedSignals, error: closedError } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      providers (name, twitter, avatar)
-    `)
-    .eq('status', 'closed')
-    .gt('pnl_pct', 5) // At least 5% profit to be featured
-    .gte('created_at', cutoffDate)
-    .order('pnl_pct', { ascending: false })
-    .limit(5);
+  const closedSignals = recentSignals
+    .filter(s => s.status === 'closed' && (s.pnl_pct || 0) > 5) // At least 5% profit to be featured
+    .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0));
 
-  if (!closedError && closedSignals && closedSignals.length > 0) {
-    return closedSignals[0];
+  if (closedSignals.length > 0) {
+    const signal = closedSignals[0];
+    const provider = allProviders.find(p => p.address === signal.provider);
+    return { ...signal, providers: provider };
   }
 
   // Second priority: Recent high-confidence open signals with good unrealized PnL
-  const { data: openSignals, error: openError } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      providers (name, twitter, avatar)
-    `)
-    .eq('status', 'open')
-    .gte('confidence', 0.8) // High confidence only
-    .gte('created_at', cutoffDate)
-    .order('pnl_pct', { ascending: false })
-    .limit(3);
+  const openSignals = recentSignals
+    .filter(s => 
+      s.status === 'open' && 
+      (s.confidence || 0) >= 0.8 && 
+      (s.pnl_pct || 0) > 0
+    )
+    .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0));
 
-  if (!openError && openSignals && openSignals.length > 0) {
-    // Only return if unrealized PnL is positive
-    const bestOpen = openSignals[0];
-    if (bestOpen.pnl_pct && bestOpen.pnl_pct > 0) {
-      return bestOpen;
-    }
+  if (openSignals.length > 0) {
+    const signal = openSignals[0];
+    const provider = allProviders.find(p => p.address === signal.provider);
+    return { ...signal, providers: provider };
   }
 
   return null;
 }
 
 async function getAllTimeBest() {
-  const { data: signals, error } = await supabase
-    .from('signals')
-    .select(`
-      *,
-      providers (name, twitter, avatar)
-    `)
-    .eq('status', 'closed')
-    .gt('pnl_pct', 10) // Only show truly impressive results
-    .order('pnl_pct', { ascending: false })
-    .limit(1);
+  // Get all signals using helper function with fallback
+  const allSignals = await dbGetSignals(1000);
+  const allProviders = await dbGetProviders();
+  
+  // Filter for closed signals with good PnL
+  const bestSignals = allSignals
+    .filter(s => s.status === 'closed' && (s.pnl_pct || 0) > 10) // Only show truly impressive results
+    .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0));
 
-  if (error || !signals || signals.length === 0) {
+  if (bestSignals.length === 0) {
     return null;
   }
 
-  return signals[0];
+  const signal = bestSignals[0];
+  const provider = allProviders.find(p => p.address === signal.provider);
+  return { ...signal, providers: provider };
 }
 
 function generateTweetText(signal: any, timeframe: string): string {
