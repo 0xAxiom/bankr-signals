@@ -123,7 +123,7 @@ export default function FirstSignalWizardPage() {
                   value={formData.token}
                   onChange={(e) => handleInputChange('token', e.target.value.toUpperCase())}
                   placeholder="e.g., ETH, BTC, SOL"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
@@ -135,7 +135,7 @@ export default function FirstSignalWizardPage() {
                   onChange={(e) => handleInputChange('entryPrice', e.target.value)}
                   placeholder="e.g., 3250.00"
                   step="0.01"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
@@ -144,7 +144,7 @@ export default function FirstSignalWizardPage() {
                 <select
                   value={formData.leverage}
                   onChange={(e) => handleInputChange('leverage', parseInt(e.target.value))}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value={1}>1x (Spot)</option>
                   <option value={2}>2x</option>
@@ -175,7 +175,7 @@ export default function FirstSignalWizardPage() {
                   onChange={(e) => handleInputChange('stopLoss', e.target.value)}
                   placeholder="e.g., 5 (for 5% loss)"
                   step="0.1"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-sm text-gray-500 mt-1">Optional but recommended</p>
               </div>
@@ -188,7 +188,7 @@ export default function FirstSignalWizardPage() {
                   onChange={(e) => handleInputChange('takeProfit', e.target.value)}
                   placeholder="e.g., 15 (for 15% profit)"
                   step="0.1"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-sm text-gray-500 mt-1">Optional but recommended</p>
               </div>
@@ -201,7 +201,7 @@ export default function FirstSignalWizardPage() {
                   onChange={(e) => handleInputChange('collateral', e.target.value)}
                   placeholder="e.g., 100"
                   step="0.01"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-sm text-gray-500 mt-1">Optional - helps followers gauge position size</p>
               </div>
@@ -241,14 +241,14 @@ export default function FirstSignalWizardPage() {
                 onChange={(e) => handleInputChange('reasoning', e.target.value)}
                 placeholder="e.g., Strong technical breakout above key resistance. RSI showing bullish momentum. News catalyst from partnership announcement."
                 rows={6}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border rounded-lg bg-[#111] border-[#2a2a2a] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-sm text-gray-500 mt-1">Good reasoning builds trust and helps others learn from your analysis</p>
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">💡 Tips for great reasoning:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-400 mb-2">💡 Tips for great reasoning:</h4>
+              <ul className="text-sm text-blue-300 space-y-1">
                 <li>• Mention technical indicators (RSI, MA, support/resistance)</li>
                 <li>• Include fundamental factors (news, events, market sentiment)</li>
                 <li>• Explain your time horizon</li>
@@ -283,12 +283,12 @@ export default function FirstSignalWizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">First Signal Wizard</h1>
-          <p className="text-lg text-gray-600">Publish your first signal in 4 simple steps</p>
+          <h1 className="text-3xl font-bold text-gray-100 mb-2">First Signal Wizard</h1>
+          <p className="text-lg text-gray-400">Publish your first signal in 4 simple steps</p>
         </div>
 
         {/* Progress Bar */}
@@ -308,7 +308,7 @@ export default function FirstSignalWizardPage() {
                         ? 'bg-green-500 border-green-500 text-white'
                         : currentStep === index + 1
                         ? 'bg-blue-500 border-blue-500 text-white'
-                        : 'bg-gray-100 border-gray-300 text-gray-500'
+                        : 'bg-gray-800 border-gray-600 text-gray-400'
                     }`}
                   >
                     {currentStep > index + 1 ? (
@@ -318,14 +318,14 @@ export default function FirstSignalWizardPage() {
                     )}
                   </div>
                   <div className="ml-3 hidden sm:block">
-                    <div className="text-sm font-medium text-gray-900">{step.title}</div>
+                    <div className="text-sm font-medium text-gray-100">{step.title}</div>
                     <div className="text-xs text-gray-500">{step.description}</div>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
                   <div
                     className={`flex-1 h-1 mx-4 ${
-                      currentStep > index + 1 ? 'bg-green-500' : 'bg-gray-200'
+                      currentStep > index + 1 ? 'bg-green-500' : 'bg-gray-700'
                     }`}
                   />
                 )}
@@ -335,7 +335,7 @@ export default function FirstSignalWizardPage() {
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-sm border p-8 mb-8">
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 mb-8">
           {renderStepContent()}
         </div>
 
@@ -344,7 +344,7 @@ export default function FirstSignalWizardPage() {
           <button
             onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -371,9 +371,9 @@ export default function FirstSignalWizardPage() {
 
         {/* Generated API Call */}
         {currentStep === 5 && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm border p-8">
+          <div className="mt-8 bg-gray-800 rounded-lg border border-gray-700 p-8">
             <h3 className="text-xl font-semibold mb-4">🚀 Your Signal is Ready!</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-400 mb-4">
               Copy this curl command and run it from your trading agent to publish your signal:
             </p>
             
@@ -382,9 +382,9 @@ export default function FirstSignalWizardPage() {
             </div>
             
             <div className="mt-6 space-y-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Don't forget:</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-400 mb-2">⚠️ Don't forget:</h4>
+                <ul className="text-sm text-yellow-300 space-y-1">
                   <li>• Replace <code>YOUR_API_KEY</code> with your actual API key</li>
                   <li>• Get your API key from your <a href="/providers" className="underline">provider dashboard</a></li>
                   <li>• Close the signal when your position ends using the close API</li>
@@ -400,7 +400,7 @@ export default function FirstSignalWizardPage() {
                 </a>
                 <a
                   href="/docs"
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  className="px-6 py-3 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700"
                 >
                   View Full API Docs
                 </a>
