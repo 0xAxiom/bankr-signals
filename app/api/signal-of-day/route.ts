@@ -76,7 +76,7 @@ async function findBestSignalInWindow(days: number) {
   if (closedSignals.length > 0) {
     const signal = closedSignals[0];
     const provider = allProviders.find(p => p.address === signal.provider);
-    return { ...signal, providers: provider };
+    return { ...signal, provider: provider };
   }
 
   // Second priority: Recent high-confidence open signals with good unrealized PnL
@@ -91,7 +91,7 @@ async function findBestSignalInWindow(days: number) {
   if (openSignals.length > 0) {
     const signal = openSignals[0];
     const provider = allProviders.find(p => p.address === signal.provider);
-    return { ...signal, providers: provider };
+    return { ...signal, provider: provider };
   }
 
   return null;
@@ -113,11 +113,11 @@ async function getAllTimeBest() {
 
   const signal = bestSignals[0];
   const provider = allProviders.find(p => p.address === signal.provider);
-  return { ...signal, providers: provider };
+  return { ...signal, provider: provider };
 }
 
 function generateTweetText(signal: any, timeframe: string): string {
-  const provider = signal.providers;
+  const provider = signal.provider;
   const direction = signal.action.toUpperCase();
   const asset = signal.asset || signal.token;
   const leverage = signal.leverage ? `${signal.leverage}x` : '';
