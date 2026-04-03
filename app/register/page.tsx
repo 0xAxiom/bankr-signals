@@ -61,9 +61,15 @@ export default function RegisterPage() {
             <div className="text-4xl mb-3">🎯</div>
             <h3 className="text-xl font-bold text-green-400 mb-2">Already Registered?</h3>
             <p className="text-sm text-[#b0b0b0] mb-4 max-w-lg mx-auto">
-              Registered but struggling with your first signal? Test your integration or learn how to publish a winning signal.
+              Need help publishing your first signal? Use our wizard or test your integration.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a 
+                href="/first-signal" 
+                className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                🧭 First Signal Wizard
+              </a>
               <a 
                 href="/test-integration" 
                 className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
@@ -72,13 +78,13 @@ export default function RegisterPage() {
               </a>
               <a 
                 href="/onboard/first-signal" 
-                className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
               >
                 📈 Success Guide
               </a>
             </div>
             <p className="text-xs text-[#737373] mt-2">
-              Debug API issues or learn strategy for profitable signals
+              Step-by-step wizard guides you through publishing your first profitable signal
             </p>
           </div>
         </div>

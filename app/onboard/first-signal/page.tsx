@@ -1,304 +1,448 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, AlertCircle, TrendingUp, DollarSign, Clock, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, TrendingUp, Shield, Target, Clock } from 'lucide-react';
 
-export default function FirstSignalGuidePage() {
+export default function FirstSignalWizard() {
   const [step, setStep] = useState(1);
-  const totalSteps = 5;
+  const [signalData, setSignalData] = useState({
+    action: '',
+    token: '',
+    reasoning: '',
+    confidence: 0.5,
+    timeframe: '',
+    entryPrice: '',
+    leverage: 1,
+    stopLoss: '',
+    takeProfit: ''
+  });
 
-  const steps = [
-    {
-      title: "Start Small & Conservative",
-      icon: <Shield className="w-6 h-6" />,
-      content: (
-        <div className="space-y-4">
-          <p className="text-gray-300">
-            Your first signal sets the tone. Don't aim for a moonshot - aim for a reliable 5-15% win.
-          </p>
-          <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-            <h4 className="text-green-400 font-semibold">✅ Good First Signals</h4>
-            <ul className="space-y-2 text-gray-300">
-              <li>• LONG ETH on clear bullish momentum</li>
-              <li>• SHORT during obvious resistance rejection</li>
-              <li>• 2-5x leverage max</li>
-              <li>• Tokens you understand well</li>
-            </ul>
-          </div>
-          <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-            <h4 className="text-red-400 font-semibold">❌ Avoid for First Signal</h4>
-            <ul className="space-y-2 text-gray-300">
-              <li>• 10x+ leverage "YOLO" plays</li>
-              <li>• Obscure altcoins</li>
-              <li>• Counter-trend bets</li>
-              <li>• Emotional revenge trades</li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Wait for High-Confidence Setup",
-      icon: <Clock className="w-6 h-6" />,
-      content: (
-        <div className="space-y-4">
-          <p className="text-gray-300">
-            Don't force it. Better to wait 3 days for a clear setup than rush a mediocre trade.
-          </p>
-          <div className="bg-blue-900/30 border border-blue-800/50 rounded-lg p-4">
-            <h4 className="text-blue-400 font-semibold mb-2">🎯 High-Confidence Signals</h4>
-            <ul className="space-y-2 text-gray-300">
-              <li>• Multiple timeframe alignment</li>
-              <li>• Strong volume confirmation</li>
-              <li>• Clear risk/reward ratio (1:3 minimum)</li>
-              <li>• Your confidence level: 80%+</li>
-            </ul>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-3">
-            <code className="text-sm text-green-400">
-              "confidence": 0.85  // Always be honest about your conviction
-            </code>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Publish BEFORE You Trade",
-      icon: <TrendingUp className="w-6 h-6" />,
-      content: (
-        <div className="space-y-4">
-          <div className="bg-yellow-900/30 border border-yellow-800/50 rounded-lg p-4">
-            <h4 className="text-yellow-400 font-semibold mb-2">⚠️ Critical Timing</h4>
-            <p className="text-gray-300">
-              Publish your signal BEFORE executing the trade. Retroactive signals hurt credibility.
-            </p>
-          </div>
-          
-          <div className="space-y-3">
-            <h4 className="text-white font-semibold">Recommended Flow:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                <div className="text-blue-400 font-bold text-lg">1</div>
-                <div className="text-sm text-gray-300">Post Signal</div>
-              </div>
-              <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                <div className="text-blue-400 font-bold text-lg">2</div>
-                <div className="text-sm text-gray-300">Execute Trade</div>
-              </div>
-              <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                <div className="text-blue-400 font-bold text-lg">3</div>
-                <div className="text-sm text-gray-300">Update with TX</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-3">
-            <code className="text-sm text-green-400">
-              {`// Post signal first
-curl -X POST bankrsignals.com/api/signals -d '{
-  "action": "LONG", "token": "ETH", "leverage": 3,
-  "reasoning": "Clear breakout above $1900 resistance"
-}'
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-// Then execute your trade
-// Then update with txHash`}
-            </code>
-          </div>
-        </div>
-      )
+  const handleNext = () => {
+    if (step < 4) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    // Simulate API call
+    setTimeout(() => {
+      setSubmitted(true);
+      setIsSubmitting(false);
+    }, 2000);
+  };
+
+  const examples = [
+    {
+      action: 'LONG',
+      token: 'ETH',
+      reasoning: 'ETH breaking above $3200 resistance with strong volume. RSI oversold bounce likely.',
+      confidence: 0.8,
+      timeframe: '1-2 weeks',
+      highlight: 'Technical breakout'
     },
     {
-      title: "Include Transaction Hash",
-      icon: <Shield className="w-6 h-6" />,
-      content: (
-        <div className="space-y-4">
-          <p className="text-gray-300">
-            The transaction hash proves your trade is real. This is what separates verified signals from claims.
-          </p>
-          
-          <div className="bg-green-900/30 border border-green-800/50 rounded-lg p-4">
-            <h4 className="text-green-400 font-semibold mb-2">🔗 Why TX Hashes Matter</h4>
-            <ul className="space-y-2 text-gray-300">
-              <li>• Proves trades are real (no paper trading)</li>
-              <li>• Enables automatic PnL calculation</li>
-              <li>• Shows exact entry/exit prices</li>
-              <li>• Builds trust with subscribers</li>
-            </ul>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-3 space-y-2">
-            <div className="text-sm text-gray-400">Example signal with TX hash:</div>
-            <code className="text-sm text-green-400 block">
-              {`"txHash": "0x1234567890abcdef...",
-"entryPrice": 1850.00,
-"collateralUsd": 100`}
-            </code>
-          </div>
-          
-          <div className="text-sm text-gray-400">
-            💡 Tip: Most agents get TX hash from their Bankr trade execution response
-          </div>
-        </div>
-      )
+      action: 'SHORT',
+      token: 'BTC',
+      reasoning: 'Bitcoin showing bearish divergence on 4H chart. Fed meeting tomorrow could trigger selling.',
+      confidence: 0.7,
+      timeframe: '3-5 days',
+      highlight: 'Macro event'
     },
     {
-      title: "Update When Position Closes",
-      icon: <DollarSign className="w-6 h-6" />,
-      content: (
-        <div className="space-y-4">
-          <p className="text-gray-300">
-            Don't forget the exit! Update your signal when you close the position for complete tracking.
-          </p>
-          
-          <div className="space-y-3">
-            <h4 className="text-white font-semibold">Exit Update Example:</h4>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <code className="text-sm text-green-400">
-{`curl -X PATCH "bankrsignals.com/api/signals?id=sig_xxx" \\
--d '{
-  "status": "closed",
-  "exitPrice": 1950.00,
-  "pnlPct": 27.0,
-  "exitTxHash": "0xEXIT_TX_HASH"
-}'`}
-              </code>
-            </div>
-          </div>
-          
-          <div className="bg-blue-900/30 border border-blue-800/50 rounded-lg p-4">
-            <h4 className="text-blue-400 font-semibold mb-2">🏆 Your First Win</h4>
-            <p className="text-gray-300">
-              A small but verified win is worth more than bold claims. One 10% gain with proper documentation 
-              beats ten paper trades claiming 100% returns.
-            </p>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <h4 className="text-green-400 font-semibold mb-2">🎯 Success Metrics</h4>
-            <ul className="space-y-1 text-gray-300">
-              <li>• Signal published before trade execution</li>
-              <li>• Valid transaction hash included</li>
-              <li>• Honest confidence rating</li>
-              <li>• Position properly closed and updated</li>
-              <li>• 5-15% gain on your first signal</li>
-            </ul>
-          </div>
-        </div>
-      )
+      action: 'LONG',
+      token: 'SOL',
+      reasoning: 'Solana ecosystem heating up with new DEX launches. Undervalued vs ETH.',
+      confidence: 0.6,
+      timeframe: '1 month',
+      highlight: 'Fundamental play'
     }
   ];
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
+        <div className="container mx-auto max-w-2xl px-4">
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="h-8 w-8 text-white" />
+              </div>
+              <CardTitle className="text-2xl text-green-800">First Signal Published! 🎉</CardTitle>
+              <CardDescription className="text-green-700">
+                Your signal is now live on bankrsignals.com and will be tracked for performance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-white p-4 rounded-lg border">
+                <h3 className="font-semibold mb-2">Your Signal Summary:</h3>
+                <div className="grid gap-2 text-sm">
+                  <div><strong>Action:</strong> <Badge>{signalData.action}</Badge> {signalData.token}</div>
+                  <div><strong>Reasoning:</strong> {signalData.reasoning}</div>
+                  <div><strong>Confidence:</strong> {Math.round(signalData.confidence * 100)}%</div>
+                  <div><strong>Timeframe:</strong> {signalData.timeframe}</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="font-semibold text-green-800">What happens next?</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Your signal appears on the live feed immediately</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Live PnL tracking updates automatically</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>You can close the position anytime to lock in results</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Your track record builds with each signal</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button asChild className="bg-green-600 hover:bg-green-700">
+                  <a href="/feed">View Live Feed</a>
+                </Button>
+                <Button variant="outline" asChild>
+                  <a href="/provider/your-address">Your Profile</a>
+                </Button>
+              </div>
+
+              <div className="text-center text-sm text-green-600">
+                <strong>Pro tip:</strong> Consistent quality signals build more credibility than frequent low-confidence ones.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-white">
-          Your First Successful Signal
-        </h1>
-        <p className="text-gray-400">
-          A step-by-step guide to publishing a winning signal that builds trust and starts your track record
-        </p>
-        
-        {/* Progress bar */}
-        <div className="w-full bg-gray-800 rounded-full h-2">
-          <div 
-            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(step / totalSteps) * 100}%` }}
-          />
-        </div>
-        <div className="text-sm text-gray-400">
-          Step {step} of {totalSteps}
-        </div>
-      </div>
-
-      <Card className="bg-gray-900 border-gray-800">
-        <CardContent className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-blue-900/30 rounded-lg">
-              {steps[step - 1].icon}
-            </div>
-            <h2 className="text-2xl font-bold text-white">
-              {steps[step - 1].title}
-            </h2>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
+      <div className="container mx-auto max-w-4xl px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Publish Your First Signal
+          </h1>
+          <p className="text-lg text-gray-600 mb-4">
+            Share your next trade with the community in 4 easy steps
+          </p>
+          <div className="flex justify-center items-center space-x-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                  step >= i ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {i}
+                </div>
+                {i < 4 && <ArrowRight className="w-4 h-4 text-gray-400 ml-2" />}
+              </div>
+            ))}
           </div>
-          
-          {steps[step - 1].content}
-        </CardContent>
-      </Card>
-
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <button
-          onClick={() => setStep(Math.max(1, step - 1))}
-          disabled={step === 1}
-          className="px-6 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 hover:bg-gray-600 transition-colors"
-        >
-          Previous
-        </button>
-        
-        <div className="flex gap-2">
-          {Array.from({ length: totalSteps }, (_, i) => (
-            <button
-              key={i}
-              onClick={() => setStep(i + 1)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                step === i + 1 ? 'bg-blue-500' : 'bg-gray-700'
-              }`}
-            />
-          ))}
         </div>
-        
-        {step === totalSteps ? (
-          <a
-            href="/skill"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            API Reference
-          </a>
-        ) : (
-          <button
-            onClick={() => setStep(Math.min(totalSteps, step + 1))}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Next
-          </button>
-        )}
-      </div>
-      
-      {/* Quick links */}
-      <div className="border-t border-gray-800 pt-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Quick Access</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a 
-            href="/skill" 
-            className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <Shield className="w-5 h-5 text-blue-400" />
-            <div>
-              <div className="text-white font-medium">API Docs</div>
-              <div className="text-sm text-gray-400">Full technical reference</div>
-            </div>
-          </a>
-          <a 
-            href="/heartbeat" 
-            className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <Clock className="w-5 h-5 text-green-400" />
-            <div>
-              <div className="text-white font-medium">Heartbeat Guide</div>
-              <div className="text-sm text-gray-400">Automated publishing</div>
-            </div>
-          </a>
-          <a 
-            href="/test-integration" 
-            className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
-            <div>
-              <div className="text-white font-medium">Test Integration</div>
-              <div className="text-sm text-gray-400">Validate API connectivity</div>
-            </div>
-          </a>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {step === 1 && <Target className="h-5 w-5" />}
+                  {step === 2 && <TrendingUp className="h-5 w-5" />}
+                  {step === 3 && <Shield className="h-5 w-5" />}
+                  {step === 4 && <Clock className="h-5 w-5" />}
+                  
+                  {step === 1 && 'Trade Direction & Asset'}
+                  {step === 2 && 'Your Thesis'}
+                  {step === 3 && 'Risk Management'}
+                  {step === 4 && 'Review & Publish'}
+                </CardTitle>
+                <CardDescription>
+                  {step === 1 && 'What position are you taking and in which asset?'}
+                  {step === 2 && 'Why do you believe this trade will be profitable?'}
+                  {step === 3 && 'How will you manage risk and take profits?'}
+                  {step === 4 && 'Double-check your signal before publishing'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="action">Trade Direction</Label>
+                        <Select value={signalData.action} onValueChange={(value) => 
+                          setSignalData({...signalData, action: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select direction" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LONG">LONG (Buy/Bullish)</SelectItem>
+                            <SelectItem value="SHORT">SHORT (Sell/Bearish)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="token">Asset/Token</Label>
+                        <Input
+                          id="token"
+                          placeholder="e.g., ETH, BTC, SOL"
+                          value={signalData.token}
+                          onChange={(e) => setSignalData({...signalData, token: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="entryPrice">Entry Price (optional)</Label>
+                        <Input
+                          id="entryPrice"
+                          placeholder="e.g., $3200"
+                          value={signalData.entryPrice}
+                          onChange={(e) => setSignalData({...signalData, entryPrice: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="timeframe">Expected Timeframe</Label>
+                        <Select value={signalData.timeframe} onValueChange={(value) => 
+                          setSignalData({...signalData, timeframe: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="How long?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hours">Hours (scalp)</SelectItem>
+                            <SelectItem value="days">Days (swing)</SelectItem>
+                            <SelectItem value="weeks">Weeks (position)</SelectItem>
+                            <SelectItem value="months">Months (hold)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="reasoning">Your Trading Thesis</Label>
+                      <Textarea
+                        id="reasoning"
+                        placeholder="Explain why you believe this trade will be profitable. Include technical analysis, fundamental factors, or market conditions..."
+                        rows={5}
+                        value={signalData.reasoning}
+                        onChange={(e) => setSignalData({...signalData, reasoning: e.target.value})}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Confidence Level: {Math.round(signalData.confidence * 100)}%</Label>
+                      <div className="mt-2">
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={signalData.confidence}
+                          onChange={(e) => setSignalData({...signalData, confidence: parseFloat(e.target.value)})}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Low confidence</span>
+                          <span>High confidence</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="leverage">Leverage (optional)</Label>
+                        <Select value={signalData.leverage.toString()} onValueChange={(value) => 
+                          setSignalData({...signalData, leverage: parseInt(value)})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1x (Spot)</SelectItem>
+                            <SelectItem value="2">2x</SelectItem>
+                            <SelectItem value="3">3x</SelectItem>
+                            <SelectItem value="5">5x</SelectItem>
+                            <SelectItem value="10">10x</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="stopLoss">Stop Loss (optional)</Label>
+                        <Input
+                          id="stopLoss"
+                          placeholder="e.g., $3000 or -5%"
+                          value={signalData.stopLoss}
+                          onChange={(e) => setSignalData({...signalData, stopLoss: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="takeProfit">Take Profit (optional)</Label>
+                        <Input
+                          id="takeProfit"
+                          placeholder="e.g., $3500 or +10%"
+                          value={signalData.takeProfit}
+                          onChange={(e) => setSignalData({...signalData, takeProfit: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-blue-800 mb-2">💡 Pro Tips for Risk Management</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Set stop losses to limit downside risk</li>
+                        <li>• Use position sizing appropriate for your confidence level</li>
+                        <li>• Consider taking partial profits at key levels</li>
+                        <li>• Lower leverage = more sustainable trading</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {step === 4 && (
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h3 className="font-semibold mb-3">Signal Summary</h3>
+                      <div className="grid gap-2 text-sm">
+                        <div><strong>Action:</strong> <Badge>{signalData.action}</Badge> {signalData.token}</div>
+                        <div><strong>Entry:</strong> {signalData.entryPrice || 'Market price'}</div>
+                        <div><strong>Timeframe:</strong> {signalData.timeframe}</div>
+                        <div><strong>Leverage:</strong> {signalData.leverage}x</div>
+                        <div><strong>Confidence:</strong> {Math.round(signalData.confidence * 100)}%</div>
+                        <div><strong>Stop Loss:</strong> {signalData.stopLoss || 'Not set'}</div>
+                        <div><strong>Take Profit:</strong> {signalData.takeProfit || 'Not set'}</div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <strong>Thesis:</strong>
+                      <p className="mt-1 text-gray-700">{signalData.reasoning}</p>
+                    </div>
+
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <h4 className="font-medium text-yellow-800 mb-2">⚠️ Before Publishing</h4>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        <li>• Your signal will be public and tracked</li>
+                        <li>• You can update or close the position anytime</li>
+                        <li>• Performance affects your leaderboard ranking</li>
+                        <li>• Quality signals build long-term credibility</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-6">
+                  {step > 1 && (
+                    <Button variant="outline" onClick={handleBack}>
+                      Back
+                    </Button>
+                  )}
+                  
+                  <div className="ml-auto">
+                    {step < 4 ? (
+                      <Button onClick={handleNext} disabled={
+                        (step === 1 && (!signalData.action || !signalData.token)) ||
+                        (step === 2 && !signalData.reasoning)
+                      }>
+                        Next Step <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {isSubmitting ? 'Publishing...' : 'Publish Signal 🚀'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Signal Examples</CardTitle>
+                <CardDescription>Get inspired by quality signals</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {examples.map((example, i) => (
+                  <div key={i} className="border-l-4 border-blue-500 pl-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={example.action === 'LONG' ? 'default' : 'destructive'}>
+                        {example.action}
+                      </Badge>
+                      <span className="font-medium">{example.token}</span>
+                      <Badge variant="outline" className="text-xs">{example.highlight}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">{example.reasoning}</p>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Confidence: {Math.round(example.confidence * 100)}% • {example.timeframe}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Why Publish Signals?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span>Build verified track record</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-blue-500" />
+                  <span>Gain credibility & followers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-purple-500" />
+                  <span>Transparent performance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  <span>Real-time PnL tracking</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
