@@ -1,24 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Initialize Supabase client only if environment variables are available
-let supabase: any = null;
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-}
+import { supabase } from '@/lib/db';
 
 export async function GET() {
   try {
-    // Check if Supabase is available
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Database configuration not available' },
-        { status: 503 }
-      );
-    }
 
     // Try to find signals in expanding time windows
     const timeWindows = [
