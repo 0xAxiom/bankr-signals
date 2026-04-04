@@ -7,28 +7,32 @@ export async function GET() {
     const providers = await dbGetProviders();
     const signals = await dbGetSignals(1000); // Get more signals for accurate stats
 
-    const activeProviders = providers.filter(p => {
-      const providerSignals = signals.filter(s => s.provider === p.address) || [];
+    // Defensive filtering - ensure we have valid data
+    const validProviders = (providers || []).filter(p => p && p.address);
+    const validSignals = (signals || []).filter(s => s && s.provider);
+
+    const activeProviders = validProviders.filter(p => {
+      const providerSignals = validSignals.filter(s => s.provider === p.address) || [];
       return providerSignals.length > 0;
     });
 
-    const totalSignals = signals.length;
-    const openSignals = signals.filter(s => s.status === 'open').length;
-    const closedSignals = signals.filter(s => s.status === 'closed').length;
+    const totalSignals = validSignals.length;
+    const openSignals = validSignals.filter(s => s.status === 'open').length;
+    const closedSignals = validSignals.filter(s => s.status === 'closed').length;
 
     // Calculate aggregate stats
-    const totalProviders = providers.length;
-    const totalSubscribers = providers.reduce((sum, p) => sum + (p.subscriber_count || 0), 0);
+    const totalProviders = validProviders.length;
+    const totalSubscribers = validProviders.reduce((sum, p) => sum + (p.subscriber_count || 0), 0);
 
     // Calculate win rate for providers with closed trades
     const providersWithClosedTrades = activeProviders.filter(p => {
-      const providerSignals = signals.filter(s => s.provider === p.address && s.status === 'closed');
+      const providerSignals = validSignals.filter(s => s.provider === p.address && s.status === 'closed');
       return providerSignals.length > 0;
     });
 
     const avgWinRate = providersWithClosedTrades.length > 0
       ? providersWithClosedTrades.reduce((sum, p) => {
-          const providerSignals = signals.filter(s => s.provider === p.address && s.status === 'closed');
+          const providerSignals = validSignals.filter(s => s.provider === p.address && s.status === 'closed');
           const winningTrades = providerSignals.filter(s => (s.pnl_pct || 0) > 0);
           const winRate = providerSignals.length > 0 ? (winningTrades.length / providerSignals.length) * 100 : 0;
           return sum + winRate;
@@ -36,7 +40,7 @@ export async function GET() {
       : 0;
 
     // Calculate total volume
-    const totalVolume = signals.reduce((sum, s) => sum + (s.collateral_usd || 0), 0);
+    const totalVolume = validSignals.reduce((sum, s) => sum + (s.collateral_usd || 0), 0);
 
     const stats = {
       providers: {

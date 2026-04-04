@@ -119,7 +119,7 @@ async function getAllTimeBest() {
 function generateTweetText(signal: any, timeframe: string): string {
   const provider = signal.provider;
   const direction = signal.action.toUpperCase();
-  const asset = signal.asset || signal.token;
+  const asset = signal.token; // Fixed: use signal.token directly
   const leverage = signal.leverage ? `${signal.leverage}x` : '';
   const pnlFormatted = signal.pnl_pct > 0 ? `+${signal.pnl_pct.toFixed(1)}%` : `${signal.pnl_pct.toFixed(1)}%`;
   const twitterHandle = provider?.twitter ? `@${provider.twitter}` : provider?.name || 'Anonymous';

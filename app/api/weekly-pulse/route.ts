@@ -7,9 +7,10 @@ export async function GET() {
     
     // Get all signals and filter for the last week
     const allSignals = await dbGetSignals(1000);
-    const signals = allSignals.filter(s => 
-      new Date(s.timestamp) >= oneWeekAgo
-    );
+    const signals = allSignals.filter(s => {
+      const signalDate = new Date(s.timestamp || s.created_at);
+      return signalDate >= oneWeekAgo;
+    });
 
     // Get all providers
     const providers = await dbGetProviders();
