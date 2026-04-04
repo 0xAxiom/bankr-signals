@@ -1,0 +1,125 @@
+{
+  "timestamp": "2026-04-04T12:13:07.286Z",
+  "overall": "healthy",
+  "pages": [
+    {
+      "name": "Homepage",
+      "status": "pass",
+      "responseTime": 6021,
+      "statusCode": 200
+    },
+    {
+      "name": "Leaderboard",
+      "status": "pass",
+      "responseTime": 3085,
+      "statusCode": 200
+    },
+    {
+      "name": "Feed",
+      "status": "pass",
+      "responseTime": 3032,
+      "statusCode": 200
+    },
+    {
+      "name": "Register",
+      "status": "pass",
+      "responseTime": 395,
+      "statusCode": 200
+    },
+    {
+      "name": "Onboard",
+      "status": "pass",
+      "responseTime": 406,
+      "statusCode": 200
+    },
+    {
+      "name": "Trends",
+      "status": "pass",
+      "responseTime": 313,
+      "statusCode": 200
+    },
+    {
+      "name": "Pulse",
+      "status": "pass",
+      "responseTime": 302,
+      "statusCode": 200
+    },
+    {
+      "name": "Docs (SKILL.md)",
+      "status": "pass",
+      "responseTime": 412,
+      "statusCode": 200
+    },
+    {
+      "name": "Heartbeat",
+      "status": "pass",
+      "responseTime": 346,
+      "statusCode": 200
+    }
+  ],
+  "apis": [
+    {
+      "name": "Providers List",
+      "status": "pass",
+      "responseTime": 985,
+      "hasData": true
+    },
+    {
+      "name": "Signals List",
+      "status": "pass",
+      "responseTime": 504,
+      "hasData": true
+    },
+    {
+      "name": "Signal of Day",
+      "status": "pass",
+      "responseTime": 1440,
+      "hasData": true
+    },
+    {
+      "name": "Leaderboard API",
+      "status": "pass",
+      "responseTime": 3827,
+      "hasData": true
+    },
+    {
+      "name": "Feed API",
+      "status": "pass",
+      "responseTime": 475,
+      "hasData": true
+    },
+    {
+      "name": "Stats API",
+      "status": "pass",
+      "responseTime": 713,
+      "hasData": true
+    },
+    {
+      "name": "Trends API",
+      "status": "pass",
+      "responseTime": 604,
+      "hasData": true
+    },
+    {
+      "name": "Weekly Pulse API",
+      "status": "pass",
+      "responseTime": 722,
+      "hasData": true
+    },
+    {
+      "name": "Onboard Script",
+      "status": "pass",
+      "responseTime": 212,
+      "statusCode": 200
+    }
+  ],
+  "summary": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0,
+    "errors": 0,
+    "warnings": 0,
+    "successRate": 100,
+    "avgResponseTime": 1322
+  }
+}
