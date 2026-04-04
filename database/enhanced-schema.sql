@@ -377,6 +377,27 @@ $$ LANGUAGE plpgsql;
 -- CREATE POLICY user_portfolio_policy ON user_portfolios FOR ALL USING (user_id = current_user);
 -- CREATE POLICY user_positions_policy ON positions FOR ALL USING (user_id = current_user);
 
+-- Copy Trading Subscriptions
+CREATE TABLE IF NOT EXISTS copy_subscriptions (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  provider_address VARCHAR(42) NOT NULL REFERENCES signal_providers(address),
+  telegram_username VARCHAR(100),
+  webhook_url TEXT,
+  position_size_pct INTEGER DEFAULT 10 CHECK (position_size_pct >= 1 AND position_size_pct <= 50),
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'paused', 'cancelled')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  -- Ensure unique email + provider combination
+  UNIQUE(email, provider_address)
+);
+
+-- Indexes for copy subscriptions
+CREATE INDEX IF NOT EXISTS idx_copy_subscriptions_email ON copy_subscriptions(email);
+CREATE INDEX IF NOT EXISTS idx_copy_subscriptions_provider ON copy_subscriptions(provider_address);
+CREATE INDEX IF NOT EXISTS idx_copy_subscriptions_status ON copy_subscriptions(status);
+
 -- Add comments for documentation
 COMMENT ON TABLE signal_providers IS 'Enhanced signal providers with verification tiers and reputation system';
 COMMENT ON TABLE signals IS 'Trading signals with comprehensive categorization and performance tracking';

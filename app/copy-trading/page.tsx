@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowUpIcon, ArrowDownIcon, TrendingUpIcon, DollarSignIcon } from 'lucide-react';
+import CopySubscribeForm from '../components/copy-subscribe-form';
 
 interface Provider {
   address: string;
@@ -285,6 +286,26 @@ export default function CopyTradingPage() {
                     </a>
                   </div>
                 </div>
+
+                {/* Copy Subscribe Form - Only show if profitable simulation */}
+                {copyResults.totalReturn > 0 && (
+                  <div className="mt-6">
+                    <CopySubscribeForm 
+                      provider={{
+                        address: copyResults.provider.address,
+                        name: copyResults.provider.name,
+                        pnl_pct: copyResults.provider.pnl_pct,
+                        win_rate: copyResults.provider.win_rate,
+                        signal_count: copyResults.provider.signal_count
+                      }}
+                      defaultPositionSize={positionSize}
+                      onSuccess={() => {
+                        // Could add analytics tracking here
+                        console.log('User subscribed to copy trading');
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-[#737373] py-12">
