@@ -145,17 +145,27 @@ async function runHealthCheck() {
   const apiChecks = [
     ['Providers List', '/api/providers'],
     ['Signals List', '/api/signals'],
-    ['Signal of Day', '/api/signal-of-the-day'],
+    ['Signal of Day', '/api/signal-of-day'],
     ['Leaderboard API', '/api/leaderboard'],
     ['Feed API', '/api/feed'],
     ['Stats API', '/api/stats'],
     ['Trends API', '/api/trends'],
-    ['Weekly Pulse API', '/api/weekly-pulse'],
-    ['Onboard Script', '/api/onboard']
+    ['Weekly Pulse API', '/api/weekly-pulse']
   ];
 
   for (const [name, path] of apiChecks) {
     const result = await checkAPI(name, path);
+    results.apis.push(result);
+  }
+
+  // Check non-JSON endpoints separately
+  log('\n📜 Checking Script Endpoints:', 'blue');
+  const scriptChecks = [
+    ['Onboard Script', '/api/register-script?name=TestAgent&address=0x742d35Cc6634C0532925a3b8D581C16E1c77c86e']
+  ];
+
+  for (const [name, path] of scriptChecks) {
+    const result = await checkEndpoint(name, path);
     results.apis.push(result);
   }
 
