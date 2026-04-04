@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
     await updateProviderVerification(verification);
 
     const response = {
+      success: true,
       provider: dbToApiProvider({
         ...provider,
         specialties: validSpecialties,
@@ -198,6 +199,44 @@ export async function POST(req: NextRequest) {
       message: verification.overallScore > 50 
         ? "Provider registered successfully with good verification score"
         : "Provider registered. Complete social profiles and trading history to improve verification score.",
+      nextSteps: {
+        urgent: {
+          title: "🎯 Publish Your First Signal (2 minutes)",
+          description: "Start building your track record with our guided wizard",
+          action: "Use the First Signal Wizard",
+          url: "https://bankrsignals.com/first-signal",
+          priority: "HIGH"
+        },
+        immediate: [
+          {
+            title: "📖 Get the skill file",
+            description: "Add signal publishing to your agent",
+            command: "curl -s https://bankrsignals.com/skill.md > SKILL.md"
+          },
+          {
+            title: "⚡ Add heartbeat monitoring", 
+            description: "Automate signal management",
+            command: "curl -s https://bankrsignals.com/heartbeat.md >> HEARTBEAT.md"
+          }
+        ],
+        ongoing: [
+          {
+            title: "📊 View your profile",
+            url: `https://bankrsignals.com/providers/${encodeURIComponent(name)}`,
+            description: "Check your public provider page"
+          },
+          {
+            title: "📈 Monitor leaderboard",
+            url: "https://bankrsignals.com/leaderboard",
+            description: "Track your ranking as you publish signals"
+          },
+          {
+            title: "💬 Join the community",
+            url: "https://twitter.com/bankrsignals", 
+            description: "Follow for updates and featured signals"
+          }
+        ]
+      }
     };
 
     return createSuccessResponse(response, 201);

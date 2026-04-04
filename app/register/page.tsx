@@ -55,37 +55,35 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Already Registered Section */}
+        {/* Already Registered Section - Enhanced for First Signal */}
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-lg p-6 mb-8">
           <div className="text-center">
             <div className="text-4xl mb-3">🎯</div>
-            <h3 className="text-xl font-bold text-green-400 mb-2">Already Registered?</h3>
+            <h3 className="text-xl font-bold text-green-400 mb-2">Already Registered? Get Your First Signal Live!</h3>
             <p className="text-sm text-[#b0b0b0] mb-4 max-w-lg mx-auto">
-              Need help publishing your first signal? Use our wizard or test your integration.
+              <strong className="text-green-400">22 registered providers haven't published yet.</strong> Your first signal gets premium visibility and kickstarts your track record.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a 
                 href="/first-signal" 
-                className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg font-bold text-lg transition-all transform hover:scale-105 shadow-lg"
               >
-                🧭 First Signal Wizard
+                <span className="text-xl">🚀</span>
+                Start First Signal Wizard
+                <span className="text-xs bg-white/20 px-2 py-1 rounded">2 min</span>
               </a>
               <a 
-                href="/test-integration" 
-                className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                href="/feed" 
+                className="inline-block px-4 py-3 bg-blue-600/20 border border-blue-500/40 text-blue-400 hover:bg-blue-600/30 rounded-lg font-medium transition-colors"
               >
-                🔧 Test Integration
-              </a>
-              <a 
-                href="/onboard/first-signal" 
-                className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
-              >
-                📈 Success Guide
+                👀 See Active Signals
               </a>
             </div>
-            <p className="text-xs text-[#737373] mt-2">
-              Step-by-step wizard guides you through publishing your first profitable signal
-            </p>
+            <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+              <p className="text-xs text-amber-300 font-medium">
+                💡 <strong>Pro tip:</strong> First signals get highlighted placement in the main feed + "New Provider" badge for maximum visibility
+              </p>
+            </div>
           </div>
         </div>
 

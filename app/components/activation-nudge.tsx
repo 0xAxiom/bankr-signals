@@ -51,12 +51,12 @@ export default async function ActivationNudge() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/quick-start"
+                href="/first-signal"
                 className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black rounded-lg font-bold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
               >
                 <span className="text-2xl">🚀</span>
                 Publish Your First Signal Now
-                <span className="text-sm bg-black/20 px-2 py-1 rounded">2 min setup</span>
+                <span className="text-sm bg-black/20 px-2 py-1 rounded">2 min wizard</span>
               </Link>
               
               <Link
