@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbExecute, dbQuery } from '@/lib/db';
+import { supabase } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +24,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if provider exists
-    const providerExists = await dbQuery(
-      'SELECT address FROM providers WHERE LOWER(address) = LOWER(?)',
-      [providerAddress]
-    );
+    const { data: providerExists } = await supabase
+      .from('providers')
+      .select('address')
+      .ilike('address', providerAddress)
+      .single();
 
-    if (!providerExists || providerExists.length === 0) {
+    if (!providerExists) {
       return NextResponse.json(
         { error: 'Provider not found' },
         { status: 404 }
@@ -37,12 +38,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if already subscribed
-    const existingSubscription = await dbQuery(
-      'SELECT id FROM copy_subscriptions WHERE LOWER(email) = LOWER(?) AND LOWER(provider_address) = LOWER(?)',
-      [email, providerAddress]
-    );
+    const { data: existingSubscription } = await supabase
+      .from('copy_subscriptions')
+      .select('id')
+      .ilike('email', email)
+      .ilike('provider_address', providerAddress)
+      .single();
 
-    if (existingSubscription && existingSubscription.length > 0) {
+    if (existingSubscription) {
       return NextResponse.json(
         { error: 'Already subscribed to this provider' },
         { status: 409 }
@@ -50,25 +53,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Create subscription
-    await dbExecute(`
-      INSERT INTO copy_subscriptions (
+    const { error: insertError } = await supabase
+      .from('copy_subscriptions')
+      .insert({
         email, 
-        provider_address, 
-        telegram_username, 
-        webhook_url, 
-        position_size_pct,
-        created_at,
-        status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      email, 
-      providerAddress, 
-      telegramUsername || null, 
-      webhook || null, 
-      positionSize || 10,
-      new Date().toISOString(),
-      'active'
-    ]);
+        provider_address: providerAddress, 
+        telegram_username: telegramUsername || null, 
+        webhook_url: webhook || null, 
+        position_size_pct: positionSize || 10,
+        created_at: new Date().toISOString(),
+        status: 'active'
+      });
+
+    if (insertError) {
+      throw insertError;
+    }
 
     return NextResponse.json({ 
       success: true,
@@ -97,19 +96,20 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user's subscriptions with provider details
-    const subscriptions = await dbQuery(`
-      SELECT 
-        cs.*,
-        p.name as provider_name,
-        p.twitter as provider_twitter,
-        p.total_pnl,
-        p.win_rate
-      FROM copy_subscriptions cs
-      JOIN providers p ON LOWER(cs.provider_address) = LOWER(p.address)
-      WHERE LOWER(cs.email) = LOWER(?)
-      AND cs.status = 'active'
-      ORDER BY cs.created_at DESC
-    `, [email]);
+    const { data: subscriptions } = await supabase
+      .from('copy_subscriptions')
+      .select(`
+        *,
+        providers!inner (
+          name,
+          twitter,
+          total_pnl,
+          win_rate
+        )
+      `)
+      .ilike('email', email)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
 
     return NextResponse.json({ 
       subscriptions: subscriptions || []
@@ -136,11 +136,18 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const result = await dbExecute(`
-      UPDATE copy_subscriptions 
-      SET status = 'cancelled', updated_at = ?
-      WHERE LOWER(email) = LOWER(?) AND LOWER(provider_address) = LOWER(?)
-    `, [new Date().toISOString(), email, providerAddress]);
+    const { error: updateError } = await supabase
+      .from('copy_subscriptions')
+      .update({ 
+        status: 'cancelled', 
+        updated_at: new Date().toISOString() 
+      })
+      .ilike('email', email)
+      .ilike('provider_address', providerAddress);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     return NextResponse.json({ 
       success: true,
