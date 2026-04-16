@@ -97,12 +97,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultWalletContext: WalletContextType = {
+  address: null,
+  isConnected: false,
+  isLoading: false,
+  error: null,
+  connect: async () => {},
+  disconnect: () => {},
+};
+
 export function useWallet() {
   const context = useContext(WalletContext);
-  if (!context) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
+  // Return safe defaults during SSR or if used outside provider
+  return context ?? defaultWalletContext;
 }
 
 // Add types for window.ethereum
