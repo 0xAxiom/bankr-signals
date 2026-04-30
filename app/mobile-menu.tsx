@@ -34,6 +34,7 @@ export function MobileMenu() {
             </a>
             
             {[
+              { href: "/calculator", label: "🧮 Position Sizing" },
               { href: "/recap/weekly", label: "📊 Weekly Recap" },
               { href: "/trends", label: "📈 Market Trends" },
               { href: "/compare", label: "Compare Providers" },

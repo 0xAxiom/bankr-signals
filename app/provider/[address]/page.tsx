@@ -8,6 +8,7 @@ import { LivePnLTracker } from "../../live-pnl";
 import ProviderPageClient from "./ProviderPageClient";
 import { computeBadges, getBadgeColor } from "@/lib/badges";
 import { ShareProvider } from "./ShareProvider";
+import { PositionSizingCalculator } from "./PositionSizingCalculator";
 
 export const dynamic = "force-dynamic";
 
@@ -199,6 +200,11 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
         <div>
           <TradeStats trades={p.trades} />
         </div>
+      </div>
+
+      {/* Position Sizing Calculator */}
+      <div className="mb-8">
+        <PositionSizingCalculator trades={p.trades} providerName={p.name} />
       </div>
 
       <div className="mb-4 flex items-center justify-between">
