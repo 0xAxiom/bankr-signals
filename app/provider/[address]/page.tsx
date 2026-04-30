@@ -1,6 +1,7 @@
 import { getProviderStats } from "@/lib/signals";
 import { supabase } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import { EquityCurve, PerformanceGrid, TradeStats } from "./components";
 import { Avatar } from "../../avatar";
 import { LivePnLTracker } from "../../live-pnl";
@@ -9,6 +10,54 @@ import { computeBadges, getBadgeColor } from "@/lib/badges";
 import { ShareProvider } from "./ShareProvider";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
+  const { address } = await params;
+
+  let providers;
+  try {
+    providers = await getProviderStats();
+  } catch {
+    return { title: "Provider - Bankr Signals" };
+  }
+
+  const p = providers.find(pr => pr.address.toLowerCase() === address.toLowerCase());
+  if (!p) return { title: "Provider Not Found - Bankr Signals" };
+
+  const pnlSign = p.pnl_pct >= 0 ? '+' : '';
+  const title = `${p.name} · ${pnlSign}${p.pnl_pct.toFixed(1)}% PnL · ${p.win_rate}% Win Rate`;
+  const description = `${p.name} has published ${p.signal_count} verified signals on Base blockchain with a ${p.win_rate}% win rate and ${pnlSign}${p.pnl_pct.toFixed(1)}% total PnL. Every trade verified with a transaction hash.`;
+
+  const ogImageParams = new URLSearchParams({
+    name: p.name,
+    winRate: p.win_rate.toString(),
+    pnl: p.pnl_pct.toFixed(1),
+    signals: p.signal_count.toString(),
+    streak: p.streak.toString(),
+    avgReturn: p.avg_return.toFixed(1),
+  });
+
+  const ogImageUrl = `https://bankrsignals.com/api/og/provider?${ogImageParams.toString()}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `https://bankrsignals.com/provider/${address}`,
+      siteName: 'Bankr Signals',
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${p.name} Trading Performance` }],
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}
 
 export default async function ProviderPage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;

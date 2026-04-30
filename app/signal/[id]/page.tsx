@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${signal.action} $${signal.token} by ${signal.providerName} ${pnlText ? `• ${pnlText}` : ''}`;
   const description = signal.reasoning || `${signal.action} signal for $${signal.token} at $${signal.entryPrice}${signal.leverage ? ` with ${signal.leverage}x leverage` : ''}. Verified onchain trading signal.`;
 
-  const ogImageUrl = `/api/og/signal?` + new URLSearchParams({
+  const ogImageUrl = `https://bankrsignals.com/api/og/signal?` + new URLSearchParams({
     id: signal.id,
     provider: signal.providerName,
     action: signal.action,
