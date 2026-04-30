@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProviderStats } from "@/lib/signals";
 import { useFollowedProviders } from "../../hooks/useFollowedProviders";
+import { TokenFilter } from "@/components/TokenFilter";
 
 type TimePeriod = "all" | "30d" | "7d" | "1d";
 
@@ -18,11 +20,30 @@ export default function LeaderboardClient({
 }: {
   initialData: ProviderStats[];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [providers, setProviders] = useState<ProviderStats[]>(initialData);
   const [period, setPeriod] = useState<TimePeriod>("all");
   const [loading, setLoading] = useState(false);
   const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+  const tokenFilter = searchParams.get("token");
   const { isFollowing, followedProviders } = useFollowedProviders();
+
+  const handleTokenChange = (token: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (token) {
+      params.set("token", token);
+    } else {
+      params.delete("token");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/leaderboard?${qs}` : "/leaderboard", { scroll: false });
+  };
+
+  const providerTradesToken = (p: ProviderStats, token: string) => {
+    const needle = token.toLowerCase();
+    return p.trades?.some((t) => typeof t.token === "string" && t.token.toLowerCase().includes(needle));
+  };
 
   const fetchLeaderboard = async (newPeriod: TimePeriod) => {
     if (newPeriod === "all") {
@@ -51,18 +72,32 @@ export default function LeaderboardClient({
     fetchLeaderboard(newPeriod);
   };
 
-  const filteredProviders = showFollowedOnly 
+  let filteredProviders = showFollowedOnly
     ? providers.filter(p => isFollowing(p.address))
     : providers;
+
+  if (tokenFilter) {
+    filteredProviders = filteredProviders.filter(p => providerTradesToken(p, tokenFilter));
+  }
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-6">
         <h1 className="text-xl font-semibold mb-1">Provider Rankings</h1>
-        <p className="text-xs text-[#737373] mb-6">
+        <p className="text-xs text-[#737373] mb-4">
           Signal providers ranked by transaction-verified PnL. Performance calculated from
           Base blockchain data only.
         </p>
+
+        {/* Token Filter */}
+        <div className="mb-3 space-y-2">
+          <TokenFilter selected={tokenFilter} onChange={handleTokenChange} />
+          {tokenFilter && (
+            <p className="text-xs text-[#737373]">
+              {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''} trade {tokenFilter}
+            </p>
+          )}
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-6">

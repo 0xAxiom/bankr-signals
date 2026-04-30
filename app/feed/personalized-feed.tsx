@@ -1,18 +1,34 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFollowedProviders } from '../../hooks/useFollowedProviders';
 import { SignalCard } from './signal-card';
 import { TimeFilter, type TimeFilter as TimeFilterType } from './time-filter';
+import { TokenFilter } from '../../components/TokenFilter';
 
 interface PersonalizedFeedProps {
   allTrades: any[];
 }
 
 export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'following' | 'all'>('following');
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
+  const tokenFilter = searchParams.get('token');
   const { followedProviders, isLoaded } = useFollowedProviders();
+
+  const handleTokenChange = (token: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (token) {
+      params.set('token', token);
+    } else {
+      params.delete('token');
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/feed?${qs}` : '/feed', { scroll: false });
+  };
 
   // Auto-switch to 'all' if user has no followed providers
   useEffect(() => {
@@ -23,7 +39,7 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
 
   // Filter trades based on active tab and time filter
   const getFilteredTrades = () => {
-    let trades = activeTab === 'following' 
+    let trades = activeTab === 'following'
       ? allTrades.filter(trade => followedProviders.includes(trade.providerAddress))
       : allTrades;
 
@@ -35,12 +51,21 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
         'week': 7 * 24 * 60 * 60 * 1000,
         'month': 30 * 24 * 60 * 60 * 1000
       }[timeFilter];
-      
+
       if (filterMs) {
-        trades = trades.filter(trade => 
+        trades = trades.filter(trade =>
           now - new Date(trade.timestamp).getTime() < filterMs
         );
       }
+    }
+
+    // Apply token filter
+    if (tokenFilter) {
+      const needle = tokenFilter.toLowerCase();
+      trades = trades.filter((trade) => {
+        const fields = [trade.token, trade.pair, trade.asset];
+        return fields.some((f) => typeof f === 'string' && f.toLowerCase().includes(needle));
+      });
     }
 
     return trades;
@@ -121,11 +146,21 @@ export function PersonalizedFeed({ allTrades }: PersonalizedFeedProps) {
           </button>
         </div>
 
-        <TimeFilter 
-          activeFilter={timeFilter} 
+        <TimeFilter
+          activeFilter={timeFilter}
           onFilterChange={setTimeFilter}
           signalCounts={getSignalCounts()}
         />
+      </div>
+
+      {/* Token Filter */}
+      <div className="space-y-2">
+        <TokenFilter selected={tokenFilter} onChange={handleTokenChange} />
+        {tokenFilter && (
+          <p className="text-xs text-[#737373]">
+            Showing {filteredTrades.length} {tokenFilter} signal{filteredTrades.length !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       {/* Empty State for Following */}
