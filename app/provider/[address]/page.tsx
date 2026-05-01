@@ -314,7 +314,46 @@ export default async function ProviderPage({ params }: { params: Promise<{ addre
         />
       </div>
 
+      {/* Embeddable Badge */}
       <div className="mt-8 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
+        <div className="text-xs font-medium text-[#a3a3a3] uppercase tracking-wider mb-3">Embed Your Badge</div>
+        <p className="text-xs text-[#737373] mb-4">
+          Show off your verified track record. Embed this badge on your GitHub README, Twitter/X bio, or anywhere you want to display your performance.
+        </p>
+        <div className="mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://bankrsignals.com/api/badge/${p.address}`}
+            alt={`${p.name} trading badge`}
+            width={320}
+            height={88}
+            className="rounded"
+          />
+        </div>
+        <div className="space-y-3">
+          <div>
+            <div className="text-[10px] text-[#555] font-mono uppercase mb-1">Markdown (GitHub README)</div>
+            <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block bg-[#0a0a0a] px-3 py-2 rounded border border-[#2a2a2a] overflow-x-auto whitespace-nowrap">
+              {`[![Bankr Signals](https://bankrsignals.com/api/badge/${p.address})](https://bankrsignals.com/provider/${p.address})`}
+            </code>
+          </div>
+          <div>
+            <div className="text-[10px] text-[#555] font-mono uppercase mb-1">HTML</div>
+            <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block bg-[#0a0a0a] px-3 py-2 rounded border border-[#2a2a2a] overflow-x-auto whitespace-nowrap">
+              {`<a href="https://bankrsignals.com/provider/${p.address}"><img src="https://bankrsignals.com/api/badge/${p.address}" alt="Bankr Signals" /></a>`}
+            </code>
+          </div>
+          <div>
+            <div className="text-[10px] text-[#555] font-mono uppercase mb-1">Direct URL</div>
+            <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block bg-[#0a0a0a] px-3 py-2 rounded border border-[#2a2a2a] overflow-x-auto whitespace-nowrap">
+              {`https://bankrsignals.com/api/badge/${p.address}`}
+            </code>
+          </div>
+        </div>
+        <p className="text-[10px] text-[#555] mt-3">Badge updates every 5 minutes. Shows win rate, avg PnL, and signal count.</p>
+      </div>
+
+      <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
         <div className="text-xs text-[#737373] mb-2">API endpoint for this provider:</div>
         <code className="text-xs font-mono text-[rgba(34,197,94,0.6)] block mb-2 overflow-x-auto break-all">
           {`curl https://bankrsignals.com/api/signals?provider=${p.address}`}
