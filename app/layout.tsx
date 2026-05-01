@@ -126,6 +126,7 @@ function Footer() {
               <a href="/calculator" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🧮 Position Sizing</a>
               <a href="/trends" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📈 Market Trends</a>
               <a href="/recap/weekly" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📊 Weekly Recap</a>
+              <a href="/recap/monthly" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">📅 Monthly Recap</a>
               <a href="/market-intelligence" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🧠 Market Intel</a>
               <a href="/signal-of-the-day" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">🏆 Signal of Day</a>
               <a href="/leaderboard" className="text-[#737373] hover:text-[#e5e5e5] transition-colors">Leaderboard</a>
