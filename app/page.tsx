@@ -30,10 +30,21 @@ export default async function Home() {
     : 0;
 
   // Calculate total verified volume
-  const totalVolume = providers.reduce((sum, p) => 
-    sum + p.trades.reduce((tradeSum, t) => 
+  const totalVolume = providers.reduce((sum, p) =>
+    sum + p.trades.reduce((tradeSum, t) =>
       tradeSum + (t.collateralUsd || 0), 0), 0);
-  
+
+  // This week stats
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 7);
+  const allTrades = providers.flatMap(p => p.trades.map(t => ({ ...t, providerName: p.name, providerAddress: p.address })));
+  const thisWeekTrades = allTrades.filter(t => new Date(t.timestamp) >= weekStart);
+  const thisWeekClosed = thisWeekTrades.filter(t => t.status === 'closed' && t.pnl !== undefined);
+  const bestThisWeek = thisWeekClosed.length > 0
+    ? thisWeekClosed.reduce((best, t) => (t.pnl || 0) > (best.pnl || 0) ? t : best)
+    : null;
+  const thisWeekSignalCount = thisWeekTrades.length;
+
   // Get only OPEN trades for live ticker - never show closed positions as "LIVE"
   const openTrades = providers.flatMap(p =>
     p.trades
@@ -111,6 +122,44 @@ export default async function Home() {
         <Stat label="Verified Trades" value={totalSignals.toLocaleString()} />
         <Stat label="Avg Win Rate" value={avgWinRate > 0 ? `${avgWinRate}%` : "—"} />
       </div>
+
+      {/* This Week Highlights */}
+      {(thisWeekSignalCount > 0 || bestThisWeek) && (
+        <div className="mb-10 p-4 bg-[#111] border border-[#2a2a2a] rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-medium text-[#737373] uppercase tracking-wider">This Week</span>
+            <span className="text-xs text-[#404040]">·</span>
+            <span className="text-xs text-[#505050]">last 7 days</span>
+          </div>
+          <div className="flex flex-wrap gap-6">
+            {thisWeekSignalCount > 0 && (
+              <div>
+                <span className="font-mono text-base font-semibold text-[#e5e5e5]">{thisWeekSignalCount}</span>
+                <span className="text-xs text-[#737373] ml-1.5">new signal{thisWeekSignalCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+            {bestThisWeek && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-[#737373]">Best trade:</span>
+                <a href={`/provider/${bestThisWeek.providerAddress}`} className="font-mono text-base font-semibold text-green-400 hover:text-green-300 transition-colors">
+                  +{bestThisWeek.pnl?.toFixed(1)}%
+                </a>
+                <span className="text-xs text-[#505050]">by {bestThisWeek.providerName}</span>
+              </div>
+            )}
+            {thisWeekClosed.length > 0 && (() => {
+              const wins = thisWeekClosed.filter(t => (t.pnl || 0) > 0).length;
+              const winRate = Math.round((wins / thisWeekClosed.length) * 100);
+              return (
+                <div>
+                  <span className={`font-mono text-base font-semibold ${winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>{winRate}%</span>
+                  <span className="text-xs text-[#737373] ml-1.5">win rate ({thisWeekClosed.length} closed)</span>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Copy Trading Simulator Feature Highlight */}
       <div className="mb-12 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl p-6">

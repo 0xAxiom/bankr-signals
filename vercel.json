@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/bankrsignals-onboard?execute=true&priority=high",
       "schedule": "0 9 * * 2,5"
+    },
+    {
+      "path": "/api/cron/daily-tweet",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-digest",
+      "schedule": "0 10 * * 1"
     }
   ]
 }

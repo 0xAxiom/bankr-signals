@@ -6,10 +6,13 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const cronSecret = searchParams.get('secret');
-    
-    // Verify cron secret
-    if (cronSecret !== process.env.CRON_SECRET) {
+    // Support both Authorization header (Vercel cron) and ?secret= query param (manual)
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : searchParams.get('secret');
+
+    if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
