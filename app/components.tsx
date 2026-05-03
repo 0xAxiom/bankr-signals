@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ProviderStats, ParsedTrade } from "@/lib/signals";
 import { Avatar } from "./avatar";
 import { FollowButton } from "@/components/follow-button";
+import { ActivityDot } from "@/components/ActivityStatus";
 
 interface LiveTickerProps {
   trades: (ParsedTrade & { providerName: string; providerAddress: string })[];
@@ -271,7 +272,10 @@ export function SortableProvidersTable({ providers, showAll = false }: SortableP
                 <a href={`/provider/${p.address}`} className="hover:text-[rgba(34,197,94,0.6)] transition-colors flex items-center gap-3">
                   <Avatar address={p.address} name={p.name} avatarUrl={p.avatar} size="sm" />
                   <div>
-                    <span className="font-medium">{p.name}</span>
+                    <span className="font-medium inline-flex items-center gap-1.5">
+                      <ActivityDot hours={p.last_signal_hours} size={7} />
+                      {p.name}
+                    </span>
                     <span className="text-[#737373] text-xs ml-2 font-mono">{p.address.slice(0, 8)}...</span>
                   </div>
                 </a>

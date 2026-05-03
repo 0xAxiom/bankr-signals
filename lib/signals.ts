@@ -31,6 +31,7 @@ export interface ProviderStats {
   avg_return: number;
   streak: number;
   last_signal_age: string;
+  last_signal_hours: number | null;
   trades: ParsedTrade[];
 }
 
@@ -187,6 +188,9 @@ export async function getProviderStats(
           : 0,
       streak,
       last_signal_age: lastTrade ? timeAgo(lastTrade.timestamp) : "never",
+      last_signal_hours: lastTrade
+        ? Math.floor((Date.now() - new Date(lastTrade.timestamp).getTime()) / 3600000)
+        : null,
       trades,
     });
   }

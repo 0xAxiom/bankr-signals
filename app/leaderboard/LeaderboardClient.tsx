@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProviderStats } from "@/lib/signals";
 import { useFollowedProviders } from "../../hooks/useFollowedProviders";
 import { TokenFilter } from "@/components/TokenFilter";
+import { ActivityDot, activityTier } from "@/components/ActivityStatus";
 
 type TimePeriod = "all" | "30d" | "7d" | "1d";
 
@@ -26,6 +27,7 @@ export default function LeaderboardClient({
   const [period, setPeriod] = useState<TimePeriod>("all");
   const [loading, setLoading] = useState(false);
   const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+  const [hideStale, setHideStale] = useState(false);
   const tokenFilter = searchParams.get("token");
   const { isFollowing, followedProviders } = useFollowedProviders();
 
@@ -80,14 +82,47 @@ export default function LeaderboardClient({
     filteredProviders = filteredProviders.filter(p => providerTradesToken(p, tokenFilter));
   }
 
+  if (hideStale) {
+    filteredProviders = filteredProviders.filter(p => {
+      const tier = activityTier(p.last_signal_hours);
+      return tier === "live" || tier === "recent" || tier === "idle";
+    });
+  }
+
+  const activeCount = providers.filter(p => {
+    const tier = activityTier(p.last_signal_hours);
+    return tier === "live" || tier === "recent";
+  }).length;
+
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-6">
         <h1 className="text-xl font-semibold mb-1">Provider Rankings</h1>
-        <p className="text-xs text-[#737373] mb-4">
+        <p className="text-xs text-[#737373] mb-3">
           Signal providers ranked by transaction-verified PnL. Performance calculated from
           Base blockchain data only.
         </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#737373] mb-4">
+          <span className="flex items-center gap-1.5">
+            <ActivityDot hours={0} size={6} pulse={false} />
+            <span>Live (24h)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ActivityDot hours={48} size={6} />
+            <span>Recent (7d)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ActivityDot hours={24 * 10} size={6} />
+            <span>Idle (30d)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ActivityDot hours={24 * 60} size={6} />
+            <span>Stale (&gt;30d)</span>
+          </span>
+          <span className="ml-auto">
+            {activeCount} active in last 7 days
+          </span>
+        </div>
 
         {/* Token Filter */}
         <div className="mb-3 space-y-2">
@@ -115,6 +150,19 @@ export default function LeaderboardClient({
             </button>
           )}
           
+          {/* Active-only filter */}
+          <button
+            onClick={() => setHideStale(!hideStale)}
+            className={`px-4 py-2 rounded text-sm font-medium transition-all border ${
+              hideStale
+                ? "bg-[rgba(34,197,94,0.15)] text-[rgba(34,197,94,0.9)] border-[rgba(34,197,94,0.3)]"
+                : "bg-[#1a1a1a] text-[#737373] border-[#2a2a2a] hover:bg-[#2a2a2a] hover:text-[#999]"
+            }`}
+            title="Only show providers with signals in the last 30 days"
+          >
+            Active only{hideStale ? ` (${filteredProviders.length})` : ""}
+          </button>
+
           {/* Time Period Filters */}
           {(Object.keys(PERIOD_LABELS) as TimePeriod[]).map((p) => (
             <button
@@ -227,7 +275,10 @@ export default function LeaderboardClient({
                       : "-"}
                 </td>
                 <td className="px-4 py-3 text-right text-xs text-[#737373]">
-                  {p.last_signal_age}
+                  <span className="inline-flex items-center gap-1.5 justify-end">
+                    <ActivityDot hours={p.last_signal_hours} />
+                    {p.last_signal_age}
+                  </span>
                 </td>
               </tr>
             ))}
